@@ -69,15 +69,16 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
 
   const allNavItems = [
     { id: 'overview', label: 'Dashboard', icon: Grid3x3 },
-    { id: 'jobs', label: 'Jobs', icon: Briefcase },
-    { id: 'scheduling', label: 'Scheduling', icon: Calendar },
-    { id: 'staff', label: 'Staff & Teams', icon: Users },
-    { id: 'logistics', label: 'Deliveries', icon: Truck },
-    { id: 'assets', label: 'Assets & Fleet', icon: Wrench },
+    { id: 'jobs', label: 'Jobs Hub', icon: Briefcase },
+    { id: 'scheduling', label: 'Scheduling Hub', icon: Calendar },
+    { id: 'staff', label: 'Staff Hub', icon: Users },
+    { id: 'logistics', label: 'Deliveries Hub', icon: Truck },
+    { id: 'assets', label: 'Assets Hub', icon: Boxes },
+    { id: 'fleet', label: 'Fleet Hub', icon: Car },
     { id: 'investigation', label: 'Investigation Hub', icon: FlaskConical },
-    { id: 'compliance', label: 'Compliance & Audit', icon: ShieldCheck },
-    { id: 'billing', label: 'Financial Control', icon: PoundSterling },
-    { id: 'settings', label: 'System', icon: Settings },
+    { id: 'compliance', label: 'Compliance Hub', icon: ShieldCheck },
+    { id: 'billing', label: 'Financial Hub', icon: PoundSterling },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   const toggleCollapsed = () => {

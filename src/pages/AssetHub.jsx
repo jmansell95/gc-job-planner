@@ -7,7 +7,7 @@ import {
   Plus, Search, Boxes, ScanLine, X, TrendingUp, TrendingDown, RefreshCw, Lock, ShieldCheck,
   CheckSquare, Upload, Database, MapPin, QrCode, Trash2, CircleDot,
 } from 'lucide-react';
-import Vehicles from '@/pages/Vehicles';
+import ConsumableInventoryManager from '@/components/settings/ConsumableInventoryManager';
 import { rollupCompliance, daysUntil } from '@/utils/rigRollup';
 import RigDetailDrawer from '@/components/righub/RigDetailDrawer';
 import EquipmentDetailDrawer from '@/components/righub/EquipmentDetailDrawer';
@@ -47,7 +47,6 @@ const CATEGORIES = [
 
 export default function AssetHub() {
   const navigate = useNavigate();
-  const [topTab, setTopTab] = useState('assets');
   const [view, setView] = useState('inventory');
   const [category, setCategory] = useState('all');
   const [search, setSearch] = useState('');
@@ -71,7 +70,7 @@ export default function AssetHub() {
     queryFn: () => base44.entities.SiteAsset.list('-created_date', 500),
   });
 
-  // Vehicles are managed in the dedicated Fleet tab — exclude them from the Assets inventory
+  // Vehicles are managed in the dedicated Fleet Hub — exclude them from the Assets inventory
   const assets = useMemo(() => allAssets.filter(a => a.asset_type !== 'vehicle'), [allAssets]);
 
   const rigs = useMemo(() => assets.filter(a => a.asset_type === 'rig'), [assets]);
@@ -103,13 +102,9 @@ export default function AssetHub() {
     return c;
   }, [assets]);
 
-  const topTabs = [
-    { id: 'assets', label: 'Assets', icon: Wrench },
-    { id: 'fleet', label: 'Fleet', icon: Truck },
-  ];
-
   const subTabs = [
     { id: 'inventory', label: 'Inventory', icon: Boxes, count: assets.length },
+    { id: 'consumables', label: 'Consumables', icon: Package },
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck, badge: recertCount },
     { id: 'deployments', label: 'Deployments', icon: MapPin },
     { id: 'performance', label: 'Performance', icon: TrendingUp },
@@ -134,10 +129,9 @@ export default function AssetHub() {
     <div className="space-y-4">
       <PageHeader
         icon={Boxes}
-        title="Assets & Fleet"
-        subtitle="Rigs, gear, vehicles & PAT — Asset Panda synced + locally created"
+        title="Assets Hub"
+        subtitle="Rigs, gear & PAT — Asset Panda synced + locally created. Warehouse consumables & internal stock."
         actions={
-          topTab === 'assets' && (
             <div className="flex items-center gap-2 flex-wrap">
               <button onClick={() => navigate('/scanner')} className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg font-semibold text-xs hover:bg-[#244715] transition shadow-sm"><ScanLine className="w-3.5 h-3.5" /> Scanner</button>
               <button onClick={() => setShowBulkQR(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><QrCode className="w-3.5 h-3.5" /> QR Labels</button>
@@ -145,17 +139,15 @@ export default function AssetHub() {
               <button onClick={() => setShowBulkUpload(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><Upload className="w-3.5 h-3.5" /> Bulk Upload</button>
               <button onClick={openAdd} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#2E5A1A] text-white rounded-lg font-semibold text-xs hover:bg-[#244715] transition shadow-sm"><Plus className="w-3.5 h-3.5" /> Add Asset</button>
             </div>
-          )
         }
       />
-      <TabBar tabs={topTabs} activeTab={topTab} onChange={setTopTab} />
+      <TabBar tabs={subTabs} activeTab={view} onChange={setView} />
 
-      {topTab === 'fleet' ? (
-        <Vehicles />
+      {/* Consumables tab — warehouse inventory managed separately from rigs/gear */}
+      {view === 'consumables' ? (
+        <ErrorBoundary><ConsumableInventoryManager /></ErrorBoundary>
       ) : (
         <>
-          <TabBar tabs={subTabs} activeTab={view} onChange={setView} />
-
           {/* Fleet health strip — slim, borderless, sits flush under the tab bar */}
           <div className="flex items-center justify-between gap-3 flex-wrap py-1">
             <FleetSyncPanel />
@@ -260,7 +252,7 @@ export default function AssetHub() {
                 <DrillingEfficiencyPanel assets={assets} />
                 <AssetUtilizationTrends />
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <PredictiveMaintenanceWidget onSelectVehicle={(v) => navigate('/admin', { state: { section: 'assets' } })} />
+                  <PredictiveMaintenanceWidget onSelectVehicle={(v) => navigate('/fleet')} />
                   <PredictiveInsightsWidget onNavigate={(section) => navigate('/admin', { state: { section } })} />
                 </div>
               </div>

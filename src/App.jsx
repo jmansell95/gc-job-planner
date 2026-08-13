@@ -20,6 +20,7 @@ import AdminDeliveryHub from './pages/AdminDeliveryHub';
 import HelpGuide from './pages/HelpGuide';
 import PresentationPack from './pages/PresentationPack';
 import AssetHub from './pages/AssetHub';
+import FleetHub from './pages/FleetHub';
 import KeyLogBookDocs from './pages/KeyLogBookDocs';
 import ImprovementRoadmap from './pages/ImprovementRoadmap';
 import Microsoft365SetupGuide from './pages/Microsoft365SetupGuide';
@@ -93,12 +94,13 @@ const AuthenticatedApp = () => {
             <Route path="/staff" element={<RouteGuard><StaffPage /></RouteGuard>} />
             <Route path="/safety" element={<Navigate to="/compliance" replace />} />
             <Route path="/assets" element={<RouteGuard><AssetHub /></RouteGuard>} />
+            <Route path="/fleet" element={<RouteGuard><FleetHub /></RouteGuard>} />
             <Route path="/timesheets" element={<Navigate to="/staff" replace />} />
             <Route path="/contacts" element={<Navigate to="/staff" replace />} />
             <Route path="/audit" element={<Navigate to="/compliance" replace />} />
             <Route path="/price-list" element={<Navigate to="/billing" replace />} />
             <Route path="/reports" element={<Navigate to="/billing" replace />} />
-            <Route path="/vehicles" element={<Navigate to="/assets" replace />} />
+            <Route path="/vehicles" element={<Navigate to="/fleet" replace />} />
             <Route path="/import" element={<Navigate to="/admin" replace />} />
             <Route path="/automations" element={<Navigate to="/admin" replace />} />
             <Route path="/keylogbook-docs" element={<RouteGuard><KeyLogBookDocs /></RouteGuard>} />

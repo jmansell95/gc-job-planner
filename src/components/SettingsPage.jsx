@@ -61,8 +61,6 @@ import CustomReportBuilder from '@/components/reports/CustomReportBuilder';
 import HolidayAccrualManager from '@/components/staff/HolidayAccrualManager';
 import StaffReviewManager from '@/components/staff/StaffReviewManager';
 import TimesheetDelegationManager from '@/components/settings/TimesheetDelegationManager';
-import DashboardThemeSettings from '@/components/settings/DashboardThemeSettings';
-import CustomFieldBuilder from '@/components/settings/CustomFieldBuilder';
 import BackupRestoreManager from '@/components/settings/BackupRestoreManager';
 import ClientProgressReport from '@/components/reports/ClientProgressReport';
 import AssetLifecycleManager from '@/components/settings/AssetLifecycleManager';
@@ -188,8 +186,6 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'holiday-accrual': return <HolidayAccrualManager />;
       case 'staff-reviews': return <StaffReviewManager />;
       case 'timesheet-delegation': return <TimesheetDelegationManager />;
-      case 'dashboard-themes': return <DashboardThemeSettings />;
-      case 'custom-fields': return <CustomFieldBuilder />;
       case 'backup-restore': return <BackupRestoreManager />;
       case 'client-progress-report': return <ClientProgressReport />;
       case 'asset-lifecycle': return <AssetLifecycleManager />;

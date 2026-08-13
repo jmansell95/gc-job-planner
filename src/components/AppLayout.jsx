@@ -15,6 +15,7 @@ const ROUTE_SECTION_MAP = {
   '/deliveries': 'logistics',
   '/admin/logistics': 'logistics',
   '/pat-testing': 'assets',
+  '/fleet': 'fleet',
   '/safety': 'compliance',
   '/help': 'overview',
   '/presentation-pack': 'overview',

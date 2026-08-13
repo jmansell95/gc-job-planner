@@ -64,8 +64,6 @@ export const settingsGroups = [
       { id: 'planner-import', label: 'Planner Import', icon: FileSpreadsheet, desc: 'Upload weekly rota spreadsheet' },
       { id: 'incremental-import', label: 'Incremental Import', icon: Layers, desc: 'Non-destructive smart imports' },
       { id: 'system-guide', label: 'System Logic Guide', icon: BookOpen, desc: 'Download a PDF explaining every stat, rule and automation in the system', roles: ['admin', 'manager', 'viewer'] },
-      { id: 'custom-fields', label: 'Custom Field Builder', icon: Settings2, desc: 'Add custom fields to jobs, staff, assets, vehicles, clients & suppliers — no code needed', roles: ['admin'] },
-      { id: 'dashboard-themes', label: 'Dashboard Color Themes', icon: Palette, desc: 'Personalize your dashboard with preset accent color themes — emerald, blue, violet, amber, rose & teal', roles: ['admin', 'manager', 'viewer'] },
       { id: 'backup-restore', label: 'Backup & Restore', icon: Database, desc: 'Export a full data snapshot, restore from a previous backup, seed demo data or reset the database', roles: ['admin'] },
     ],
   },
