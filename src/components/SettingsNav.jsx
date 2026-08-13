@@ -53,7 +53,6 @@ export const settingsGroups = [
   {
     label: 'System Configuration',
     items: [
-      { id: 'job-types', label: 'Job Types', icon: Tag, desc: 'Manage job types and colours' },
       { id: 'dropdowns', label: 'Dropdown Manager', icon: ListChecks, desc: 'Add, rename, reorder or remove options in every dropdown — qualifications, asset types, revenue streams & more' },
       { id: 'global-branding', label: 'Global Branding', icon: Palette, desc: 'Default colours, banner and footer for all automated emails' },
       { id: 'login-branding', label: 'Login Page Customiser', icon: Palette, desc: 'Customise the staff login page — background, colours, logo, welcome text & live preview', roles: ['admin'] },
