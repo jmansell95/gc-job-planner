@@ -134,7 +134,7 @@ export default function CustomisableWidgetGrid({ renderWidget, canShowWidget }) 
         </div>
         <button onClick={() => setCustomise(!customise)}
           className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition ${customise ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-[#2E5A1A]/30'}`}>
-          {customise ? <><Check className="w-4 h-4" /> Done Customising</> : <><Settings2 className="w-4 h-4" /> Customise Dashboard</>}
+          {customise ? <><Check className="w-4 h-4" /> Done Customising</> : <><Settings2 className="w-4 h-4" /> Customise Dashboard <span className="text-[11px] font-normal text-slate-400">· widgets below only</span></>}
         </button>
       </div>
 
