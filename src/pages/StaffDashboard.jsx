@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, CalendarDays, CalendarClock, Clock, HardHat, CheckCircle2, UserCircle, ShieldCheck, AlertTriangle, Truck, HelpCircle } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarClock, Clock, HardHat, CheckCircle2, UserCircle, ShieldCheck, AlertTriangle, Truck, HelpCircle, ScanLine } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, isFuture, isPast } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -775,12 +775,19 @@ export default function StaffDashboard() {
             </button>
             <button onClick={() => navigate('/help')} type="button"
               className="bg-white border border-slate-200 rounded-2xl flex flex-col items-center gap-3 p-5 hover:border-amber-400 hover:shadow-md active:scale-95 transition touch-manipulation">
-              <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center">
-                <HelpCircle className="w-7 h-7 text-amber-600" />
-              </div>
-              <span className="text-base font-bold text-slate-800">Help Guides</span>
-            </button>
-          </div>
+                <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center">
+                  <HelpCircle className="w-7 h-7 text-amber-600" />
+                </div>
+                <span className="text-base font-bold text-slate-800">Help Guides</span>
+              </button>
+            <button onClick={() => navigate('/scanner')} type="button"
+              className="bg-white border border-slate-200 rounded-2xl flex flex-col items-center gap-3 p-5 hover:border-emerald-400 hover:shadow-md active:scale-95 transition touch-manipulation">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center">
+                  <ScanLine className="w-7 h-7 text-emerald-600" />
+                </div>
+                <span className="text-base font-bold text-slate-800">Asset Scanner</span>
+              </button>
+            </div>
 
         </div>
       )}

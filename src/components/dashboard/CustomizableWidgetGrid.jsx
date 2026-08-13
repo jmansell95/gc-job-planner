@@ -16,9 +16,9 @@ const TIER_GRADIENT = {
   insights: 'from-blue-500 to-cyan-600',
 };
 
-// Size → Tailwind colspan class on large screens
-// sm / md = half width (1 col), lg = full width (2 cols)
-const SIZE_COLSPAN = { sm: '', md: '', lg: 'lg:col-span-2' };
+// Size → Tailwind colspan class on large screens (4-col grid)
+// sm = quarter (1 col), md = half (2 cols), lg = full (4 cols) — all three distinct
+const SIZE_COLSPAN = { sm: 'lg:col-span-1', md: 'lg:col-span-2', lg: 'lg:col-span-4' };
 const SIZE_ICON = { sm: Minimize2, md: Square, lg: Maximize2 };
 const SIZE_LABEL = { sm: 'Small', md: 'Medium', lg: 'Large' };
 
@@ -230,19 +230,19 @@ export default function CustomizableWidgetGrid({ renderWidget, canShowWidget }) 
                       <span className="text-xs text-slate-400 font-medium">{widgets.length} {widgets.length === 1 ? 'widget' : 'widgets'}</span>
                     </div>
                     {/* Widgets — sized by user preference, fullWidth config always spans both columns */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                       {widgets.map((widgetId) => {
                         const content = renderWidget(widgetId);
                         if (!content) return null;
                         const config = WIDGET_REGISTRY[widgetId];
                         const userSize = sizes[widgetId] || 'md';
-                        const isFullWidth = config?.fullWidth || userSize === 'lg';
+                        const colspanClass = config?.fullWidth ? 'lg:col-span-4' : (SIZE_COLSPAN[userSize] || 'lg:col-span-2');
                         const SizeIcon = SIZE_ICON[userSize] || Square;
                         return (
                           <Draggable key={widgetId} draggableId={widgetId} index={visibleWidgets.indexOf(widgetId)} isDragDisabled={!customize}>
                             {(provided, snapshot) => (
                               <div ref={provided.innerRef} {...provided.draggableProps}
-                                className={`${isFullWidth ? 'lg:col-span-2' : ''} relative ${customize ? 'ring-2 ring-[#2E5A1A]/30 rounded-2xl pt-5' : ''} ${snapshot.isDragging ? 'z-50 shadow-2xl' : ''}`}>
+                                className={`${colspanClass} relative ${customize ? 'ring-2 ring-[#2E5A1A]/30 rounded-2xl pt-5' : ''} ${snapshot.isDragging ? 'z-50 shadow-2xl' : ''}`}>
                                 {customize && (
                                   <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1">
                                     <div {...provided.dragHandleProps}
