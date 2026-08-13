@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Users, CalendarX, CalendarDays, Star, UserCheck, UsersRound, Building2, HardHat, Package, Clock, Contact } from 'lucide-react';
 import SettingsPage from '@/components/SettingsPage';
 import PageHeader from '@/components/PageHeader';
@@ -11,7 +11,8 @@ import StaffUtilizationWidget from '@/components/dashboard/StaffUtilizationWidge
 
 export default function StaffPage() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState('staff');
+  const location = useLocation();
+  const [tab, setTab] = useState(location.state?.initialTab || 'staff');
 
   const tabs = [
     { id: 'staff', label: 'Crew Members', icon: Users },

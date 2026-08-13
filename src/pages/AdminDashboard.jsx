@@ -91,7 +91,8 @@ export default function AdminDashboard() {
       setSchedulingTab('rota');
     }
     if (STANDALONE_ROUTES[section]) {
-      navigate(STANDALONE_ROUTES[section]);
+      const navState = isObj && sectionOrObj.staffTab ? { state: { initialTab: sectionOrObj.staffTab } } : undefined;
+      navigate(STANDALONE_ROUTES[section], navState);
     } else {
       setActiveSection(section);
     }

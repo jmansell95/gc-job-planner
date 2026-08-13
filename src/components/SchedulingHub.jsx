@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import UnifiedRotaBuilder from '@/components/rota/UnifiedRotaBuilder';
 import CalendarView from '@/components/CalendarView';
 import AvailabilityHeatmap from '@/components/rota/AvailabilityHeatmap';
 import TemplateWeekCopy from '@/components/rota/TemplateWeekCopy';
-import ManagerTimesheetApprovals from '@/components/ManagerTimesheetApprovals';
-import { Calendar, CalendarDays, CalendarClock, Navigation2, Loader2, Grid3x3, Warehouse, ClipboardCheck } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarClock, Navigation2, Loader2, Grid3x3, Warehouse } from 'lucide-react';
 import { useSchedulingAssistant } from '@/components/SchedulingAssistantChat';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
@@ -21,11 +19,6 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
   const { openChat } = useSchedulingAssistant();
   const { toast } = useToast();
   useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
-
-  const { data: profile } = useQuery({
-    queryKey: ['my-staff-profile'],
-    queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; }
-  });
 
   const handleGeotabSync = async () => {
     setSyncing(true);
@@ -51,7 +44,6 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
 
   const tabs = [
     { id: 'rota', label: 'Rota Builder', icon: Calendar },
-    { id: 'timesheets', label: 'Timesheet Review', icon: ClipboardCheck },
     { id: 'yard', label: 'Yard Control', icon: Warehouse },
     { id: 'heatmap', label: 'Availability Heatmap', icon: Grid3x3 },
     { id: 'calendar', label: 'Calendar', icon: CalendarDays },
@@ -78,7 +70,6 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
         </div>
       </div>
       {tab === 'rota' && <UnifiedRotaBuilder />}
-      {tab === 'timesheets' && <ManagerTimesheetApprovals staffId={profile?.id} />}
       {tab === 'yard' && <YardControlWidget />}
       {tab === 'heatmap' && <AvailabilityHeatmap />}
       {tab === 'calendar' && <CalendarView />}

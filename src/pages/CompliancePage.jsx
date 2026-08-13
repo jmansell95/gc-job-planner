@@ -148,10 +148,7 @@ export default function CompliancePage() {
       )}
 
       {tab === 'toolbox' && (
-        <SafetyCultureGate
-          onConfigure={() => navToAdmin('settings')}
-          message="SafetyCulture not connected. Toolbox talks are managed in-app below — SafetyCulture template sync will be available once the integration is configured."
-        >
+        <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
           <ToolboxTalkManager />
         </SafetyCultureGate>
       )}
