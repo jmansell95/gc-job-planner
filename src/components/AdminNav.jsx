@@ -135,31 +135,25 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
           );
         })}
       </div>
-      {/* Compact action cluster — single row of quick actions */}
-      <div className={`${collapsed ? 'px-1.5' : 'px-3'} pt-1.5 pb-1.5 border-t border-white/10 space-y-1.5`}>
+      {/* Action cluster — bigger search, 2 assistant buttons, full-width collapse */}
+      <div className={`${collapsed ? 'px-1.5' : 'px-3'} pt-2 pb-2 border-t border-white/10 space-y-2`}>
         {!collapsed && <GlobalSearch />}
-        <div className={`grid ${collapsed ? 'grid-cols-1 gap-1.5' : 'grid-cols-3 gap-2'}`}>
+        <div className={`grid ${collapsed ? 'grid-cols-1 gap-1.5' : 'grid-cols-2 gap-2'}`}>
           <button onClick={openDrillingIntelligence} type="button" title="Drilling Intelligence"
-            className="h-9 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
-            <HardHat className="w-4 h-4" />
+            className="h-11 flex items-center justify-center gap-1.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
+            <HardHat className="w-4 h-4 flex-shrink-0" />
+            {!collapsed && <span className="text-xs font-semibold">Drilling</span>}
           </button>
           <button onClick={openChat} type="button" title="Ask Assistant"
-            className="h-9 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
-            <Sparkles className="w-4 h-4" />
+            className="h-11 flex items-center justify-center gap-1.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
+            <Sparkles className="w-4 h-4 flex-shrink-0" />
+            {!collapsed && <span className="text-xs font-semibold">Assistant</span>}
           </button>
-          {!collapsed && (
-            <button onClick={toggleCollapsed} type="button" title="Collapse sidebar"
-              className="h-9 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
-              <PanelLeftClose className="w-4 h-4" />
-            </button>
-          )}
         </div>
-        {collapsed && (
-          <button onClick={toggleCollapsed} type="button" title="Expand sidebar"
-            className="w-full h-9 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
-            <PanelLeftOpen className="w-4 h-4" />
-          </button>
-        )}
+        <button onClick={toggleCollapsed} type="button" title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="w-full h-10 flex items-center justify-center gap-2 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
+          {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <><PanelLeftClose className="w-4 h-4" /><span className="text-xs font-semibold">Collapse</span></>}
+        </button>
       </div>
     </>
   );

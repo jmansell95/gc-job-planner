@@ -13,14 +13,13 @@ import FieldPrioritiesWidget from '@/components/dashboard/FieldPrioritiesWidget'
 import LiveSiteMapWidget from '@/components/dashboard/LiveSiteMapWidget';
 import SiteWeatherOverviewWidget from '@/components/dashboard/SiteWeatherOverviewWidget';
 import ExceptionMonitorWidget from '@/components/dashboard/ExceptionMonitorWidget';
-import MissionControlWidget from '@/components/dashboard/MissionControlWidget';
+import CommandCentreSection from '@/components/dashboard/CommandCentreSection';
 import BoreholeProgressWidget from '@/components/dashboard/BoreholeProgressWidget';
 import SystemHealthWidget from '@/components/dashboard/SystemHealthWidget';
 import WorkloadOwnershipWidget from '@/components/dashboard/WorkloadOwnershipWidget';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
 import QuickActionBar from '@/components/dashboard/QuickActionBar';
-import StateMonitorBar from '@/components/dashboard/StateMonitorBar';
 import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
 import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
 import CommandJobModal from '@/components/dashboard/CommandJobModal';
@@ -89,7 +88,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     switch (widgetId) {
       case 'borehole-progress': return <BoreholeProgressWidget onNavigate={onNavigate} />;
       case 'executive-snapshot': return <ExecutiveSnapshotWidget onNavigate={onNavigate} />;
-      case 'mission-control': return <MissionControlWidget onNavigate={onNavigate} />;
+
       case 'field-priorities': return <FieldPrioritiesWidget onNavigate={onNavigate} />;
       case 'exception-monitor': return <ExceptionMonitorWidget onNavigate={onNavigate} />;
       case 'live-site-map': return <LiveSiteMapWidget onNavigate={onNavigate} />;
@@ -191,17 +190,16 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
         </div>
       )}
 
-      {/* State Monitor Bar — live operational pulse */}
+      {/* Command Centre — stat tiles + Mission Control strip merged into one cohesive section */}
       {isAllJobs && (
-        <StateMonitorBar
-          className="mb-4"
+        <CommandCentreSection
+          onNavigate={onNavigate}
           monitors={[
             { key: 'active', icon: Briefcase, label: 'Active Jobs', value: activeJobs.length, sublabel: `${scopedJobs.length} total in system`, tone: 'emerald', nav: 'jobs', live: true },
             { key: 'util', icon: Percent, label: 'Crew Utilisation', value: utilizationPct, unit: '%', sublabel: `${staffToday} of ${activeStaff} active crew on site`, tone: 'blue', nav: 'rota', trend: staffToday > 0 ? 'up' : 'down' },
             { key: 'ts', icon: ClipboardCheck, label: 'Timesheet Queue', value: pendingTs, sublabel: overdueSubmittedTs > 0 ? `${overdueSubmittedTs} overdue (>48h)` : 'All within target', tone: overdueSubmittedTs > 0 ? 'rose' : 'amber', nav: 'staff', trend: overdueSubmittedTs > 0 ? 'up' : null },
             { key: 'actions', icon: ShieldAlert, label: 'Overdue Actions', value: overdueActions, sublabel: overdueActions > 0 ? 'Safety items past due' : 'No overdue safety actions', tone: overdueActions > 0 ? 'rose' : 'slate', nav: 'compliance', trend: overdueActions > 0 ? 'up' : 'down' },
           ]}
-          onNavigate={onNavigate}
         />
       )}
 

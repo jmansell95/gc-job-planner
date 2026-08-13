@@ -12,7 +12,6 @@ import { LayoutDashboard, AlertTriangle, AlertOctagon, MapPin, Sparkles, CloudSu
 // ═══════════════════════════════════════════════════════════════════
 export const WIDGET_REGISTRY = {
   'executive-snapshot': { title: 'Executive Snapshot', icon: LayoutDashboard, fullWidth: true },
-  'mission-control': { title: 'Mission Control Center', icon: MapPin, fullWidth: true },
   'field-priorities': { title: 'Field Priorities', icon: AlertTriangle },
   'exception-monitor': { title: 'Needs Attention', icon: AlertOctagon, fullWidth: true },
   'borehole-progress': { title: 'Borehole Progress', icon: Drill },
@@ -31,7 +30,6 @@ export const WIDGET_REGISTRY = {
 // ═══════════════════════════════════════════════════════════════════
 export const TIER_GLANCE = [
   'executive-snapshot',
-  'mission-control',
   'field-priorities',
   'exception-monitor',
 ];
@@ -80,6 +78,6 @@ export const COST_WIDGETS = [];
 // Widgets that show company-wide data (not specific to a job). Hidden when
 // the dashboard is focused on a single job.
 export const GLOBAL_ONLY_WIDGETS = [
-  'executive-snapshot', 'mission-control', 'field-priorities', 'exception-monitor',
+  'executive-snapshot', 'field-priorities', 'exception-monitor',
   'borehole-progress', 'live-site-map', 'ai-insights', 'geo-heatmap', 'system-health',
 ];
