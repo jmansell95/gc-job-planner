@@ -283,7 +283,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
     return risks;
   };
 
-  const SectionHeader = () => (
+  const SectionHeader = ({ children }) => (
     <div className="mb-4 rounded-2xl bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] px-5 py-4 shadow-md overflow-hidden relative">
       <div className="absolute right-0 top-0 bottom-0 w-32 opacity-10" style={{ background: 'radial-gradient(circle at 80% 50%, rgba(141,198,63,0.4), transparent 70%)' }} />
       <div className="flex items-center gap-3 relative z-10">
@@ -294,6 +294,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
           <h2 className="text-lg font-bold text-white tracking-tight leading-tight">Top 3 Active Sites</h2>
           <p className="text-xs text-white/70 mt-0.5">Live snapshot of your in-progress jobs — rigs, crew, gear and risk flags at a glance</p>
         </div>
+        {children}
       </div>
     </div>
   );
@@ -327,40 +328,39 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="mb-6">
-      <SectionHeader />
-
-      {/* Discipline filter strip */}
-      {(() => {
-        const allDisciplines = new Set();
-        jobs.forEach(j => getJobDisciplines(j).forEach(d => allDisciplines.add(d.type)));
-        const types = [...allDisciplines];
-        if (types.length < 2) return null;
-        return (
-          <div className="flex flex-wrap items-center gap-1.5 mb-4">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Discipline Filter</span>
-            <button
-              onClick={() => setDisciplineFilter('all')}
-              className={`text-xs font-semibold px-3 py-1.5 rounded-full transition ${disciplineFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-            >
-              All
-            </button>
-            {types.map(t => {
-              const cfg = getDisciplineConfig(t);
-              const active = disciplineFilter === t;
-              return (
-                <button
-                  key={t}
-                  onClick={() => setDisciplineFilter(active ? 'all' : t)}
-                  className={`text-xs font-semibold px-3 py-1.5 rounded-full transition inline-flex items-center gap-1.5 ${active ? 'ring-2 ring-offset-1 ' + cfg.badge : cfg.badge + ' hover:opacity-80'}`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                  {cfg.label}
-                </button>
-              );
-            })}
-          </div>
-        );
-      })()}
+      <SectionHeader>
+        {(() => {
+          const allDisciplines = new Set();
+          jobs.forEach(j => getJobDisciplines(j).forEach(d => allDisciplines.add(d.type)));
+          const types = [...allDisciplines];
+          if (types.length < 2) return null;
+          return (
+            <div className="flex flex-wrap items-center gap-1.5 justify-end flex-shrink-0">
+              <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider mr-0.5 hidden sm:inline">Filter</span>
+              <button
+                onClick={() => setDisciplineFilter('all')}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full transition ${disciplineFilter === 'all' ? 'bg-white text-[#2E5A1A]' : 'bg-white/10 text-white hover:bg-white/20'}`}
+              >
+                All
+              </button>
+              {types.map(t => {
+                const cfg = getDisciplineConfig(t);
+                const active = disciplineFilter === t;
+                return (
+                  <button
+                    key={t}
+                    onClick={() => setDisciplineFilter(active ? 'all' : t)}
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-full transition inline-flex items-center gap-1.5 ring-1 ${active ? 'bg-white text-slate-900 ring-white' : 'bg-white/10 text-white ring-white/20 hover:bg-white/20'}`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                    {cfg.label}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
+      </SectionHeader>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {scopedJobs.slice(0, 3).map(job => {
