@@ -38,6 +38,7 @@ import { StaffAssistantProvider } from '@/components/StaffAssistantChat';
 import { SchedulingAssistantProvider } from '@/components/SchedulingAssistantChat';
 import { DrillingIntelligenceProvider } from '@/components/DrillingIntelligenceChat';
 import { AIHubProvider } from '@/components/ai/AIHub';
+import RouteLoadingOverlay from '@/components/RouteLoadingOverlay';
 import AppBaseUrlSync from '@/components/AppBaseUrlSync';
 import AssetScannerPage from './pages/AssetScannerPage';
 import KioskScannerRedirect from '@/components/KioskScannerRedirect';
@@ -70,6 +71,7 @@ const AuthenticatedApp = () => {
         <DrillingIntelligenceProvider>
         <AIHubProvider>
         <AppBaseUrlSync />
+        <RouteLoadingOverlay />
         <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

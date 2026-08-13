@@ -6,16 +6,11 @@ import { Users, Briefcase, Grid3x3, Calendar, MapPin, Percent, ClipboardCheck, S
 import { format, startOfWeek, addDays } from 'date-fns';
 import { GLOBAL_ONLY_WIDGETS } from '@/components/dashboard/registry';
 import CustomisableWidgetGrid from '@/components/dashboard/CustomisableWidgetGrid';
-import ExecutiveSnapshotWidget from '@/components/dashboard/ExecutiveSnapshotWidget';
-import GeotechnicalHeatmapWidget from '@/components/dashboard/GeotechnicalHeatmapWidget';
 import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
 import FieldPrioritiesWidget from '@/components/dashboard/FieldPrioritiesWidget';
 import LiveSiteMapWidget from '@/components/dashboard/LiveSiteMapWidget';
-import SiteWeatherOverviewWidget from '@/components/dashboard/SiteWeatherOverviewWidget';
 import ExceptionMonitorWidget from '@/components/dashboard/ExceptionMonitorWidget';
 import CommandCentreSection from '@/components/dashboard/CommandCentreSection';
-import BoreholeProgressWidget from '@/components/dashboard/BoreholeProgressWidget';
-import SystemHealthWidget from '@/components/dashboard/SystemHealthWidget';
 import WorkloadOwnershipWidget from '@/components/dashboard/WorkloadOwnershipWidget';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
@@ -86,16 +81,10 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
   const renderWidget = (widgetId) => {
     switch (widgetId) {
-      case 'borehole-progress': return <BoreholeProgressWidget onNavigate={onNavigate} />;
-      case 'executive-snapshot': return <ExecutiveSnapshotWidget onNavigate={onNavigate} />;
-
       case 'field-priorities': return <FieldPrioritiesWidget onNavigate={onNavigate} />;
       case 'exception-monitor': return <ExceptionMonitorWidget onNavigate={onNavigate} />;
       case 'live-site-map': return <LiveSiteMapWidget onNavigate={onNavigate} />;
       case 'ai-insights': return <AiInsightsWidget onNavigate={onNavigate} />;
-      case 'site-weather': return <SiteWeatherOverviewWidget onSelectJob={openJobDrawer} />;
-      case 'geo-heatmap': return <GeotechnicalHeatmapWidget onNavigate={onNavigate} />;
-      case 'system-health': return <SystemHealthWidget onNavigate={onNavigate} />;
       case 'workload-ownership': return <WorkloadOwnershipWidget onNavigate={onNavigate} />;
       default: return null;
     }

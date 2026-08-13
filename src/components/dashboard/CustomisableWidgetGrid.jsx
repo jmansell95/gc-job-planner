@@ -3,17 +3,17 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { GripVertical, Eye, EyeOff, Settings2, Check, RotateCcw, Loader2, Maximize2, Minimize2, Square, Cloud } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { WIDGET_REGISTRY, DEFAULT_WIDGETS, DEFAULT_HIDDEN, TIER_META, WIDGET_TIER } from '@/components/dashboard/registry';
+import { WIDGET_REGISTRY, DEFAULT_WIDGETS, DEFAULT_HIDDEN } from '@/components/dashboard/registry';
 
 const ORDER_KEY = 'dashboard-widget-order-v3';
 const HIDDEN_KEY = 'dashboard-widget-hidden-v3';
 const SIZES_KEY = 'dashboard-widget-sizes-v3';
 
 // Size → Tailwind colspan on the 4-col grid
-const SIZE_COLSPAN = { sm: 'lg:col-span-1', md: 'lg:col-span-2', lg: 'lg:col-span-4' };
-const SIZE_ICON = { sm: Minimize2, md: Square, lg: Maximize2 };
-const SIZE_LABEL = { sm: 'S', md: 'M', lg: 'L' };
-const SIZE_NEXT = { sm: 'md', md: 'lg', lg: 'sm' };
+const SIZE_COLSPAN = { sm: 'lg:col-span-1', md: 'lg:col-span-2', lg: 'lg:col-span-3', xl: 'lg:col-span-4' };
+const SIZE_ICON = { sm: Minimize2, md: Square, lg: Maximize2, xl: Maximize2 };
+const SIZE_LABEL = { sm: 'S', md: 'M', lg: 'L', xl: 'XL' };
+const SIZE_NEXT = { sm: 'md', md: 'lg', lg: 'xl', xl: 'sm' };
 
 function loadOrderCache() {
   try {
@@ -168,8 +168,8 @@ export default function CustomisableWidgetGrid({ renderWidget, canShowWidget }) 
                 const content = renderWidget(widgetId);
                 if (!content) return null;
                 const config = WIDGET_REGISTRY[widgetId];
-                const userSize = sizes[widgetId] || 'md';
-                const colspanClass = config?.fullWidth ? 'lg:col-span-4' : (SIZE_COLSPAN[userSize] || 'lg:col-span-2');
+                const userSize = sizes[widgetId] || (config?.fullWidth ? 'xl' : 'md');
+                const colspanClass = SIZE_COLSPAN[userSize] || 'lg:col-span-2';
                 const SizeIcon = SIZE_ICON[userSize] || Square;
                 return (
                   <Draggable key={widgetId} draggableId={widgetId} index={index} isDragDisabled={!customise}>

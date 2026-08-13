@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
@@ -18,6 +18,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import DashboardUserMenu from '@/components/DashboardUserMenu';
 import RedAlertBanner from '@/components/safety/RedAlertBanner';
 import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
+import PageLoadingOverlay from '@/components/PageLoadingOverlay';
 
 const SECTION_LABELS = {
   overview: 'Dashboard',
@@ -55,6 +56,8 @@ export default function AdminDashboard() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [settingsTab, setSettingsTab] = useState('hub');
   const [profile, setProfile] = useState(null);
+  const [pageLoading, setPageLoading] = useState(false);
+  const prevSection = useRef(activeSection);
 
   // Read navigation state passed from other pages (e.g. Vehicles → Manage Records).
   // Standalone sections are redirected immediately so the dashboard never
@@ -89,6 +92,16 @@ export default function AdminDashboard() {
     })();
   }, []);
 
+  // Show loading overlay on section transitions
+  useEffect(() => {
+    if (prevSection.current !== activeSection) {
+      prevSection.current = activeSection;
+      setPageLoading(true);
+      const timer = setTimeout(() => setPageLoading(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [activeSection]);
+
   // Guard: reset to overview if the active section isn't accessible to this user's role.
   // 'job-detail' is a sub-view reached from the dashboard, not a nav section — skip the guard for it.
   useEffect(() => {
@@ -113,6 +126,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex flex-col xl:flex-row min-h-screen page-bg-vibrant">
+      <PageLoadingOverlay isLoading={pageLoading} pageName={SECTION_LABELS[activeSection]} />
       <AdminNav activeSection={activeSection} setActiveSection={handleSetActiveSection} onSettingsTabClick={(tab) => { setSettingsTab(tab); setActiveSection('settings'); }} />
       <div className="flex-1 flex flex-col min-h-0">
         <RedAlertBanner />
