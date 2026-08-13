@@ -159,30 +159,18 @@ export default function CommandCentreSection({ monitors, onNavigate }) {
               </div>
             </div>
 
-            {/* Project Health — merged from Executive Snapshot */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className={`w-8 h-8 rounded-lg ${ph.bg} flex items-center justify-center`}>
-                <TrendingUp className={`w-4 h-4 ${ph.color}`} />
-              </div>
-              <div>
-                <p className={`text-lg font-bold leading-none ${ph.color}`}>{ph.label}</p>
-                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mt-0.5">Project Health</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">{m.jobsWithDelays} delayed</p>
-              </div>
-            </div>
           </div>
 
-          {/* Quick actions */}
-          <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
-            <button onClick={() => onNavigate?.('jobs')} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition active:scale-95">
-              Jobs <ArrowRight className="w-3 h-3" />
-            </button>
-            <button onClick={() => onNavigate?.('billing')} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition active:scale-95">
-              Billing <ArrowRight className="w-3 h-3" />
-            </button>
-            <button onClick={() => onNavigate?.('compliance')} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition active:scale-95">
-              Safety <ArrowRight className="w-3 h-3" />
-            </button>
+          {/* Project Health — moved to right side */}
+          <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+            <div className={`w-8 h-8 rounded-lg ${ph.bg} flex items-center justify-center`}>
+              <TrendingUp className={`w-4 h-4 ${ph.color}`} />
+            </div>
+            <div className="text-right">
+              <p className={`text-lg font-bold leading-none ${ph.color}`}>{ph.label}</p>
+              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mt-0.5">Project Health</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">{m.jobsWithDelays} delayed</p>
+            </div>
           </div>
         </div>
       </div>
