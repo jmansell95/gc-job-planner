@@ -502,8 +502,33 @@ export default function WeeklyRotaBuilder() {
               className="text-xs px-1.5 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-emerald-600 text-slate-600 w-[120px]" />
           </div>
 
-          {/* Filters — right side of date picker */}
-          <div className="flex items-center gap-2 flex-wrap ml-auto">
+          {/* Stat pills — centered in the middle */}
+          <div className="flex items-center gap-1.5 flex-wrap flex-1 justify-center">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs">
+              <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="font-bold text-slate-900 tabular-nums">{totalAssignments}</span>
+              <span className="text-slate-500">Shifts</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-xs">
+              <Users className="w-3.5 h-3.5 text-blue-600" />
+              <span className="font-bold text-slate-900 tabular-nums">{staffWorking}</span>
+              <span className="text-slate-500">Crew</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-xs">
+              <Briefcase className="w-3.5 h-3.5 text-amber-600" />
+              <span className="font-bold text-slate-900 tabular-nums">{jobsActive}</span>
+              <span className="text-slate-500">Jobs</span>
+            </span>
+            {weekRecord && (
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs ${isPublished ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+                {isPublished ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Clock className="w-3.5 h-3.5 text-amber-600" />}
+                <span className="font-bold text-slate-900">{isPublished ? 'Published' : 'Draft'}</span>
+              </span>
+            )}
+          </div>
+
+          {/* Filters — right side */}
+          <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
             <div className="flex items-center gap-2 bg-slate-50 rounded-lg border border-slate-200 px-2.5 py-1.5 min-w-[160px]">
               <Search className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
               <input type="text" value={staffSearch} onChange={(e) => setStaffSearch(e.target.value)}
@@ -534,31 +559,6 @@ export default function WeeklyRotaBuilder() {
               </span>
             )}
           </div>
-        </div>
-
-        {/* Row 2: stat pills */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs">
-            <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="font-bold text-slate-900 tabular-nums">{totalAssignments}</span>
-            <span className="text-slate-500">Shifts</span>
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-xs">
-            <Users className="w-3.5 h-3.5 text-blue-600" />
-            <span className="font-bold text-slate-900 tabular-nums">{staffWorking}</span>
-            <span className="text-slate-500">Crew</span>
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-xs">
-            <Briefcase className="w-3.5 h-3.5 text-amber-600" />
-            <span className="font-bold text-slate-900 tabular-nums">{jobsActive}</span>
-            <span className="text-slate-500">Jobs</span>
-          </span>
-          {weekRecord && (
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs ${isPublished ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
-              {isPublished ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Clock className="w-3.5 h-3.5 text-amber-600" />}
-              <span className="font-bold text-slate-900">{isPublished ? 'Published' : 'Draft'}</span>
-            </span>
-          )}
         </div>
       </div>
 
