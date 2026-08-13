@@ -55,6 +55,7 @@ export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
   const [selectedJob, setSelectedJob] = useState(null);
   const [settingsTab, setSettingsTab] = useState('hub');
+  const [schedulingTab, setSchedulingTab] = useState('rota');
   const [profile, setProfile] = useState(null);
   const [pageLoading, setPageLoading] = useState(false);
   const prevSection = useRef(activeSection);
@@ -78,7 +79,17 @@ export default function AdminDashboard() {
   // Wrapper that sends standalone sections (Staff, Contacts, Price List, etc.)
   // straight to their own routes — avoids the blank-flash round-trip through
   // the internal section state.
-  const handleSetActiveSection = (section) => {
+  const handleSetActiveSection = (sectionOrObj) => {
+    const isObj = typeof sectionOrObj === 'object' && sectionOrObj;
+    const section = isObj ? sectionOrObj.section : sectionOrObj;
+    if (!section) return;
+    if (isObj && sectionOrObj.schedulingTab) {
+      setSchedulingTab(sectionOrObj.schedulingTab);
+    } else if (section === 'calendar') {
+      setSchedulingTab('calendar');
+    } else if (section === 'scheduling' || section === 'rota') {
+      setSchedulingTab('rota');
+    }
     if (STANDALONE_ROUTES[section]) {
       navigate(STANDALONE_ROUTES[section]);
     } else {
@@ -158,7 +169,7 @@ export default function AdminDashboard() {
             )}
             {activeSection === 'jobs' && <JobManager onNavigateRota={() => setActiveSection('scheduling')} />}
             {(activeSection === 'scheduling' || activeSection === 'rota' || activeSection === 'calendar') && (
-              <SchedulingHub initialTab={activeSection === 'calendar' ? 'calendar' : 'rota'} />
+              <SchedulingHub initialTab={activeSection === 'calendar' ? 'calendar' : schedulingTab} />
             )}
             {activeSection === 'logistics' && <AdminDeliveryHub />}
             {activeSection === 'investigation' && <InvestigationHub onNavigate={handleSetActiveSection} />}

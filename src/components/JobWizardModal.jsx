@@ -5,6 +5,7 @@ import {
   X, ChevronLeft, ChevronRight, Check, Briefcase, CalendarDays, Users, MapPin,
   FileText, Sparkles, Loader2, FolderOpen, PoundSterling, Target, AlertTriangle,
   HardHat, Receipt, Percent, Building2, Phone, Ruler, FileCheck2, ArrowRightLeft, LayoutTemplate, Plus,
+  Upload, Eye, Download, RefreshCw,
 } from 'lucide-react';
 import ProjectSelect from '@/components/ProjectSelect';
 import SubcontractorAssignments from '@/components/SubcontractorAssignments';
@@ -43,6 +44,8 @@ const emptyForm = {
   status: 'planning', start_date: '', end_date: '', client_id: '', contractor_id: '',
   project_id: '', project_manager: '', site_contact_name: '', site_contact_phone: '',
   notes: '', budget_amount: '',
+  site_lat: '', site_lng: '', geofence_radius_override: '',
+  requisition_list_url: '', requisition_list_name: '',
   // Billing & financials
   revenue_method: 'none', drilling_method: 'not_applicable',
   meterage: '', meterage_rate: '', meterage_target: '',
