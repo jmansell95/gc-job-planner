@@ -1,29 +1,37 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PoundSterling, Receipt, FileBarChart, FileText, Banknote, TrendingDown, FileCheck, ArrowRight, CheckCircle2, Clock, Lock, TrendingUp } from 'lucide-react';
+import {
+  PoundSterling, Receipt, FileBarChart, FileText, Banknote, TrendingDown,
+  FileCheck, ArrowRight, CheckCircle2, Lock, TrendingUp,
+} from 'lucide-react';
 import SettingsPage from '@/components/SettingsPage';
 import InvoiceDiscrepancyWidget from '@/components/billing/InvoiceDiscrepancyWidget';
 import AgedDebtorsDashboard from '@/components/billing/AgedDebtorsDashboard';
 import BillingReadinessReport from '@/components/billing/BillingReadinessReport';
 import FinancialOverviewWidget from '@/components/billing/FinancialOverviewWidget';
 import POAWorklist from '@/components/billing/POAWorklist';
-import FinancialReconciliationWidget from '@/components/dashboard/FinancialReconciliationWidget';
-import BenchmarkComparisonsWidget from '@/components/dashboard/BenchmarkComparisonsWidget';
-import ProjectHealthDashboardWidget from '@/components/dashboard/ProjectHealthDashboardWidget';
-import ClientFeedbackWidget from '@/components/dashboard/ClientFeedbackWidget';
-import ReportsHubWidget from '@/components/dashboard/ReportsHubWidget';
+import BillingInsightsTab from '@/components/billing/BillingInsightsTab';
 import PageHeader from '@/components/PageHeader';
 import TabBar from '@/components/TabBar';
 
-// Pipeline flow bar — shows the billing workflow as 3 connected steps, separate from settings tabs
+// ─── 3-step billing pipeline ──────────────────────────────────────────────
 const PIPELINE_STEPS = [
-  { id: 'billing-readiness', step: 1, label: 'Ready to Bill', icon: FileCheck, desc: 'Unbilled work', blurb: 'Review all completed work that hasn\'t been invoiced yet. This is the start of the billing cycle — confirm what\'s ready before raising invoices.' },
-  { id: 'invoicing', step: 2, label: 'Raise & Check', icon: PoundSterling, desc: 'Invoicing', blurb: 'Raise invoices for the work you confirmed in the previous step and check for discrepancies before sending them to clients.' },
-  { id: 'aged-debtors', step: 3, label: 'Aged Debtors', icon: TrendingDown, desc: 'Chase overdue', blurb: 'Track outstanding invoices and chase overdue payments. This is the final step — keep cash flowing by following up on unpaid invoices.' },
+  {
+    id: 'billing-readiness', step: 1, label: 'Ready to Bill', icon: FileCheck, desc: 'Unbilled work',
+    blurb: 'Review all completed work that hasn\'t been invoiced yet. This is the start of the billing cycle — confirm what\'s ready before raising invoices.',
+  },
+  {
+    id: 'invoicing', step: 2, label: 'Raise & Check', icon: PoundSterling, desc: 'Invoicing',
+    blurb: 'Raise invoices for the work you confirmed in the previous step and check for discrepancies before sending them to clients.',
+  },
+  {
+    id: 'aged-debtors', step: 3, label: 'Aged Debtors', icon: TrendingDown, desc: 'Chase overdue',
+    blurb: 'Track outstanding invoices and chase overdue payments. This is the final step — keep cash flowing by following up on unpaid invoices.',
+  },
 ];
 
 function PipelineFlow({ activeTab, onSelect }) {
-  const activeIdx = PIPELINE_STEPS.findIndex(s => s.id === activeTab);
+  const activeIdx = PIPELINE_STEPS.findIndex((s) => s.id === activeTab);
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4">
       <div className="flex items-center gap-2 mb-3">
@@ -43,19 +51,29 @@ function PipelineFlow({ activeTab, onSelect }) {
               <button
                 onClick={() => onSelect(step.id)}
                 className={`flex items-center gap-2.5 px-4 py-2.5 rounded-lg transition flex-shrink-0 ${
-                  isActive ? 'bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white shadow-sm' :
-                  isPast ? 'bg-emerald-50 text-emerald-700' :
-                  'bg-slate-50 text-slate-500 hover:bg-slate-100'
+                  isActive
+                    ? 'bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white shadow-sm'
+                    : isPast
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
                 }`}
               >
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                  isActive ? 'bg-white/20 text-white' : isPast ? 'bg-emerald-200 text-emerald-800' : 'bg-slate-200 text-slate-500'
-                }`}>
+                <div
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                    isActive
+                      ? 'bg-white/20 text-white'
+                      : isPast
+                      ? 'bg-emerald-200 text-emerald-800'
+                      : 'bg-slate-200 text-slate-500'
+                  }`}
+                >
                   {isPast && !isActive ? <CheckCircle2 className="w-3.5 h-3.5" /> : step.step}
                 </div>
                 <div className="text-left">
                   <p className="text-xs font-bold leading-none">{step.label}</p>
-                  <p className={`text-[10px] mt-0.5 ${isActive ? 'text-white/70' : 'text-slate-400'}`}>{step.desc}</p>
+                  <p className={`text-[10px] mt-0.5 ${isActive ? 'text-white/70' : 'text-slate-400'}`}>
+                    {step.desc}
+                  </p>
                 </div>
               </button>
               {i < PIPELINE_STEPS.length - 1 && (
@@ -70,49 +88,47 @@ function PipelineFlow({ activeTab, onSelect }) {
 }
 
 function PipelineIntro({ activeTab }) {
-  const step = PIPELINE_STEPS.find(s => s.id === activeTab);
+  const step = PIPELINE_STEPS.find((s) => s.id === activeTab);
   if (!step) return null;
   const Icon = step.icon;
   return (
     <div className="bg-gradient-to-br from-[#2E5A1A]/5 to-[#8DC63F]/5 rounded-xl border border-[#2E5A1A]/15 px-4 py-3 flex items-start gap-3">
       <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0">
-        <Icon className="w-4.5 h-4.5 text-white" />
+        <Icon className="w-4 h-4 text-white" />
       </div>
       <div>
-        <p className="text-sm font-bold text-slate-900">{step.label} — Step {PIPELINE_STEPS.findIndex(s => s.id === activeTab) + 1} of {PIPELINE_STEPS.length}</p>
+        <p className="text-sm font-bold text-slate-900">
+          {step.label} — Step {PIPELINE_STEPS.findIndex((s) => s.id === activeTab) + 1} of {PIPELINE_STEPS.length}
+        </p>
         <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">{step.blurb}</p>
       </div>
     </div>
   );
 }
 
+// ─── Main page ────────────────────────────────────────────────────────────
 export default function BillingPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('billing-readiness');
 
-  // Settings/config tabs — pipeline steps are shown separately above
+  // Financial config & monitoring tabs — trimmed to the essentials.
+  // Niche settings (overtime, GL mapping, payroll export, data exchange,
+  // custom reports, client reports, business rules, expense presets) are
+  // still accessible from the main Settings page — just not surfaced here.
   const tabs = [
     { id: 'rate-card', label: 'Price List', icon: Receipt },
     { id: 'poa-lock', label: 'POA Locks', icon: Lock },
     { id: 'billing', label: 'Billing Rules', icon: Banknote },
-    { id: 'billing-pipeline', label: 'Pipeline', icon: FileBarChart },
-    { id: 'insights', label: 'Insights', icon: TrendingUp },
+    { id: 'subcon-markup', label: 'Sub-Con Markup', icon: TrendingDown },
     { id: 'billing-contracts', label: 'Contracts', icon: FileText },
     { id: 'purchase-orders', label: 'Purchase Orders', icon: FileText },
-    { id: 'overtime', label: 'Overtime', icon: Clock },
-    { id: 'business-rules', label: 'Business Rules', icon: Receipt },
-    { id: 'expense-presets', label: 'Expense Presets', icon: Receipt },
-    { id: 'subcon-markup', label: 'Sub-Con Markup', icon: TrendingDown },
-    { id: 'gl-mapping', label: 'GL Mapping', icon: FileBarChart },
-    { id: 'data-exchange', label: 'Data Exchange', icon: ArrowRight },
-    { id: 'payroll-export', label: 'Payroll Export', icon: FileText },
-    { id: 'financial-audit', label: 'Audit Log', icon: FileCheck },
     { id: 'job-alerts', label: 'Budget Alerts', icon: FileCheck },
-    { id: 'custom-reports', label: 'Custom Reports', icon: FileBarChart },
-    { id: 'client-progress-report', label: 'Client Reports', icon: FileText },
+    { id: 'financial-audit', label: 'Audit Log', icon: FileCheck },
+    { id: 'insights', label: 'Insights', icon: TrendingUp },
   ];
 
-  const isPipelineTab = ['invoicing', 'aged-debtors', 'billing-readiness'].includes(tab);
+  const isPipelineTab = PIPELINE_STEPS.some((s) => s.id === tab);
+  const goToJob = (job) => navigate('/admin', { state: { section: 'job-detail', job } });
 
   return (
     <div className="space-y-4">
@@ -122,8 +138,10 @@ export default function BillingPage() {
         subtitle="Invoicing, debtors, billing rules, rate cards & financial reports"
       />
 
-      {/* Billing Workflow — 3-step pipeline, separate from settings tabs */}
-      {isPipelineTab && <FinancialOverviewWidget onSelectTab={setTab} />}
+      {/* Financial overview — always visible */}
+      <FinancialOverviewWidget onSelectTab={setTab} />
+
+      {/* 3-step billing workflow */}
       <PipelineFlow activeTab={tab} onSelect={setTab} />
 
       {/* Settings & configuration tabs */}
@@ -133,7 +151,7 @@ export default function BillingPage() {
       {tab === 'billing-readiness' && (
         <>
           <PipelineIntro activeTab={tab} />
-          <BillingReadinessReport onSelectJob={(job) => navigate('/admin', { state: { section: 'job-detail', job } })} />
+          <BillingReadinessReport onSelectJob={goToJob} />
         </>
       )}
       {tab === 'invoicing' && (
@@ -149,29 +167,21 @@ export default function BillingPage() {
         </>
       )}
 
-      {/* Non-pipeline content */}
+      {/* Insights dashboard */}
+      {tab === 'insights' && <BillingInsightsTab />}
+
+      {/* POA worklist */}
       {tab === 'poa-lock' && <POAWorklist />}
-      {tab === 'insights' && (
-        <div className="space-y-4">
-          <FinancialReconciliationWidget onNavigate={(section) => navigate('/admin', { state: { section } })} />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <ProjectHealthDashboardWidget onNavigate={(section) => navigate('/admin', { state: { section } })} />
-            <BenchmarkComparisonsWidget onNavigate={(section) => navigate('/admin', { state: { section } })} />
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <ClientFeedbackWidget onNavigate={(section) => navigate('/admin', { state: { section } })} />
-            <ReportsHubWidget onNavigate={(section) => navigate('/admin', { state: { section } })} />
-          </div>
-        </div>
-      )}
-      {!isPipelineTab && tab !== 'poa-lock' && tab !== 'insights' && tabs.map(t => tab === t.id && (
+
+      {/* Settings-backed config tabs */}
+      {!isPipelineTab && tab !== 'insights' && tab !== 'poa-lock' && (
         <SettingsPage
-          key={t.id}
-          initialTab={t.id}
+          key={tab}
+          initialTab={tab}
           standalone
-          onSelectJob={(job) => navigate('/admin', { state: { section: 'job-detail', job } })}
+          onSelectJob={goToJob}
         />
-      ))}
+      )}
     </div>
   );
 }
