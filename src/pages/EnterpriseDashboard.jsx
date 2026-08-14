@@ -177,57 +177,52 @@ export default function EnterpriseDashboard() {
     <div className="min-h-screen page-bg-vibrant">
       <EnterpriseHeader />
       <div className="px-4 pb-24 pt-[calc(3.5rem+env(safe-area-inset-top)+0.5rem)] xl:pt-6 xl:px-6 xl:pb-6 space-y-4">
-      {/* Desktop top bar — Customise + profile menu */}
-      <div className="hidden xl:flex items-center justify-end gap-2 mb-4">
-        {isSuperAdmin && (
-          <button onClick={() => setCustomising(!customising)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition shadow-sm">
-            <LayoutGrid className="w-4 h-4" /> Customise
-          </button>
-        )}
-        <div className="relative">
-          <button onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }} type="button" aria-label="Profile menu" className="relative flex items-center justify-center active:scale-95 rounded-full transition ring-2 ring-transparent hover:ring-slate-200">
-            <ProfileAvatar name={myProfileName} avatarUrl={myProfileAvatar} size={36} />
-          </button>
-          {profileMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50" onClick={(e) => e.stopPropagation()}>
-              <div className="px-4 py-3 border-b border-slate-100">
-                <p className="text-sm font-semibold text-slate-900 truncate">{myProfileName}</p>
-                {user?.email && <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>}
-              </div>
-              <div className="py-1">
-                <button onClick={() => { navigate('/staff-profile'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
-                  <User className="w-4 h-4 text-slate-400" /> My Profile
-                </button>
-                <button onClick={() => { navigate('/help'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
-                  <HelpCircle className="w-4 h-4 text-slate-400" /> Help Guides
-                </button>
-              </div>
-              <div className="border-t border-slate-100 py-1">
-                <button onClick={() => { base44.auth.logout('/'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 transition text-left">
-                  <LogOut className="w-4 h-4" /> Logout
-                </button>
-              </div>
-            </div>
-          )}
+      {/* Page header with title + desktop profile menu */}
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-lg glow-brand">
+            <Building2 className="w-6 h-6 text-white" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-none truncate">
+              Land &amp; Water Solutions
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-0.5">Division Dashboard</p>
+          </div>
         </div>
-      </div>
-
-      {/* Modern stat highlights */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4">
-        {heroHighlights.map(h => {
-          const Icon = h.icon;
-          return (
-            <div key={h.label} className="insight-card rounded-2xl px-4 py-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-md">
-                <Icon className="w-5 h-5 text-white" />
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {isSuperAdmin && (
+            <button onClick={() => setCustomising(!customising)} className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition shadow-sm">
+              <LayoutGrid className="w-4 h-4" /> Customise
+            </button>
+          )}
+          <div className="hidden xl:block relative">
+            <button onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }} type="button" aria-label="Profile menu" className="relative flex items-center justify-center active:scale-95 rounded-full transition ring-2 ring-transparent hover:ring-slate-200">
+              <ProfileAvatar name={myProfileName} avatarUrl={myProfileAvatar} size={36} />
+            </button>
+            {profileMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50" onClick={(e) => e.stopPropagation()}>
+                <div className="px-4 py-3 border-b border-slate-100">
+                  <p className="text-sm font-semibold text-slate-900 truncate">{myProfileName}</p>
+                  {user?.email && <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>}
+                </div>
+                <div className="py-1">
+                  <button onClick={() => { navigate('/staff-profile'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
+                    <User className="w-4 h-4 text-slate-400" /> My Profile
+                  </button>
+                  <button onClick={() => { navigate('/help'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
+                    <HelpCircle className="w-4 h-4 text-slate-400" /> Help Guides
+                  </button>
+                </div>
+                <div className="border-t border-slate-100 py-1">
+                  <button onClick={() => { base44.auth.logout('/'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 transition text-left">
+                    <LogOut className="w-4 h-4" /> Logout
+                  </button>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{h.label}</p>
-                <p className="text-lg sm:text-xl font-extrabold text-slate-900 tabular-nums truncate">{h.value}</p>
-              </div>
-            </div>
-          );
-        })}
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Quick Access strip */}
