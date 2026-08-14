@@ -177,83 +177,58 @@ export default function EnterpriseDashboard() {
     <div className="min-h-screen page-bg-vibrant">
       <EnterpriseHeader />
       <div className="px-4 pb-24 pt-[calc(3.5rem+env(safe-area-inset-top)+0.5rem)] xl:pt-6 xl:px-6 xl:pb-6 space-y-4">
-      {/* Hero Card */}
-      <section className="hero-vibrant relative overflow-hidden rounded-3xl shadow-lg">
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.15) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(141,198,63,0.2) 0%, transparent 50%)' }} />
-        <div className="relative px-5 sm:px-6 pt-5 pb-5 sm:pt-6 sm:pb-6">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-[9px] font-bold text-white/50 uppercase tracking-[0.2em]">Ground Control</span>
-                  <ChevronRight className="w-3 h-3 text-white/30" />
-                </div>
-                <div className="flex items-center gap-2">
-                  {isSuperAdmin && <Crown className="w-4 h-4 text-amber-300 flex-shrink-0" />}
-                  <h1 className="text-lg font-extrabold text-white tracking-tight leading-none truncate">
-                    Land &amp; Water Solutions
-                  </h1>
-                </div>
-                <p className="text-[11px] text-white/70 font-medium mt-0.5 flex items-center gap-1.5">
-                  <Calendar className="w-3 h-3 flex-shrink-0" /> {TODAY_LABEL}
-                  <span className="text-white/40">·</span>
-                  <span>Enterprise Command Centre</span>
-                </p>
+      {/* Desktop top bar — Customise + profile menu */}
+      <div className="hidden xl:flex items-center justify-end gap-2 mb-4">
+        {isSuperAdmin && (
+          <button onClick={() => setCustomising(!customising)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition shadow-sm">
+            <LayoutGrid className="w-4 h-4" /> Customise
+          </button>
+        )}
+        <div className="relative">
+          <button onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }} type="button" aria-label="Profile menu" className="relative flex items-center justify-center active:scale-95 rounded-full transition ring-2 ring-transparent hover:ring-slate-200">
+            <ProfileAvatar name={myProfileName} avatarUrl={myProfileAvatar} size={36} />
+          </button>
+          {profileMenuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50" onClick={(e) => e.stopPropagation()}>
+              <div className="px-4 py-3 border-b border-slate-100">
+                <p className="text-sm font-semibold text-slate-900 truncate">{myProfileName}</p>
+                {user?.email && <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>}
               </div>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="hidden xl:block relative">
-                <button onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }} type="button" aria-label="Profile menu" className="relative flex items-center justify-center active:scale-95 rounded-full transition ring-2 ring-transparent hover:ring-white/20">
-                  <ProfileAvatar name={myProfileName} avatarUrl={myProfileAvatar} size={36} />
+              <div className="py-1">
+                <button onClick={() => { navigate('/staff-profile'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
+                  <User className="w-4 h-4 text-slate-400" /> My Profile
                 </button>
-                {profileMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50" onClick={(e) => e.stopPropagation()}>
-                    <div className="px-4 py-3 border-b border-slate-100">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{myProfileName}</p>
-                      {user?.email && <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>}
-                    </div>
-                    <div className="py-1">
-                      <button onClick={() => { navigate('/staff-profile'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
-                        <User className="w-4 h-4 text-slate-400" /> My Profile
-                      </button>
-                      <button onClick={() => { navigate('/help'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
-                        <HelpCircle className="w-4 h-4 text-slate-400" /> Help Guides
-                      </button>
-                    </div>
-                    <div className="border-t border-slate-100 py-1">
-                      <button onClick={() => { base44.auth.logout('/'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 transition text-left">
-                        <LogOut className="w-4 h-4" /> Logout
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <button onClick={() => { navigate('/help'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
+                  <HelpCircle className="w-4 h-4 text-slate-400" /> Help Guides
+                </button>
               </div>
-              {isSuperAdmin && (
-              <button onClick={() => setCustomising(!customising)} className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 text-white text-sm font-semibold hover:bg-white/25 transition">
-                <LayoutGrid className="w-4 h-4" /> Customise
-              </button>
-            )}
+              <div className="border-t border-slate-100 py-1">
+                <button onClick={() => { base44.auth.logout('/'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 transition text-left">
+                  <LogOut className="w-4 h-4" /> Logout
+                </button>
+              </div>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
-            {heroHighlights.map(h => {
-              const Icon = h.icon;
-              return (
-                <div key={h.label} className="bg-white/15 backdrop-blur-md rounded-2xl px-3 py-2.5 sm:px-3.5 sm:py-3 border border-white/20 flex items-center gap-2.5 sm:gap-3">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] sm:text-[10px] font-bold text-white/70 uppercase tracking-wide">{h.label}</p>
-                    <p className="text-lg sm:text-xl font-extrabold text-white tabular-nums truncate">{h.value}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          )}
         </div>
-      </section>
+      </div>
+
+      {/* Modern stat highlights */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4">
+        {heroHighlights.map(h => {
+          const Icon = h.icon;
+          return (
+            <div key={h.label} className="insight-card rounded-2xl px-4 py-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-md">
+                <Icon className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{h.label}</p>
+                <p className="text-lg sm:text-xl font-extrabold text-slate-900 tabular-nums truncate">{h.value}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {/* Quick Access strip */}
       <div className="grid grid-cols-4 gap-2 sm:gap-3">
