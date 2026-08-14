@@ -283,6 +283,11 @@
           "data.division_id": "{{user.data.division_id}}"
         },
         {
+          "data.division_id": {
+            "$in": "{{user.data.managed_division_ids}}"
+          }
+        },
+        {
           "user_condition": {
             "role": "admin"
           }
