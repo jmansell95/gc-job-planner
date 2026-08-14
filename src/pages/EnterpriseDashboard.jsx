@@ -10,7 +10,7 @@ import {
   ChevronRight, LayoutGrid, X, Activity, Zap, Link2, Calendar, Crown, Crown as DirectorIcon,
   User, HelpCircle, LogOut,
 } from 'lucide-react';
-import { LandWaterLogo } from '@/components/Logo';
+import Logo, { LandWaterLogo } from '@/components/Logo';
 import EnterpriseHeader from '@/components/EnterpriseHeader';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 
@@ -183,18 +183,24 @@ export default function EnterpriseDashboard() {
         <div className="relative px-5 sm:px-6 pt-5 pb-5 sm:pt-6 sm:pb-6">
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="flex-shrink-0">
-                <LandWaterLogo height={40} tone="light" />
+              <div className="bg-white rounded-xl px-2.5 py-1.5 shadow-lg flex-shrink-0 ring-2 ring-white/20">
+                <Logo height={30} />
               </div>
               <div className="min-w-0">
-                <h1 className="text-lg font-extrabold text-white tracking-tight leading-none flex items-center gap-2">
-                  {isSuperAdmin
-                    ? <Crown className="w-4 h-4 text-amber-300 flex-shrink-0" />
-                    : <DirectorIcon className="w-4 h-4 text-emerald-300 flex-shrink-0" />}
-                  <span className="truncate">{isSuperAdmin ? 'Enterprise Command Centre' : 'My Divisions'}</span>
-                </h1>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-[9px] font-bold text-white/50 uppercase tracking-[0.2em]">Ground Control</span>
+                  <ChevronRight className="w-3 h-3 text-white/30" />
+                </div>
+                <div className="flex items-center gap-2">
+                  {isSuperAdmin && <Crown className="w-4 h-4 text-amber-300 flex-shrink-0" />}
+                  <h1 className="text-lg font-extrabold text-white tracking-tight leading-none truncate">
+                    Land &amp; Water Solutions
+                  </h1>
+                </div>
                 <p className="text-[11px] text-white/70 font-medium mt-0.5 flex items-center gap-1.5">
                   <Calendar className="w-3 h-3 flex-shrink-0" /> {TODAY_LABEL}
+                  <span className="text-white/40">·</span>
+                  <span>Enterprise Command Centre</span>
                 </p>
               </div>
             </div>
@@ -328,23 +334,23 @@ export default function EnterpriseDashboard() {
                   key={d.id}
                   onClick={() => enterDivision(d)}
                   className="insight-card relative rounded-2xl overflow-hidden text-left group">
-                  <div className="h-1.5" style={{ background: headerGradient }} />
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-2 mb-3.5">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md" style={{ background: iconGradient }}>
-                          <Building2 className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="text-base font-extrabold text-slate-900 truncate">{d.name}</h3>
-                          <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide">{DIVISION_TYPE_LABELS[d.division_type] || d.division_type} {'\u00B7'} {d.code}</p>
-                          {d.tagline && <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">{d.tagline}</p>}
-                        </div>
+                  <div className="h-20 px-5 flex items-center justify-between relative overflow-hidden" style={{ background: headerGradient }}>
+                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, rgba(255,255,255,0.3) 0%, transparent 60%)' }} />
+                    <div className="relative flex items-center gap-3 min-w-0">
+                      <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg ring-1 ring-white/30">
+                        <Building2 className="w-7 h-7 text-white" />
                       </div>
-                      <span className={badgeClass}>
-                        <span className={'w-1.5 h-1.5 rounded-full ' + st.dot} /> {st.label}
-                      </span>
+                      <div className="min-w-0">
+                        <h3 className="text-base font-extrabold text-white truncate drop-shadow-sm">{d.name}</h3>
+                        <p className="text-[11px] text-white/80 font-semibold uppercase tracking-wide">{DIVISION_TYPE_LABELS[d.division_type] || d.division_type} {'\u00B7'} {d.code}</p>
+                      </div>
                     </div>
+                    <span className="relative inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/20 backdrop-blur-sm text-white ring-1 ring-white/30 flex-shrink-0">
+                      <span className={'w-1.5 h-1.5 rounded-full ' + st.dot} /> {st.label}
+                    </span>
+                  </div>
+                  <div className="p-5">
+                    {d.tagline && <p className="text-[11px] text-slate-500 font-medium truncate mb-3">{d.tagline}</p>}
                     <div className="grid grid-cols-4 gap-1.5 mb-3.5">
                       <div className="bg-slate-50 rounded-xl p-2 text-center">
                         <p className="text-lg font-extrabold text-slate-900 tabular-nums">{ds.activeStaff}</p>
@@ -363,15 +369,20 @@ export default function EnterpriseDashboard() {
                         <p className="text-[9px] text-slate-400 uppercase font-bold">Jobs</p>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                      <span className="text-xs font-medium">
-                        {ds.outstanding > 0
-                          ? <span className="inline-flex items-center gap-1 text-amber-600 font-semibold"><PoundSterling className="w-3 h-3" />{gbp(ds.outstanding)} outstanding</span>
-                          : <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold"><CheckCircle2 className="w-3 h-3" />All settled</span>}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-sm font-bold text-[#2E5A1A] group-hover:gap-2 transition-all">
-                        Enter <ArrowRight className="w-4 h-4" />
-                      </span>
+                    <div className="pt-2 border-t border-slate-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Land &amp; Water Solutions</span>
+                        <span className="text-xs font-medium">
+                          {ds.outstanding > 0
+                            ? <span className="inline-flex items-center gap-1 text-amber-600 font-semibold"><PoundSterling className="w-3 h-3" />{gbp(ds.outstanding)} outstanding</span>
+                            : <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold"><CheckCircle2 className="w-3 h-3" />All settled</span>}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-end">
+                        <span className="inline-flex items-center gap-1 text-sm font-bold text-[#2E5A1A] group-hover:gap-2 transition-all">
+                          Enter <ArrowRight className="w-4 h-4" />
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </button>

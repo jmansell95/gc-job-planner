@@ -154,7 +154,7 @@ export default function StaffProfile() {
       title="My Profile"
       subtitle={`${staff.name}${staff.team?.name ? ' · ' + staff.team.name : ''}`}
       icon={UserCircle}
-      onBack={() => navigate('/staff-schedule')}
+      onBack={() => navigate(-1)}
       actions={
         <button onClick={() => setShowEditDrawer(true)} type="button"
           className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition active:scale-95 touch-manipulation">
