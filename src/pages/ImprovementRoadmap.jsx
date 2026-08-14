@@ -3,11 +3,63 @@ import { motion } from 'framer-motion';
 import {
   Rocket, Users, Briefcase, DollarSign, ShieldCheck, Wrench, Clock,
   Globe, Truck, BarChart3, Plug, Smartphone, Settings, FileText,
-  Zap, ChevronDown, ChevronRight, CheckCircle2, Circle, AlertCircle, Download, Loader2
+  Zap, ChevronDown, ChevronRight, CheckCircle2, Circle, AlertCircle, Download, Loader2, Sparkles
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 
 const CATEGORIES = [
+  {
+    id: 'known-issues',
+    icon: AlertCircle,
+    title: 'Known Issues & Gaps',
+    color: 'rose',
+    items: [
+      { priority: 'high', title: 'Zero job margins — internal cost prices missing', desc: 'All jobs currently show zero margin because RateCardItem records are missing cost_price values. The financial engine falls back to the sell price when cost is blank, producing £0 margin. Need a bulk cost-rate import pass (importInternalCostRates exists) to populate cost_price on every labour, plant and material line, then re-run calculateJobFinancials across all active jobs.', status: 'todo' },
+      { priority: 'high', title: 'BillingRule ↔ RateCardItem mismatches', desc: 'User reports mismatches between BillingRule settings and Master Price List data. The rate-card description matcher is fragile — minor wording differences cause no-match. Need a normalised fuzzy matcher (tokenised, case-insensitive, abbreviation-aware) with a manual override/lock field so managers can pin a BillingRule to a specific RateCardItem without relying on text matching.', status: 'todo' },
+      { priority: 'high', title: 'Driller misclassification as subcontractors', desc: 'Drillers are being misidentified as subcontractors when mapped to "SDA Site Investigations". The detector treats all company-like names as contractors. Need a whitelist of internal company names (SDA, Ground Control, Land & Water) plus a staff-name cross-check before flagging a row as subcontractor.', status: 'todo' },
+      { priority: 'high', title: 'Agency workers attributed to "Unknown Agency"', desc: 'Agency workers are incorrectly attributed to "Unknown Agency" instead of Daniel Owen, City Sites, or Black Swan. The agency matcher needs to use the header context ("Field Teams - Drilling Subbies") and a known-agency name list to link labourers to the correct Contractor record.', status: 'todo' },
+      { priority: 'high', title: 'Subcontractors missing from import preview', desc: 'Subcontractors in the "Drillers" tab are not appearing in the import preview, and subcontractor entities are not correctly linking to Staff records during the ImportDashboard process. Need to surface subcontractor rows in the dry-run preview and auto-create/link Staff records with worker_type "subcontractor".', status: 'todo' },
+      { priority: 'medium', title: 'Orphaned rota assignments with null rig_asset_id', desc: 'Spreadsheet import logic creates orphaned RotaAssignment records with null rig_asset_id references. Need a post-import sweep that either links the assignment to the correct rig or flags it for manual resolution, plus a validation step that blocks null rig references on drilling jobs.', status: 'todo' },
+      { priority: 'medium', title: 'Non-project activities polluting the Job entity', desc: 'The Job entity currently contains non-project activities like "Holiday" and "Off" due to loose import validation. These should be filtered out during import and routed to Absence/RotaAssignment non-job types instead of creating Job records.', status: 'todo' },
+      { priority: 'medium', title: 'Rigs showing incorrect data on logistics tab', desc: 'Rigs on the logistics tab in the Job details view are displaying incorrect data. The rig asset lookup is pulling stale or cross-job data. Need to scope the query by job_id and current_location to show only rigs actually on this job.', status: 'todo' },
+      { priority: 'medium', title: 'Depot staff categorised under Field Teams header', desc: 'Depot staff are incorrectly being categorised under the "Field Teams" header in the rota import. The section-header detector needs a depot/yard keyword list to route depot staff to the correct team category.', status: 'todo' },
+      { priority: 'low', title: 'Reverse geocoding not rendering in UI', desc: 'Two-phase reverse geocoding and safety event date/time formatting are not yet rendering correctly in the UI. The backend returns the data but the frontend components are not displaying it. Need to wire the geocoded address into the map popups and format safety event timestamps with timezone-aware display.', status: 'todo' },
+    ],
+  },
+  {
+    id: 'next-actions',
+    icon: Rocket,
+    title: 'Next Priority Actions',
+    color: 'amber',
+    items: [
+      { priority: 'high', title: 'Populate internal cost rates across all rate cards', desc: 'Run the importInternalCostRates function with the current cost-rate spreadsheet to fill cost_price on every RateCardItem. Then trigger calculateJobFinancials on all active jobs to recompute margins. This single action fixes the zero-margin issue across the entire platform.', status: 'todo' },
+      { priority: 'high', title: 'Build a rate-card matcher with manual override', desc: 'Replace the fragile description-text matcher with a normalised tokenised matcher. Add a "locked_rate_card_item_id" field to BillingRule so managers can pin a rule to a specific rate card line. Show a confidence badge and a "match locked" indicator in the Billing Rules UI.', status: 'planned' },
+      { priority: 'high', title: 'Fix driller & subcontractor detection in import', desc: 'Add an internal-company whitelist (SDA Site Investigations, Ground Control, Land & Water Solutions) to the subcontractor detector. Cross-check company-like names against existing Staff records before flagging as subcontractor. Surface all detected subcontractors in the import preview with link/create actions.', status: 'planned' },
+      { priority: 'high', title: 'Fix agency attribution with header-context matcher', desc: 'Use the "Field Teams - Drilling Subbies" header context to identify agency-supplied rows. Match agency names (Daniel Owen, City Sites, Black Swan) against a known-agency list stored in AppSetting. Auto-link labourers to the correct Contractor record with worker_type "agency".', status: 'planned' },
+      { priority: 'medium', title: 'Add post-import rig validation sweep', desc: 'After import, run a sweep that checks every drilling RotaAssignment for a null rig_asset_id. Auto-link by matching the rig name from the spreadsheet to a SiteAsset, or flag for manual resolution. Block publishing a rota week that has drilling assignments without rigs.', status: 'planned' },
+      { priority: 'medium', title: 'Filter non-project activities from Job entity', desc: 'During import, detect "Holiday", "Off", "AL" and similar non-job labels and route them to RotaAssignment with assignment_type "annual_leave" instead of creating a Job record. Add a validation step that rejects Job creation for known non-project labels.', status: 'planned' },
+      { priority: 'medium', title: 'Fix rig data on job logistics tab', desc: 'Scope the rig asset query on the Job logistics tab by job_id and current_location="site" to show only rigs actually on this job. Remove the stale-data fallback that pulls from the last assignment.', status: 'planned' },
+      { priority: 'low', title: 'Wire reverse geocoding & safety timestamps into UI', desc: 'Connect the reverse-geocoded address string to the live map popups and the safety event detail cards. Format safety event timestamps using Europe/London timezone with relative time labels ("2h ago").', status: 'planned' },
+    ],
+  },
+  {
+    id: 'future-vision',
+    icon: Sparkles,
+    title: 'Future Vision — What to Add Next',
+    color: 'indigo',
+    items: [
+      { priority: 'high', title: 'Division-scoped dashboard themes', desc: 'Each division gets its own accent colour (already on Division.color) that cascades through the sidebar, header, KPI tiles and division workspace. Users instantly know which division they are in by the colour palette. Already partially implemented — extend to all hub pages.', status: 'planned' },
+      { priority: 'high', title: 'Cross-division resource sharing board', desc: 'A "Resource Pool" view at the enterprise level showing idle rigs, vehicles and crews across all divisions. Managers can loan a rig from Geotechnical to Environmental for a week without leaving the enterprise dashboard. Tracks the loan as a cross-division delivery.', status: 'planned' },
+      { priority: 'high', title: 'AI-powered weekly operations digest', desc: 'A scheduled automation that uses InvokeLLM to read the week\'s jobs, rotas, timesheets, incidents and financials, then writes a natural-language executive summary emailed to directors every Friday. Highlights what went well, what\'s at risk, and what needs attention next week.', status: 'planned' },
+      { priority: 'medium', title: 'Live margin guard on every job card', desc: 'Every job card across the dashboard shows a live margin badge (green ≥15%, amber 5–15%, rose <5%) computed from the latest financial rollup. Clicking the badge opens the financial breakdown drawer. Makes margin visible everywhere, not just in the billing hub.', status: 'planned' },
+      { priority: 'medium', title: 'Crew availability heatmap across divisions', desc: 'An enterprise-level heatmap showing every active crew member × day, colour-coded by division, so directors can see at a glance who is free, who is on leave, and who is cross-divisional. Click a cell to draft a cross-division assignment.', status: 'planned' },
+      { priority: 'medium', title: 'Procurement-to-job pipeline', desc: 'A full procurement flow: raise a material/hire request from a job → auto-create a Purchase Order → supplier confirms → goods-in scan → auto-attach cost to the job. Closes the gap between ordering equipment and billing it.', status: 'planned' },
+      { priority: 'medium', title: 'Client portal multi-job project view', desc: 'Clients with multiple jobs under one project see a consolidated portal view — aggregated progress, shared milestones, combined billing, and a project-level photo timeline. Already have ClientPaymentHistory — extend to full project portal.', status: 'planned' },
+      { priority: 'low', title: 'Holman fleet integration activation', desc: 'Activate the Holman fleet sync (syncHolmanFleet function exists) by connecting the Holman API credentials in the Integrations Hub. Pulls live mileage, service due dates, and fuel data into the Fleet Hub. Replaces the removed DVLA VES API with Holman as the authoritative vehicle data source.', status: 'planned' },
+      { priority: 'low', title: 'Microsoft 365 unified SSO', desc: 'Activate the Microsoft 365 hub (Microsoft365SetupGuide page exists) for unified Outlook, Teams, and SharePoint SSO. Gives staff single-sign-on and enables Outlook calendar sync without individual connector setup.', status: 'planned' },
+      { priority: 'low', title: 'WhatsApp crew notifications', desc: 'Activate the WhatsApp integration (sendCrewWhatsApp and whatsappWebhook functions exist) by connecting the WhatsApp Business API. Sends rota notifications, daily reminders and incident alerts directly to crew phones without email dependency.', status: 'planned' },
+    ],
+  },
   {
     id: 'visual-ux',
     icon: Zap,
@@ -267,6 +319,9 @@ const STATUS_CONFIG = {
   done: { label: 'Done', cls: 'bg-emerald-50 text-emerald-600 ring-emerald-200' },
   partial: { label: 'Partial', cls: 'bg-amber-50 text-amber-600 ring-amber-200' },
   deferred: { label: 'Deferred', cls: 'bg-slate-100 text-slate-500 ring-slate-200' },
+  todo: { label: 'To Do', cls: 'bg-rose-50 text-rose-600 ring-rose-200' },
+  planned: { label: 'Planned', cls: 'bg-blue-50 text-blue-600 ring-blue-200' },
+  in_progress: { label: 'In Progress', cls: 'bg-violet-50 text-violet-600 ring-violet-200' },
 };
 
 const PRIORITY_CONFIG = {
@@ -336,6 +391,9 @@ export default function ImprovementRoadmap() {
     .priority-low { background: #f1f5f9; color: #64748b; }
     .status-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: auto; }
     .status-done { background: #dcfce7; color: #16a34a; }
+    .status-todo { background: #ffe4e6; color: #e11d48; }
+    .status-planned { background: #dbeafe; color: #2563eb; }
+    .status-in_progress { background: #ede9fe; color: #7c3aed; }
     .status-partial { background: #fef3c7; color: #d97706; }
     .status-deferred { background: #f1f5f9; color: #64748b; }
     .item-title { font-size: 14px; font-weight: 600; color: #1e293b; margin: 4px 0 4px; }
@@ -351,8 +409,9 @@ export default function ImprovementRoadmap() {
     <p class="meta">Generated ${dateStr}</p>
     <div class="stats">
       <div class="stat"><div class="num">${totalItems}</div><div class="label">Total Items</div></div>
+      <div class="stat"><div class="num">${CATEGORIES.reduce((s, c) => s + c.items.filter(i => i.status === 'todo').length, 0)}</div><div class="label">To Do</div></div>
+      <div class="stat"><div class="num">${CATEGORIES.reduce((s, c) => s + c.items.filter(i => i.status === 'planned' || i.status === 'in_progress').length, 0)}</div><div class="label">Planned</div></div>
       <div class="stat"><div class="num">${CATEGORIES.length}</div><div class="label">Categories</div></div>
-      <div class="stat"><div class="num">${CATEGORIES.reduce((s, c) => s + c.items.filter(i => i.priority === 'high').length, 0)}</div><div class="label">High Priority</div></div>
     </div>
   </div>
 
@@ -381,7 +440,7 @@ export default function ImprovementRoadmap() {
         <div class="item">
           <div class="item-header">
             <span class="priority-badge priority-${item.priority}">${item.priority}</span>
-            <span class="status-badge status-${item.status || 'done'}">${(item.status || 'done') === 'done' ? '✓ Done' : (item.status === 'partial' ? '◐ Partial' : '○ Deferred')}</span>
+            <span class="status-badge status-${item.status || 'done'}">${(() => { const s = item.status || 'done'; const labels = { done: '✓ Done', todo: '● To Do', planned: '◇ Planned', in_progress: '◐ In Progress', partial: '◐ Partial', deferred: '○ Deferred' }; return labels[s] || '✓ Done'; })()}</span>
           </div>
           <div class="item-title">${item.title}</div>
           <p class="item-desc">${(item.desc || '').replace(/</g, '&lt;')}</p>
@@ -423,16 +482,18 @@ export default function ImprovementRoadmap() {
 
   const totalItems = CATEGORIES.reduce((sum, c) => sum + c.items.length, 0);
   const highCount = CATEGORIES.reduce((sum, c) => sum + c.items.filter(i => i.priority === 'high').length, 0);
-  const doneCount = CATEGORIES.reduce((sum, c) => sum + c.items.filter(i => i.status !== 'partial' && i.status !== 'deferred').length, 0);
+  const doneCount = CATEGORIES.reduce((sum, c) => sum + c.items.filter(i => i.status === 'done' || (!i.status)).length, 0);
   const partialCount = CATEGORIES.reduce((sum, c) => sum + c.items.filter(i => i.status === 'partial').length, 0);
   const deferredCount = CATEGORIES.reduce((sum, c) => sum + c.items.filter(i => i.status === 'deferred').length, 0);
+  const todoCount = CATEGORIES.reduce((sum, c) => sum + c.items.filter(i => i.status === 'todo').length, 0);
+  const plannedCount = CATEGORIES.reduce((sum, c) => sum + c.items.filter(i => i.status === 'planned' || i.status === 'in_progress').length, 0);
 
   return (
     <div className="space-y-4">
       <PageHeader
         icon={Rocket}
-        title="Improvement Roadmap"
-        subtitle="GC Mission Control — everything you could improve next"
+        title="Master Roadmap"
+        subtitle="Land & Water Solutions — everything built, every gap, and what's next"
         stats={[
           { label: 'Total Ideas', value: totalItems, icon: Rocket },
           { label: 'High Priority', value: highCount, icon: AlertCircle },
@@ -469,10 +530,18 @@ export default function ImprovementRoadmap() {
             <CheckCircle2 className="w-5 h-5 text-emerald-600" />
             <h3 className="font-bold text-slate-900 text-sm">Master Roadmap Status</h3>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
             <div className="text-center">
               <p className="text-2xl font-bold text-emerald-600 tabular-nums">{doneCount}</p>
               <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Complete</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-rose-600 tabular-nums">{todoCount}</p>
+              <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">To Do</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-blue-600 tabular-nums">{plannedCount}</p>
+              <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Planned</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-amber-600 tabular-nums">{partialCount}</p>
@@ -484,18 +553,44 @@ export default function ImprovementRoadmap() {
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-slate-900 tabular-nums">{totalItems}</p>
-              <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Total Items</p>
+              <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Total</p>
             </div>
           </div>
-          {(partialCount > 0 || deferredCount > 0) && (
+          {(todoCount > 0 || plannedCount > 0) && (
             <div className="mt-3 pt-3 border-t border-slate-100">
               <p className="text-xs text-slate-500">
-                <span className="font-semibold text-slate-700">{partialCount + deferredCount} items</span> need connector authorization or provider selection to fully complete. See the Integrations and Logistics categories for details.
+                <span className="font-semibold text-rose-600">{todoCount} items</span> need immediate attention — see <span className="font-semibold text-slate-700">Known Issues &amp; Gaps</span> and <span className="font-semibold text-slate-700">Next Priority Actions</span> at the top of the roadmap.
               </p>
             </div>
           )}
         </div>
       </div>
+
+      {/* Critical Actions callout */}
+      {todoCount > 0 && (
+        <div className="max-w-6xl mx-auto px-5">
+          <div className="rounded-2xl bg-gradient-to-br from-rose-50 to-amber-50 border border-rose-200 p-4 sm:p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-rose-500 flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="w-4 h-4 text-white" />
+              </div>
+              <h3 className="font-bold text-rose-900 text-sm">Critical Actions Required</h3>
+              <span className="text-xs font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-full">{todoCount} to do</span>
+            </div>
+            <div className="space-y-2">
+              {CATEGORIES.find(c => c.id === 'known-issues')?.items.filter(i => i.priority === 'high').slice(0, 3).map((item, i) => (
+                <div key={i} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white/70">
+                  <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-800">{item.title}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Roadmap Grid */}
       <div className="max-w-6xl mx-auto px-5 py-8 space-y-4">
