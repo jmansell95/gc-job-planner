@@ -16,6 +16,7 @@ import QuickActionBar from '@/components/dashboard/QuickActionBar';
 import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
 import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
 import CommandJobModal from '@/components/dashboard/CommandJobModal';
+import { useSafetyCultureStatus } from '@/hooks/useSafetyCultureStatus';
 
 export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [drawerJob, setDrawerJob] = useState(null);
@@ -30,6 +31,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const { data: deliveries = [] } = useQuery({ queryKey: ['deliveries'], queryFn: () => base44.entities.DeliveryLog.filter({ scheduled_date: todayStr }) });
   const { data: safetyReports = [] } = useQuery({ queryKey: ['safety-reports-open'], queryFn: () => base44.entities.SafetyReport.filter({ status: 'open' }) });
+  const { isConnected: scConnected } = useSafetyCultureStatus();
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
@@ -73,7 +75,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const utilizationPct = activeStaff > 0 ? Math.round((staffToday / activeStaff) * 100) : 0;
   const nowMs = Date.now();
   const overdueSubmittedTs = scopedTimesheets.filter(t => t.status === 'submitted' && t.created_date && (nowMs - new Date(t.created_date).getTime()) > 48 * 3600 * 1000).length;
-  const overdueActions = safetyReports.flatMap(r => (r.action_items || [])).filter(a => a && a.due_date && new Date(a.due_date) < new Date()).length;
+  const overdueActions = scConnected ? safetyReports.flatMap(r => (r.action_items || [])).filter(a => a && a.due_date && new Date(a.due_date) < new Date()).length : 0;
 
   const openJobDrawer = (job) => setDrawerJob(job);
 
@@ -183,7 +185,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
             { key: 'active', icon: Briefcase, label: 'Active Jobs', value: activeJobs.length, sublabel: `${scopedJobs.length} total in system`, tone: 'emerald', nav: 'jobs', live: true },
             { key: 'util', icon: Percent, label: 'Crew Utilisation', value: utilizationPct, unit: '%', sublabel: `${staffToday} of ${activeStaff} active crew on site`, tone: 'blue', nav: 'rota', trend: staffToday > 0 ? 'up' : 'down' },
             { key: 'ts', icon: ClipboardCheck, label: 'Timesheet Queue', value: pendingTs, sublabel: overdueSubmittedTs > 0 ? `${overdueSubmittedTs} overdue (>48h)` : 'All within target', tone: overdueSubmittedTs > 0 ? 'rose' : 'amber', nav: { section: 'staff', staffTab: 'timesheets' }, trend: overdueSubmittedTs > 0 ? 'up' : null },
-            { key: 'actions', icon: ShieldAlert, label: 'Overdue Actions', value: overdueActions, sublabel: overdueActions > 0 ? 'Safety items past due' : 'No overdue safety actions', tone: overdueActions > 0 ? 'rose' : 'slate', nav: 'compliance', trend: overdueActions > 0 ? 'up' : 'down' },
+            { key: 'actions', icon: ShieldAlert, label: 'Overdue Actions', value: overdueActions, sublabel: scConnected ? (overdueActions > 0 ? 'Safety items past due' : 'No overdue safety actions') : 'SafetyCulture not connected', tone: overdueActions > 0 ? 'rose' : 'slate', nav: 'compliance', trend: overdueActions > 0 ? 'up' : 'down' },
           ]}
         />
       )}

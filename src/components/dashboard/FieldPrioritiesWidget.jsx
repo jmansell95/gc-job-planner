@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { AlertTriangle, ClipboardCheck, Truck, Clock, ShieldAlert, ChevronRight } from 'lucide-react';
 import WidgetShell from '@/components/dashboard/WidgetShell';
 import ModernBadge from '@/components/ui/ModernBadge';
+import { useSafetyCultureStatus } from '@/hooks/useSafetyCultureStatus';
 
 /**
  * Phase 3 — Field Tools: Field Priorities widget.
@@ -27,6 +28,8 @@ export default function FieldPrioritiesWidget({ onNavigate }) {
     queryKey: ['field-priorities-safety'],
     queryFn: () => base44.entities.SafetyReport.filter({ status: 'open' }, '-created_date', 10),
   });
+  const { isConnected: scConnected } = useSafetyCultureStatus();
+  const safetyCount = scConnected ? safetyReports.length : 0;
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['field-priorities-assignments', today],
@@ -36,7 +39,7 @@ export default function FieldPrioritiesWidget({ onNavigate }) {
   const priorities = [
     { id: 'deliveries', icon: Truck, label: 'Deliveries Due Today', count: deliveries.length, variant: 'info', desc: deliveries.length > 0 ? `${deliveries.length} pending delivery/collection task(s)` : 'No deliveries scheduled', nav: 'logistics' },
     { id: 'briefings', icon: ClipboardCheck, label: 'Briefings Pending', count: assignments.length, variant: assignments.length > 0 ? 'warning' : 'ok', desc: assignments.length > 0 ? `${assignments.length} crew member(s) need briefing sign-off` : 'All briefings complete', nav: 'scheduling' },
-    { id: 'safety', icon: ShieldAlert, label: 'Open Safety Items', count: safetyReports.length, variant: safetyReports.length > 0 ? 'danger' : 'ok', desc: safetyReports.length > 0 ? `${safetyReports.length} open safety report(s)` : 'No open safety items', nav: 'compliance' },
+    { id: 'safety', icon: ShieldAlert, label: 'Open Safety Items', count: safetyCount, variant: safetyCount > 0 ? 'danger' : 'ok', desc: scConnected ? (safetyCount > 0 ? `${safetyCount} open safety report(s)` : 'No open safety items') : 'SafetyCulture not connected', nav: 'compliance' },
   ];
 
   const totalActions = priorities.reduce((sum, p) => sum + p.count, 0);

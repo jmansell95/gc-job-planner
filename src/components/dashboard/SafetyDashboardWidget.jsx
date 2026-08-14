@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { ShieldCheck, AlertTriangle, FileText, Calendar } from 'lucide-react';
 import WidgetShell from '@/components/dashboard/WidgetShell';
 import ModernBadge from '@/components/ui/ModernBadge';
+import { useSafetyCultureStatus } from '@/hooks/useSafetyCultureStatus';
 
 /**
  * Phase 6 — Safety: Safety Dashboard widget.
@@ -12,6 +13,7 @@ import ModernBadge from '@/components/ui/ModernBadge';
  * recent safety culture audits, and compliance briefing status.
  */
 export default function SafetyDashboardWidget() {
+  const { isConnected: scConnected } = useSafetyCultureStatus();
   const { data: reports = [], isLoading } = useQuery({
     queryKey: ['safety-reports-dashboard'],
     queryFn: () => base44.entities.SafetyReport.list('-created_date', 50),
@@ -23,6 +25,13 @@ export default function SafetyDashboardWidget() {
   });
 
   const stats = useMemo(() => {
+    // When SafetyCulture is not connected, zero out all SafetyCulture-derived
+    // stats so stale demo/orphan records don't surface as live data.
+    if (!scConnected) {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      const recentBriefings = briefings.filter(b => b.signed_at && b.signed_at >= sevenDaysAgo).length;
+      return { open: 0, closed: 0, incidents: 0, daysSinceIncident: null, recentBriefings };
+    }
     const open = reports.filter(r => r.status === 'open').length;
     const closed = reports.filter(r => r.status === 'closed').length;
     const incidents = reports.filter(r => r.type === 'incident' || r.severity === 'high').length;
@@ -40,7 +49,7 @@ export default function SafetyDashboardWidget() {
     const recentBriefings = briefings.filter(b => b.signed_at && b.signed_at >= sevenDaysAgo).length;
 
     return { open, closed, incidents, daysSinceIncident, recentBriefings };
-  }, [reports, briefings]);
+  }, [reports, briefings, scConnected]);
 
   const recentReports = reports.slice(0, 5);
 
@@ -68,6 +77,14 @@ export default function SafetyDashboardWidget() {
 
       {isLoading ? (
         <div className="h-32 animate-pulse bg-slate-100 rounded-lg" />
+      ) : !scConnected ? (
+        <div className="flex flex-col items-center justify-center py-6 text-center">
+          <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center mb-2">
+            <ShieldCheck className="w-5 h-5 text-amber-600" />
+          </div>
+          <p className="text-sm font-semibold text-slate-700">SafetyCulture not connected</p>
+          <p className="text-xs text-slate-400 mt-0.5">Safety stats will appear once the integration is configured</p>
+        </div>
       ) : recentReports.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-6 text-center">
           <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center mb-2">

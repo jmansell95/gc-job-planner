@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Radar, AlertTriangle, Activity, Gauge, ArrowRight, PoundSterling, ShieldCheck, TrendingUp, CheckCircle2 } from 'lucide-react';
 import StateMonitorBar from '@/components/dashboard/StateMonitorBar';
+import { useSafetyCultureStatus } from '@/hooks/useSafetyCultureStatus';
 
 /**
  * CommandCentreSection — merges the live stat tiles with a clean Mission
@@ -17,6 +18,7 @@ export default function CommandCentreSection({ monitors, onNavigate }) {
   const { data: safetyReports = [] } = useQuery({ queryKey: ['mc-safety'], queryFn: () => base44.entities.SafetyReport.filter({ status: 'open' }) });
   const { data: siteAssets = [] } = useQuery({ queryKey: ['mc-assets'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 500) });
   const { data: delays = [] } = useQuery({ queryKey: ['mc-delays'], queryFn: () => base44.entities.JobDelayLog.filter({ manager_review_status: 'approved' }) });
+  const { isConnected: scConnected } = useSafetyCultureStatus();
 
   const m = useMemo(() => {
     const activeJobs = jobs.filter(j => (j.status || 'planning') === 'in_progress');
@@ -29,8 +31,8 @@ export default function CommandCentreSection({ monitors, onNavigate }) {
     const outstandingInvoices = invoices.filter(i => i.status === 'sent' || i.status === 'overdue');
     const totalInvoiceValue = outstandingInvoices.reduce((s, i) => s + (Number(i.gross_total) || 0), 0);
     const pendingTs = timesheets.filter(t => t.status === 'submitted').length;
-    const openSafety = safetyReports.length;
-    const criticalSafety = safetyReports.filter(r => r.severity === 'critical' || r.severity === 'high').length;
+    const openSafety = scConnected ? safetyReports.length : 0;
+    const criticalSafety = scConnected ? safetyReports.filter(r => r.severity === 'critical' || r.severity === 'high').length : 0;
 
     // Fleet compliance
     const activeAssets = siteAssets.filter(a => a.is_active !== false);
