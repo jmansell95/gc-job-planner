@@ -266,6 +266,7 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
         onDeliveries={() => { navigate('/deliveries'); setDrawerOpen(false); }}
         onHelp={() => { navigate('/help'); setDrawerOpen(false); }}
         onProfile={() => { navigate('/staff-profile'); setDrawerOpen(false); }}
+        onEnterprise={() => { navigate('/enterprise'); setDrawerOpen(false); }}
         profile={profile ? { ...profile, name: displayName, avatar_url: displayAvatar } : (authUser ? { name: displayName, avatar_url: displayAvatar, email: authUser.email } : null)}
       />
 

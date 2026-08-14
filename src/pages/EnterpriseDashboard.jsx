@@ -9,6 +9,7 @@ import {
   ChevronRight, LayoutGrid, X, Activity, Zap, Link2, Calendar, Crown,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
+import MobileBottomNav from '@/components/MobileBottomNav';
 
 const WIDGET_STORAGE_KEY = 'gc-enterprise-widgets';
 const DEFAULT_WIDGETS = {
@@ -150,15 +151,15 @@ export default function EnterpriseDashboard() {
   ];
 
   return (
-    <div className="min-h-screen page-bg-vibrant">
+    <div className="min-h-[100dvh] page-bg-vibrant">
       {/* ── Gradient Hero ── */}
-      <header className="hero-vibrant relative overflow-hidden">
+      <header className="hero-vibrant relative overflow-hidden safe-area-top">
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.15) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(141,198,63,0.2) 0%, transparent 50%)' }} />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-5 pb-6">
-          <div className="flex items-center justify-between gap-3 mb-5">
-            <div className="flex items-center gap-3 min-w-0">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-4 pb-5 sm:pt-5 sm:pb-6">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2.5 min-w-0">
               <div className="bg-white rounded-xl px-2.5 py-1.5 shadow-md flex-shrink-0">
-                <Logo height={28} />
+                <Logo height={26} />
               </div>
               <div className="hidden sm:block h-8 w-px bg-white/30" />
               <div className="hidden sm:block min-w-0">
@@ -174,24 +175,24 @@ export default function EnterpriseDashboard() {
               <button onClick={() => setCustomising(!customising)} className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 text-white text-sm font-semibold hover:bg-white/25 transition">
                 <LayoutGrid className="w-4 h-4" /> Customise
               </button>
-              <button onClick={openSettings} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-[#2E5A1A] text-sm font-bold shadow-lg hover:shadow-xl hover:scale-105 transition">
-                <Settings className="w-4 h-4" /> Settings
+              <button onClick={openSettings} className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-3.5 rounded-xl bg-white text-[#2E5A1A] text-xs sm:text-sm font-bold shadow-lg hover:shadow-xl active:scale-95 transition">
+                <Settings className="w-4 h-4" /> <span className="hidden sm:inline">Settings</span>
               </button>
             </div>
           </div>
 
           {/* Hero highlight stats — overlaid on gradient */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
             {heroHighlights.map(h => {
               const Icon = h.icon;
               return (
-                <div key={h.label} className="bg-white/15 backdrop-blur-md rounded-2xl px-3.5 py-3 border border-white/20 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-5 h-5 text-white" />
+                <div key={h.label} className="bg-white/15 backdrop-blur-md rounded-2xl px-3 py-2.5 sm:px-3.5 sm:py-3 border border-white/20 flex items-center gap-2.5 sm:gap-3">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold text-white/70 uppercase tracking-wide">{h.label}</p>
-                    <p className="text-xl font-extrabold text-white tabular-nums truncate">{h.value}</p>
+                    <p className="text-[9px] sm:text-[10px] font-bold text-white/70 uppercase tracking-wide">{h.label}</p>
+                    <p className="text-lg sm:text-xl font-extrabold text-white tabular-nums truncate">{h.value}</p>
                   </div>
                 </div>
               );
@@ -200,9 +201,9 @@ export default function EnterpriseDashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 -mt-3 space-y-4">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 -mt-2 sm:-mt-3 space-y-4 pb-28 xl:pb-6">
         {/* ── Quick Access strip ── */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-2 sm:gap-3">
           {quickActions.map(a => {
             const Icon = a.icon;
             return (
@@ -226,11 +227,11 @@ export default function EnterpriseDashboard() {
                 <p className="text-xs text-slate-500">Live rollup across every division</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
               {kpiTiles.map(t => {
                 const Icon = t.icon;
                 return (
-                  <div key={t.label} className={`${t.gradient} rounded-2xl p-3.5 text-white relative overflow-hidden shadow-md`}>
+                  <div key={t.label} className={`${t.gradient} rounded-2xl p-3 sm:p-3.5 text-white relative overflow-hidden shadow-md`}>
                     <div className="absolute right-2 top-2 opacity-20">
                       <Icon className="w-8 h-8" />
                     </div>
@@ -420,8 +421,8 @@ export default function EnterpriseDashboard() {
 
       {/* ── Customise panel ── */}
       {customising && (
-        <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4" onClick={() => setCustomising(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] bg-slate-950/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4" onClick={() => setCustomising(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5 max-h-[85dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-extrabold text-slate-900">Customise Dashboard</h3>
               <button onClick={() => setCustomising(false)} className="p-1.5 rounded-lg hover:bg-slate-100 transition"><X className="w-5 h-5 text-slate-400" /></button>
@@ -450,6 +451,7 @@ export default function EnterpriseDashboard() {
           </div>
         </div>
       )}
+      <MobileBottomNav />
     </div>
   );
 }

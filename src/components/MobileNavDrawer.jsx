@@ -1,10 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, LogOut, HelpCircle, User, CalendarDays, HardHat, Truck, Bell } from 'lucide-react';
+import { X, Sparkles, LogOut, HelpCircle, User, CalendarDays, HardHat, Truck, Bell, Crown } from 'lucide-react';
 import Logo from '@/components/Logo';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 
-export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant, onHelp, onProfile, onDrillingIntelligence, onDeliveries, onNotifications, notifCount = 0, profile }) {
+export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant, onHelp, onProfile, onDrillingIntelligence, onDeliveries, onNotifications, notifCount = 0, profile, onEnterprise }) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -67,6 +67,14 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
             </div>
 
             <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto overscroll-contain">
+              {onEnterprise && (
+                <button type="button"
+                  onClick={() => { onEnterprise(); onClose(); }}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold mb-2 transition touch-manipulation select-none bg-gradient-to-r from-amber-500/20 to-amber-600/10 text-amber-200 hover:from-amber-500/30 hover:to-amber-600/20 ring-1 ring-amber-400/30">
+                  <Crown className="w-5 h-5 flex-shrink-0 text-amber-300" />
+                  <span>Enterprise Command</span>
+                </button>
+              )}
               {navItems.map(item => {
                 const Icon = item.icon;
                 const isActive = activeSection === item.id;
