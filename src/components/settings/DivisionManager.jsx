@@ -4,8 +4,10 @@ import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import {
   Building2, Plus, Pencil, Trash2, Users, Database, Zap, Check, X, Loader2,
-  AlertTriangle, ChevronDown, Search, ArrowRight, Layers, ShieldCheck,
+  AlertTriangle, ChevronDown, Search, ArrowRight, Layers, ShieldCheck, Navigation,
 } from 'lucide-react';
+import DivisionEditor from '@/components/settings/DivisionEditor';
+import { resolveNavItems } from '@/utils/divisionNav';
 
 const DIVISION_TYPES = [
   { value: 'geotechnical', label: 'Geotechnical', color: '#2E5A1A', hubs: ['overview', 'jobs', 'scheduling', 'staff', 'logistics', 'assets', 'fleet', 'investigation', 'compliance', 'billing', 'settings'] },
@@ -135,6 +137,8 @@ export default function DivisionManager() {
                 const st = STATUS_STYLES[d.status || 'setup'] || STATUS_STYLES.setup;
                 const staffCount = divisionStaffCounts[d.id] || 0;
                 const hubCount = (d.enabled_hubs || []).length;
+                const navCount = resolveNavItems(d).length;
+                const typeLabel = (DIVISION_TYPES.find(t => t.value === d.division_type) || {}).label || d.division_type;
                 return (
                   <div key={d.id} className="insight-card relative rounded-2xl overflow-hidden">
                     <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${d.color || '#2E5A1A'}, ${d.color || '#2E5A1A'}99)` }} />
@@ -146,7 +150,8 @@ export default function DivisionManager() {
                           </div>
                           <div className="min-w-0">
                             <h3 className="text-sm font-extrabold text-slate-900 truncate">{d.name}</h3>
-                            <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide">{d.code} · {d.division_type}</p>
+                            <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide">{d.code} {'\u00B7'} {typeLabel}</p>
+                            {d.tagline && <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">{d.tagline}</p>}
                           </div>
                         </div>
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${st.bg} ${st.text} ring-1 ${st.ring} flex-shrink-0`}>
@@ -156,19 +161,26 @@ export default function DivisionManager() {
 
                       {d.description && <p className="text-xs text-slate-500 line-clamp-2 mb-3">{d.description}</p>}
 
-                      <div className="grid grid-cols-2 gap-2 mb-3">
-                        <div className="bg-slate-50 rounded-xl p-2.5 flex items-center gap-2">
-                          <Users className="w-4 h-4 text-slate-400" />
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div className="bg-slate-50 rounded-xl p-2.5 flex items-center gap-1.5">
+                          <Users className="w-4 h-4 text-slate-400 flex-shrink-0" />
                           <div>
                             <p className="text-sm font-bold text-slate-900 tabular-nums leading-none">{staffCount}</p>
                             <p className="text-[9px] text-slate-400 uppercase font-bold">Staff</p>
                           </div>
                         </div>
-                        <div className="bg-slate-50 rounded-xl p-2.5 flex items-center gap-2">
-                          <Layers className="w-4 h-4 text-slate-400" />
+                        <div className="bg-slate-50 rounded-xl p-2.5 flex items-center gap-1.5">
+                          <Layers className="w-4 h-4 text-slate-400 flex-shrink-0" />
                           <div>
                             <p className="text-sm font-bold text-slate-900 tabular-nums leading-none">{hubCount}</p>
                             <p className="text-[9px] text-slate-400 uppercase font-bold">Hubs</p>
+                          </div>
+                        </div>
+                        <div className="bg-slate-50 rounded-xl p-2.5 flex items-center gap-1.5">
+                          <Navigation className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 tabular-nums leading-none">{navCount}</p>
+                            <p className="text-[9px] text-slate-400 uppercase font-bold">Nav</p>
                           </div>
                         </div>
                       </div>
@@ -416,138 +428,4 @@ function DeleteDivisionModal({ division, staffCount, onCancel, onDeleted }) {
   );
 }
 
-function DivisionEditor({ division, onClose, onSaved }) {
-  const { toast } = useToast();
-  const [form, setForm] = useState(() => ({
-    name: division?.name || '',
-    code: division?.code || '',
-    division_type: division?.division_type || 'general',
-    description: division?.description || '',
-    color: division?.color || '#475569',
-    is_active: division?.is_active !== false,
-    status: division?.status || 'setup',
-    sort_order: division?.sort_order || 0,
-    enabled_hubs: division?.enabled_hubs || [...ALL_HUBS],
-  }));
-  const [saving, setSaving] = useState(false);
-
-  const setHubsFromType = (type) => {
-    const preset = DIVISION_TYPES.find(t => t.value === type);
-    setForm(f => ({ ...f, division_type: type, color: preset?.color || f.color, enabled_hubs: division ? f.enabled_hubs : (preset?.hubs || f.enabled_hubs) }));
-  };
-
-  const toggleHub = (h) => {
-    setForm(f => {
-      const hubs = f.enabled_hubs.includes(h) ? f.enabled_hubs.filter(x => x !== h) : [...f.enabled_hubs, h];
-      return { ...f, enabled_hubs: hubs };
-    });
-  };
-
-  const save = async () => {
-    if (!form.name.trim() || !form.code.trim()) {
-      toast({ title: 'Name and code are required', variant: 'destructive' });
-      return;
-    }
-    setSaving(true);
-    try {
-      const payload = { ...form, code: form.code.toUpperCase().trim() };
-      if (division) {
-        await base44.entities.Division.update(division.id, payload);
-        toast({ title: 'Division updated' });
-      } else {
-        await base44.entities.Division.create(payload);
-        toast({ title: 'Division created' });
-      }
-      onSaved();
-    } catch (e) {
-      toast({ title: 'Save failed', description: e.message, variant: 'destructive' });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white border-b border-slate-100 px-5 py-4 flex items-center justify-between z-10">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style={{ background: `linear-gradient(135deg, ${form.color}, ${form.color}cc)` }}>
-              <Building2 className="w-5 h-5 text-white" />
-            </div>
-            <h3 className="text-base font-extrabold text-slate-900">{division ? 'Edit Division' : 'New Division'}</h3>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100"><X className="w-5 h-5 text-slate-400" /></button>
-        </div>
-        <div className="p-5 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Name</label>
-              <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Geotechnical"
-                className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10 outline-none text-sm" />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Code</label>
-              <input value={form.code} onChange={e => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="GEO" maxLength={6}
-                className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10 outline-none text-sm uppercase" />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Division Type</label>
-            <p className="text-[11px] text-slate-400 mt-0.5">Determines which hubs are enabled by default.</p>
-            <div className="mt-1.5 grid grid-cols-3 gap-1.5">
-              {DIVISION_TYPES.map(t => (
-                <button key={t.value} type="button" onClick={() => setHubsFromType(t.value)}
-                  className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-semibold transition ${form.division_type === t.value ? 'border-[#2E5A1A] bg-emerald-50 text-[#2E5A1A]' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: t.color }} /> {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Description</label>
-            <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2}
-              className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10 outline-none text-sm" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Brand Colour</label>
-              <div className="mt-1 flex items-center gap-2">
-                <input type="color" value={form.color} onChange={e => setForm({ ...form, color: e.target.value })} className="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer" />
-                <input value={form.color} onChange={e => setForm({ ...form, color: e.target.value })} className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm font-mono" />
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Status</label>
-              <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
-                className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm">
-                <option value="setup">Setup</option>
-                <option value="active">Active</option>
-                <option value="on_hold">On Hold</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5" /> Enabled Hubs
-            </label>
-            <p className="text-[11px] text-slate-400 mt-0.5">Which hubs show in this division's sidebar. Geotechnical includes Investigation; others typically don't.</p>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {ALL_HUBS.map(h => (
-                <button key={h} type="button" onClick={() => toggleHub(h)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${form.enabled_hubs.includes(h) ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
-                  {h}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="sticky bottom-0 bg-white border-t border-slate-100 px-5 py-3 flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Cancel</button>
-          <button onClick={save} disabled={saving} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg command-gradient text-white text-sm font-bold shadow-md disabled:opacity-60 transition">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} {division ? 'Save Changes' : 'Create Division'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+// DivisionEditor is now imported from '@/components/settings/DivisionEditor'

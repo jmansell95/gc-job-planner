@@ -1,13 +1,32 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, ScanLine, Home, User, Sparkles } from 'lucide-react';
-import { useNotifications } from '@/hooks/useNotifications';
+import {
+  Home, Calendar, ScanLine, Truck, Briefcase, Grid3x3, ShieldCheck,
+  Boxes, Car, PoundSterling, Users, Sparkles, User, HelpCircle,
+} from 'lucide-react';
+import { useDivision } from '@/contexts/DivisionContext';
+import { getNavConfigs } from '@/utils/divisionNav';
 
 /**
- * Mobile Bottom Navigation — persistent thumb-reach bar for field teams.
- * Stays docked at the bottom of the screen on mobile (lg:hidden) so field
- * staff can jump to their schedule, scanner, home, notifications, or profile
- * without scrolling back to the top header.
+ * Icon mapping — maps the string icon name in the nav registry to the actual
+ * lucide-react component. This keeps the registry serialisable (plain strings)
+ * while the component handles the render-time lookup.
+ */
+const ICON_MAP = {
+  Home, Calendar, ScanLine, Truck, Briefcase, Grid3x3, ShieldCheck,
+  Boxes, Car, PoundSterling, Users, Sparkles, User, HelpCircle,
+};
+
+/**
+ * Mobile Bottom Navigation — division-aware persistent thumb-reach bar.
+ *
+ * Reads the active division's `nav_items` config (or falls back to the
+ * division type default) and renders the configured items. Each division
+ * can have a completely different set of nav items — configured in
+ * Settings → Divisions → Edit → Navigation.
+ *
+ * When no division is active (Enterprise Overview), the nav is hidden —
+ * the Enterprise Dashboard is the top-level hub above all divisions.
  *
  * Only renders on mobile screens. Hidden on desktop where the sidebar
  * provides full navigation.
@@ -15,24 +34,19 @@ import { useNotifications } from '@/hooks/useNotifications';
 export default function MobileBottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
-  const notifications = useNotifications();
-  const notifCount = notifications.count;
+  const { activeDivision } = useDivision();
 
-  const items = [
-    { id: 'home', label: 'Home', icon: Home, path: '/enterprise' },
-    { id: 'schedule', label: 'Schedule', icon: Calendar, path: '/staff-schedule' },
-    { id: 'scan', label: 'Scan', icon: ScanLine, path: '/scanner', highlight: true },
-    { id: 'ai-hub', label: 'AI Hub', icon: Sparkles, path: null, isAIHub: true },
-    { id: 'profile', label: 'Profile', icon: User, path: '/staff-profile' },
-  ];
+  // Resolve nav items for the active division
+  const items = activeDivision ? getNavConfigs(activeDivision) : [];
+
+  // Don't render on enterprise overview (no division selected)
+  if (!activeDivision || items.length === 0) return null;
 
   const isActive = (item) => {
+    if (!item.path) return false;
     if (item.path === '/enterprise') return location.pathname === '/enterprise';
     if (item.path === '/admin') return location.pathname === '/admin';
-    if (item.path === '/staff-schedule') return location.pathname === '/staff-schedule';
-    if (item.path === '/scanner') return location.pathname === '/scanner';
-    if (item.path === '/staff-profile') return location.pathname === '/staff-profile';
-    return false;
+    return location.pathname === item.path;
   };
 
   return (
@@ -42,22 +56,29 @@ export default function MobileBottomNav() {
     >
       <div className="flex items-stretch justify-around px-1 h-14">
         {items.map((item) => {
-          const Icon = item.icon;
+          const Icon = ICON_MAP[item.icon] || Home;
           const active = isActive(item);
-          const showBadge = item.badge > 0;
 
           if (item.highlight) {
             return (
               <button
                 key={item.id}
-                onClick={() => navigate(item.path)}
+                onClick={() => item.path && navigate(item.path)}
                 className="flex flex-col items-center justify-center flex-1 relative active:scale-95 transition"
                 aria-label={item.label}
               >
-                <div className="w-11 h-11 -mt-4 rounded-full bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-lg ring-4 ring-white">
+                <div
+                  className="w-11 h-11 -mt-4 rounded-full flex items-center justify-center shadow-lg ring-4 ring-white"
+                  style={{ background: `linear-gradient(135deg, ${activeDivision.color || '#2E5A1A'}, ${activeDivision.color || '#2E5A1A'}cc)` }}
+                >
                   <Icon className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-[10px] font-semibold text-[#2E5A1A] mt-0.5">{item.label}</span>
+                <span
+                  className="text-[10px] font-semibold mt-0.5"
+                  style={{ color: activeDivision.color || '#2E5A1A' }}
+                >
+                  {item.label}
+                </span>
               </button>
             );
           }
@@ -66,26 +87,25 @@ export default function MobileBottomNav() {
             <button
               key={item.id}
               onClick={() => {
-                if (item.id === 'ai-hub') {
+                if (item.isAIHub) {
                   window.dispatchEvent(new CustomEvent('gc-open-ai-hub'));
                   return;
                 }
                 if (item.path) navigate(item.path);
               }}
               className={`flex flex-col items-center justify-center flex-1 relative active:scale-95 transition ${
-                active ? 'text-[#2E5A1A]' : 'text-slate-400'
+                active ? '' : 'text-slate-400'
               }`}
+              style={active ? { color: activeDivision.color || '#2E5A1A' } : {}}
               aria-label={item.label}
             >
-              <Icon className={`w-5 h-5 ${active ? 'fill-[#2E5A1A]/10' : ''}`} />
+              <Icon className={`w-5 h-5 ${active ? '' : ''}`} style={active ? { fill: (activeDivision.color || '#2E5A1A') + '1a' } : {}} />
               <span className="text-[10px] font-semibold mt-0.5">{item.label}</span>
-              {showBadge && (
-                <span className="absolute top-1 right-[calc(50%-16px)] min-w-[15px] h-4 px-1 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                  {item.badge > 9 ? '9+' : item.badge}
-                </span>
-              )}
               {active && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[#2E5A1A] rounded-full" />
+                <span
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full"
+                  style={{ background: activeDivision.color || '#2E5A1A' }}
+                />
               )}
             </button>
           );

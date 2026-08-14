@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from '
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
+import { getNavConfigs, resolveNavItems } from '@/utils/divisionNav';
 
 const DivisionContext = createContext(null);
 const STORAGE_KEY = 'gc-active-division';
@@ -65,6 +66,26 @@ export function DivisionProvider({ children }) {
     return hubs.includes(hubId);
   };
 
+  // Resolve the mobile bottom-nav items for the active division.
+  // Returns config objects from the nav registry — empty for enterprise overview
+  // (the enterprise dashboard doesn't show a division bottom nav).
+  const navItems = useMemo(() => {
+    if (!activeDivision) return [];
+    return getNavConfigs(activeDivision);
+  }, [activeDivision]);
+
+  const navItemIds = useMemo(() => {
+    if (!activeDivision) return [];
+    return resolveNavItems(activeDivision);
+  }, [activeDivision]);
+
+  // Get a division-specific setting value, falling back to the default.
+  const getDivisionSetting = (key, fallback) => {
+    if (!activeDivision?.settings) return fallback;
+    const val = activeDivision.settings[key];
+    return val === undefined ? fallback : val;
+  };
+
   const value = {
     divisions,
     activeDivision,
@@ -74,6 +95,9 @@ export function DivisionProvider({ children }) {
     myDivisionId,
     isLoading: divisionsLoading,
     isHubEnabled,
+    navItems,
+    navItemIds,
+    getDivisionSetting,
   };
 
   return <DivisionContext.Provider value={value}>{children}</DivisionContext.Provider>;
@@ -86,6 +110,7 @@ export function useDivision() {
       divisions: [], activeDivision: null, activeDivisionId: null,
       setActiveDivision: () => {}, isEnterpriseAdmin: false, myDivisionId: null,
       isLoading: true, isHubEnabled: () => true,
+      navItems: [], navItemIds: [], getDivisionSetting: (k, f) => f,
     };
   }
   return ctx;

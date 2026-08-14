@@ -4,7 +4,7 @@
   "properties": {
     "name": {
       "type": "string",
-      "description": "Division name (e.g. 'Geotechnical', 'Environmental', 'Surveys')."
+      "description": "Division name (e.g. 'Geotechnical', 'Environmental', 'Surveys'). Stored in proper case."
     },
     "code": {
       "type": "string",
@@ -27,6 +27,10 @@
       "type": "string",
       "description": "Short description of what this division does."
     },
+    "tagline": {
+      "type": "string",
+      "description": "Short marketing tagline shown on division cards and the division entry screen (e.g. 'Ground Investigation Specialists')."
+    },
     "color": {
       "type": "string",
       "description": "Brand accent hex colour for badges, cards and the division switcher (e.g. '#2E5A1A')."
@@ -47,6 +51,69 @@
       },
       "default": [],
       "description": "Hub IDs enabled for this division: overview, jobs, scheduling, staff, logistics, assets, fleet, investigation, compliance, billing, settings. Geotechnical includes 'investigation'; non-geotechnical divisions omit it."
+    },
+    "nav_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Mobile bottom navigation item IDs for this division. Each ID maps to an entry in the division nav registry (src/utils/divisionNav.js). When empty, falls back to the division type's default nav. Configured in Settings \u2192 Divisions \u2192 Edit \u2192 Navigation."
+    },
+    "landing_page": {
+      "type": "string",
+      "description": "Default route users land on when entering this division (e.g. '/admin', '/staff-schedule'). When blank, field teams land on /staff-schedule and managers on /admin."
+    },
+    "settings": {
+      "type": "object",
+      "description": "Division-specific operational settings that override platform defaults for this division's users. Configured in Settings \u2192 Divisions \u2192 Edit \u2192 Settings.",
+      "properties": {
+        "vat_rate": {
+          "type": "number",
+          "default": 20,
+          "description": "VAT rate (%) applied to this division's invoices. UK standard is 20."
+        },
+        "default_markup_percentage": {
+          "type": "number",
+          "default": 0,
+          "description": "Default markup % applied to this division's jobs when assigned."
+        },
+        "require_briefing_signature": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether staff must sign the job briefing before starting work in this division."
+        },
+        "allow_timesheet_edit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether field staff can edit their own timesheets in this division."
+        },
+        "enable_geotab_tracking": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether Geotab GPS vehicle tracking is active for this division."
+        },
+        "enable_safetyculture": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether SafetyCulture (iAuditor) integration is active for this division."
+        },
+        "enable_asset_panda": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether Asset Panda inventory sync is active for this division."
+        },
+        "enable_open_ground": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether OpenGround borehole data sync is active for this division (geotechnical only)."
+        },
+        "enable_keylogbook": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether KeyLogBook AGS webhook import is active for this division (geotechnical only)."
+        }
+      }
     },
     "status": {
       "type": "string",

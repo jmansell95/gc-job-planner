@@ -105,7 +105,8 @@ export default function EnterpriseDashboard() {
 
   const enterDivision = (d) => {
     setActiveDivision(d.id);
-    navigate('/admin', { state: { section: 'overview' } });
+    const landing = d.landing_page || '/admin';
+    navigate(landing, { state: { section: 'overview' } });
   };
 
   const goToSettings = (tab) => {
@@ -157,7 +158,7 @@ export default function EnterpriseDashboard() {
               <div className="min-w-0">
                 <h1 className="text-lg font-extrabold text-white tracking-tight leading-none flex items-center gap-2">
                   <Crown className="w-4 h-4 text-amber-300 flex-shrink-0" />
-                  <span className="truncate">Enterprise Command Centre</span>
+                  <span className="truncate">Ground Control Divisions</span>
                 </h1>
                 <p className="text-[11px] text-white/70 font-medium mt-0.5 flex items-center gap-1.5">
                   <Calendar className="w-3 h-3 flex-shrink-0" /> {TODAY_LABEL}
@@ -276,6 +277,7 @@ export default function EnterpriseDashboard() {
                         <div className="min-w-0">
                           <h3 className="text-base font-extrabold text-slate-900 truncate">{d.name}</h3>
                           <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide">{DIVISION_TYPE_LABELS[d.division_type] || d.division_type} {'\u00B7'} {d.code}</p>
+                          {d.tagline && <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">{d.tagline}</p>}
                         </div>
                       </div>
                       <span className={badgeClass}>
