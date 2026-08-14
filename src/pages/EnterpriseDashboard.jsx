@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -8,8 +8,11 @@ import {
   Building2, Users, Briefcase, Truck, ClipboardCheck, ShieldCheck, PoundSterling,
   ArrowRight, Settings, Sparkles, TrendingUp, AlertTriangle, CheckCircle2,
   ChevronRight, LayoutGrid, X, Activity, Zap, Link2, Calendar, Crown, Crown as DirectorIcon,
+  User, HelpCircle, LogOut,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
+import EnterpriseHeader from '@/components/EnterpriseHeader';
+import ProfileAvatar from '@/components/ui/ProfileAvatar';
 
 const WIDGET_STORAGE_KEY = 'gc-enterprise-widgets';
 const DEFAULT_WIDGETS = {
@@ -41,6 +44,19 @@ export default function EnterpriseDashboard() {
   const { user } = useAuth();
   const { divisions, permittedDivisions, setActiveDivision, isSuperAdmin, isDirector, isLoading: divisionsLoading } = useDivision();
   const [customising, setCustomising] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const { data: myProfile } = useQuery({ queryKey: ['ent-my-profile'], queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; } });
+  // Clear division context on mount — the Enterprise Dashboard sits above all
+  // divisions. No division sidebar, no division-scoped data, no crossover.
+  useEffect(() => { setActiveDivision(null); }, []);
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const handler = () => setProfileMenuOpen(false);
+    window.addEventListener('click', handler);
+    return () => window.removeEventListener('click', handler);
+  }, [profileMenuOpen]);
+  const myProfileName = myProfile?.name || user?.full_name || user?.email || 'User';
+  const myProfileAvatar = myProfile?.avatar_url || null;
   const [widgets, setWidgets] = useState(() => {
     try { return { ...DEFAULT_WIDGETS, ...JSON.parse(localStorage.getItem(WIDGET_STORAGE_KEY) || '{}') }; }
     catch { return DEFAULT_WIDGETS; }
@@ -146,8 +162,8 @@ export default function EnterpriseDashboard() {
   ] : [
     { label: 'Settings', icon: Settings, action: () => goToSettings('hub'), gradient: 'from-slate-600 to-slate-800' },
     { label: 'Readiness', icon: Zap, action: () => goToSettings('readiness'), gradient: 'from-amber-500 to-orange-600' },
-    { label: 'Compliance', icon: ShieldCheck, action: () => { setActiveDivision(null); navigate('/admin', { state: { section: 'compliance' } }); }, gradient: 'from-rose-500 to-pink-600' },
-    { label: 'Billing', icon: PoundSterling, action: () => { setActiveDivision(null); navigate('/admin', { state: { section: 'billing' } }); }, gradient: 'from-indigo-500 to-blue-600' },
+    { label: 'Integrations', icon: Link2, action: () => goToSettings('integrations'), gradient: 'from-blue-600 to-indigo-700' },
+    { label: 'Help', icon: HelpCircle, action: () => navigate('/help'), gradient: 'from-rose-500 to-pink-600' },
   ];
 
   const heroHighlights = [
@@ -158,7 +174,9 @@ export default function EnterpriseDashboard() {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="min-h-screen page-bg-vibrant">
+      <EnterpriseHeader />
+      <div className="px-4 pb-24 pt-[calc(3.5rem+env(safe-area-inset-top)+0.5rem)] xl:pt-6 xl:px-6 xl:pb-6 space-y-4">
       {/* Hero Card */}
       <section className="hero-vibrant relative overflow-hidden rounded-3xl shadow-lg">
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.15) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(141,198,63,0.2) 0%, transparent 50%)' }} />
@@ -181,6 +199,32 @@ export default function EnterpriseDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="hidden xl:block relative">
+                <button onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }} type="button" aria-label="Profile menu" className="relative flex items-center justify-center active:scale-95 rounded-full transition ring-2 ring-transparent hover:ring-white/20">
+                  <ProfileAvatar name={myProfileName} avatarUrl={myProfileAvatar} size={36} />
+                </button>
+                {profileMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50" onClick={(e) => e.stopPropagation()}>
+                    <div className="px-4 py-3 border-b border-slate-100">
+                      <p className="text-sm font-semibold text-slate-900 truncate">{myProfileName}</p>
+                      {user?.email && <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>}
+                    </div>
+                    <div className="py-1">
+                      <button onClick={() => { navigate('/staff-profile'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
+                        <User className="w-4 h-4 text-slate-400" /> My Profile
+                      </button>
+                      <button onClick={() => { navigate('/help'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
+                        <HelpCircle className="w-4 h-4 text-slate-400" /> Help Guides
+                      </button>
+                    </div>
+                    <div className="border-t border-slate-100 py-1">
+                      <button onClick={() => { base44.auth.logout('/'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 transition text-left">
+                        <LogOut className="w-4 h-4" /> Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
               {isSuperAdmin && (
               <button onClick={() => setCustomising(!customising)} className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 text-white text-sm font-semibold hover:bg-white/25 transition">
                 <LayoutGrid className="w-4 h-4" /> Customise
@@ -411,8 +455,8 @@ export default function EnterpriseDashboard() {
                 </div>
               </div>
             </div>
-            <button onClick={() => { setActiveDivision(null); navigate('/admin', { state: { section: 'compliance' } }); }} className="w-full mt-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-sm font-semibold text-slate-600 transition">
-              Review in Compliance Hub <ChevronRight className="w-4 h-4" />
+            <button onClick={() => goToSettings('hub')} className="w-full mt-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-sm font-semibold text-slate-600 transition">
+              Manage in Settings <ChevronRight className="w-4 h-4" />
             </button>
           </section>
         )}
@@ -467,6 +511,7 @@ export default function EnterpriseDashboard() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

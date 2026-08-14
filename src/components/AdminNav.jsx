@@ -34,7 +34,7 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
   const { openChat } = useStaffAssistant();
   const { openChat: openDrillingIntelligence } = useDrillingIntelligence();
   const { isComingSoon, isLocked } = useReadiness();
-  const { isHubEnabled } = useDivision();
+  const { isHubEnabled, activeDivision } = useDivision();
 
   useEffect(() => {
     (async () => {
@@ -97,7 +97,13 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
   const navItems = allNavItems
     .filter(item => canAccessSection(profile, item.id, isPlatformAdmin))
     .filter(item => !isLocked(item.id))
-    .filter(item => isHubEnabled(item.id))
+    .filter(item => {
+      // When no division is active (enterprise overview / settings-only mode),
+      // hide all division hubs — only Settings is shown. Division hubs require
+      // a division context to avoid cross-division data exposure.
+      if (!activeDivision && item.id !== 'settings') return false;
+      return isHubEnabled(item.id);
+    })
     .map(item => ({ ...item, comingSoon: isComingSoon(item.id) }));
   const canViewSchedule = canAccessSection(profile, 'staff_schedule');
 
