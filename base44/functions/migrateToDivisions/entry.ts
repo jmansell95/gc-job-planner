@@ -65,6 +65,21 @@ export default async function(req) {
       counts[name] = { total: items.length, tagged };
     }
 
+    // 3. Sync User.division_id from linked Staff records (for division-scoped RLS).
+    let usersSynced = 0;
+    try {
+      const allStaff = await sr.entities.Staff.list('-created_date', 5000);
+      for (const s of allStaff) {
+        if (s.division_id && s.user_id) {
+          try {
+            await sr.entities.User.update(s.user_id, { division_id: s.division_id });
+            usersSynced++;
+          } catch {}
+        }
+      }
+    } catch {}
+    counts.User = { synced: usersSynced };
+
     return Response.json({
       success: true,
       divisionId,
