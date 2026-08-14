@@ -89,7 +89,10 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
     try { localStorage.setItem('gc-sidebar-collapsed', String(next)); } catch {}
   };
 
-  const navItems = allNavItems.filter(item => canAccessSection(profile, item.id));
+  const navItems = allNavItems
+    .filter(item => canAccessSection(profile, item.id))
+    .filter(item => !isLocked(item.id))
+    .map(item => ({ ...item, comingSoon: isComingSoon(item.id) }));
   const canViewSchedule = canAccessSection(profile, 'staff_schedule');
 
   const desktopNav = (
