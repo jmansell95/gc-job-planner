@@ -119,6 +119,11 @@
           "data.division_id": "{{user.data.division_id}}"
         },
         {
+          "data.division_id": {
+            "$in": "{{user.data.managed_division_ids}}"
+          }
+        },
+        {
           "user_condition": {
             "role": "admin"
           }
@@ -131,19 +136,94 @@
       ]
     },
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "director"
+              }
+            },
+            {
+              "$or": [
+                {
+                  "data.division_id": "{{user.data.division_id}}"
+                },
+                {
+                  "data.division_id": {
+                    "$in": "{{user.data.managed_division_ids}}"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "director"
+              }
+            },
+            {
+              "$or": [
+                {
+                  "data.division_id": "{{user.data.division_id}}"
+                },
+                {
+                  "data.division_id": {
+                    "$in": "{{user.data.managed_division_ids}}"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "director"
+              }
+            },
+            {
+              "$or": [
+                {
+                  "data.division_id": "{{user.data.division_id}}"
+                },
+                {
+                  "data.division_id": {
+                    "$in": "{{user.data.managed_division_ids}}"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   }
 }
