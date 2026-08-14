@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, User, Truck, Boxes, Car, Clock, ShieldCheck, PoundSterling, ShieldAlert, ChevronRight, ChevronDown, PanelLeftClose, PanelLeftOpen, Wrench, Warehouse, Users, Contact, Zap, FileBarChart, FileUp, ClipboardCheck, FlaskConical } from 'lucide-react';
+import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, User, Truck, Boxes, Car, Clock, ShieldCheck, PoundSterling, ShieldAlert, ChevronRight, ChevronDown, PanelLeftClose, PanelLeftOpen, Wrench, Warehouse, Users, Contact, Zap, FileBarChart, FileUp, ClipboardCheck, FlaskConical, Crown } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -117,6 +117,14 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
         </div>
       </div>
       {!collapsed && <DivisionSwitcher variant="sidebar" />}
+      {/* Enterprise Command Centre link — prominent at top of nav */}
+      <div className="px-2 pb-1.5">
+        <button type="button" onClick={() => navigate('/enterprise')}
+          className={`w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} ${collapsed ? 'px-0 py-2.5' : 'px-3.5 py-2'} rounded-xl text-sm font-bold transition cursor-pointer touch-manipulation select-none bg-gradient-to-r from-amber-500/20 to-amber-600/10 text-amber-200 hover:from-amber-500/30 hover:to-amber-600/20 ring-1 ring-amber-400/30`}>
+          <Crown className="w-[18px] h-[18px] flex-shrink-0 text-amber-300" />
+          {!collapsed && <span>Enterprise Command</span>}
+        </button>
+      </div>
       <div className="flex-1 px-2 py-1.5 space-y-0.5 overflow-y-auto">
         {navItems.map(item => {
           const Icon = item.icon;

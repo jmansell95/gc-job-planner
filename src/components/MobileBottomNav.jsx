@@ -19,7 +19,7 @@ export default function MobileBottomNav() {
   const notifCount = notifications.count;
 
   const items = [
-    { id: 'home', label: 'Home', icon: Home, path: '/admin', section: 'overview' },
+    { id: 'home', label: 'Home', icon: Home, path: '/enterprise' },
     { id: 'schedule', label: 'Schedule', icon: Calendar, path: '/staff-schedule' },
     { id: 'scan', label: 'Scan', icon: ScanLine, path: '/scanner', highlight: true },
     { id: 'ai-hub', label: 'AI Hub', icon: Sparkles, path: null, isAIHub: true },
@@ -27,6 +27,7 @@ export default function MobileBottomNav() {
   ];
 
   const isActive = (item) => {
+    if (item.path === '/enterprise') return location.pathname === '/enterprise';
     if (item.path === '/admin') return location.pathname === '/admin';
     if (item.path === '/staff-schedule') return location.pathname === '/staff-schedule';
     if (item.path === '/scanner') return location.pathname === '/scanner';

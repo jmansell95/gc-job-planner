@@ -85,7 +85,6 @@ const AuthenticatedApp = () => {
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route path="/" element={<KioskScannerRedirect><Home /></KioskScannerRedirect>} />
           <Route path="/scanner" element={<RouteGuard><AssetScannerPage /></RouteGuard>} />
-          <Route path="/enterprise" element={<RouteGuard><EnterpriseDashboard /></RouteGuard>} />
           <Route path="/admin" element={<RouteGuard><AdminDashboard /></RouteGuard>} />
           {/* Staff pages — full-screen, no admin header bar; they render their own mobile-first headers */}
           <Route path="/staff-schedule" element={<RouteGuard><StaffDashboard /></RouteGuard>} />
@@ -93,6 +92,7 @@ const AuthenticatedApp = () => {
           <Route path="/deliveries" element={<RouteGuard><DeliveryDashboard /></RouteGuard>} />
           <Route path="/help" element={<HelpGuide />} />
           <Route element={<AppLayout />}>
+            <Route path="/enterprise" element={<RouteGuard><EnterpriseDashboard /></RouteGuard>} />
             <Route path="/subcontractor" element={<RouteGuard><SubcontractorDashboard /></RouteGuard>} />
             <Route path="/admin/logistics" element={<RouteGuard><HubReadinessGate featureId="logistics"><AdminDeliveryHub /></HubReadinessGate></RouteGuard>} />
             <Route path="/presentation-pack" element={<PresentationPack />} />

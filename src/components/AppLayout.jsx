@@ -9,6 +9,7 @@ import { STANDALONE_ROUTES, ROUTE_TO_SECTION } from '@/utils/standaloneRoutes';
 // Maps standalone routes to the closest AdminNav section so the
 // sidebar highlights the right item when on a non-dashboard page.
 const ROUTE_SECTION_MAP = {
+  '/enterprise': '',
   '/staff-schedule': 'scheduling',
   '/staff-profile': 'scheduling',
   '/subcontractor': 'scheduling',
