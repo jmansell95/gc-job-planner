@@ -1,5 +1,6 @@
 import React from "react";
 import { useLoginBranding } from "@/hooks/useLoginBranding";
+import { EMBLEM_URL } from "@/components/Logo";
 
 export default function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
   const branding = useLoginBranding();
@@ -37,9 +38,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
           {branding.show_logo && branding.logo_url ? (
             <img src={branding.logo_url} alt="Logo" className="mx-auto h-14 w-auto mb-4 object-contain" />
           ) : (
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] shadow-lg icon-tile-glow">
-              <Icon className="w-8 h-8 text-white" aria-hidden="true" />
-            </div>
+            <img src={EMBLEM_URL} alt="Ground Control" className="mx-auto h-16 w-auto mb-4 object-contain drop-shadow-lg" />
           )}
           <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow-sm">{displayTitle}</h1>
           {displaySubtitle && <p className="text-white/80 mt-2 drop-shadow-sm">{displaySubtitle}</p>}
