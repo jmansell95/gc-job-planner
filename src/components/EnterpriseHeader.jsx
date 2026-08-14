@@ -51,9 +51,7 @@ export default function EnterpriseHeader() {
       <div className="absolute inset-0 sidebar-modern" />
       <div className="relative z-10 h-14 flex items-center justify-between px-3">
         <div className="flex items-center gap-2.5 flex-shrink-0">
-          <div className="bg-white rounded-lg px-2 py-1 shadow-sm">
-            <Logo height={26} />
-          </div>
+          <Logo height={26} />
           <div className="flex flex-col leading-none">
             <span className="text-white font-extrabold text-sm tracking-tight">Land &amp; Water</span>
             <span className="text-white/50 font-medium text-[9px] tracking-[0.18em] uppercase">Solutions</span>
