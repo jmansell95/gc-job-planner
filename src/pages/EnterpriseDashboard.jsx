@@ -157,7 +157,9 @@ export default function EnterpriseDashboard() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-5 pb-6">
           <div className="flex items-center justify-between gap-3 mb-5">
             <div className="flex items-center gap-3 min-w-0">
-              <Logo variant="full" height={36} tone="light" />
+              <div className="bg-white rounded-xl px-2.5 py-1.5 shadow-md flex-shrink-0">
+                <Logo height={28} />
+              </div>
               <div className="hidden sm:block h-8 w-px bg-white/30" />
               <div className="hidden sm:block min-w-0">
                 <h1 className="text-lg font-extrabold text-white tracking-tight leading-none flex items-center gap-2">

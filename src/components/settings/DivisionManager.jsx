@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import {
-  Building2, Plus, Pencil, Trash2, Users, Database, Zap, Check, X, Loader2, AlertTriangle, ChevronDown,
+  Building2, Plus, Pencil, Trash2, Users, Database, Zap, Check, X, Loader2,
+  AlertTriangle, ChevronDown, Search, ArrowRight, Layers, ShieldCheck,
 } from 'lucide-react';
 
 const DIVISION_TYPES = [
@@ -17,13 +18,21 @@ const DIVISION_TYPES = [
 
 const ALL_HUBS = ['overview', 'jobs', 'scheduling', 'staff', 'logistics', 'assets', 'fleet', 'investigation', 'compliance', 'billing', 'settings'];
 
+const STATUS_STYLES = {
+  active: { bg: 'bg-emerald-50', text: 'text-emerald-700', ring: 'ring-emerald-200', label: 'Active', dot: 'bg-emerald-500' },
+  setup: { bg: 'bg-amber-50', text: 'text-amber-700', ring: 'ring-amber-200', label: 'Setup', dot: 'bg-amber-500' },
+  on_hold: { bg: 'bg-slate-100', text: 'text-slate-600', ring: 'ring-slate-200', label: 'On Hold', dot: 'bg-slate-400' },
+};
+
 export default function DivisionManager() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [tab, setTab] = useState('divisions'); // divisions | staff | migration
-  const [editing, setEditing] = useState(null); // division being edited or 'new'
+  const [tab, setTab] = useState('divisions');
+  const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const [migrating, setMigrating] = useState(false);
   const [migrationResult, setMigrationResult] = useState(null);
+  const [staffSearch, setStaffSearch] = useState('');
 
   const { data: divisions = [], isLoading } = useQuery({
     queryKey: ['divisions'],
@@ -55,6 +64,21 @@ export default function DivisionManager() {
     }
   };
 
+  // Staff count per division
+  const divisionStaffCounts = useMemo(() => {
+    const counts = {};
+    for (const s of staff) {
+      if (s.division_id) counts[s.division_id] = (counts[s.division_id] || 0) + 1;
+    }
+    return counts;
+  }, [staff]);
+
+  const filteredStaff = useMemo(() => {
+    const q = staffSearch.toLowerCase().trim();
+    if (!q) return staff;
+    return staff.filter(s => (s.name || '').toLowerCase().includes(q) || (s.job_title || '').toLowerCase().includes(q) || (s.email || '').toLowerCase().includes(q));
+  }, [staff, staffSearch]);
+
   const tabs = [
     { id: 'divisions', label: 'Divisions', icon: Building2 },
     { id: 'staff', label: 'Staff Assignment', icon: Users },
@@ -65,11 +89,11 @@ export default function DivisionManager() {
     <div className="space-y-4">
       {/* Header */}
       <div className="insight-card rounded-2xl p-5">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-md flex-shrink-0">
             <Building2 className="w-6 h-6 text-white" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h2 className="text-lg font-extrabold text-slate-900">Division Manager</h2>
             <p className="text-sm text-slate-500">Create divisions, link staff, and tag existing data. Each division is an isolated workspace sharing the same core platform.</p>
           </div>
@@ -89,7 +113,7 @@ export default function DivisionManager() {
         })}
       </div>
 
-      {/* Divisions tab */}
+      {/* ═══ Divisions tab ═══ */}
       {tab === 'divisions' && (
         <div className="space-y-3">
           <div className="flex justify-end">
@@ -107,47 +131,104 @@ export default function DivisionManager() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {divisions.map(d => (
-                <div key={d.id} className="insight-card relative rounded-2xl p-4 overflow-hidden">
-                  <span className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: d.color || '#2E5A1A' }} />
-                  <div className="pl-2 flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm" style={{ background: d.color || '#2E5A1A' }}>
-                        <Building2 className="w-5 h-5 text-white" />
+              {divisions.map(d => {
+                const st = STATUS_STYLES[d.status || 'setup'] || STATUS_STYLES.setup;
+                const staffCount = divisionStaffCounts[d.id] || 0;
+                const hubCount = (d.enabled_hubs || []).length;
+                return (
+                  <div key={d.id} className="insight-card relative rounded-2xl overflow-hidden">
+                    <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${d.color || '#2E5A1A'}, ${d.color || '#2E5A1A'}99)` }} />
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md" style={{ background: `linear-gradient(135deg, ${d.color || '#2E5A1A'}, ${d.color || '#2E5A1A'}cc)` }}>
+                            <Building2 className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-sm font-extrabold text-slate-900 truncate">{d.name}</h3>
+                            <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide">{d.code} · {d.division_type}</p>
+                          </div>
+                        </div>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${st.bg} ${st.text} ring-1 ${st.ring} flex-shrink-0`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} /> {st.label}
+                        </span>
                       </div>
-                      <div className="min-w-0">
-                        <h3 className="text-sm font-extrabold text-slate-900 truncate">{d.name}</h3>
-                        <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide">{d.code} · {d.division_type}</p>
+
+                      {d.description && <p className="text-xs text-slate-500 line-clamp-2 mb-3">{d.description}</p>}
+
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        <div className="bg-slate-50 rounded-xl p-2.5 flex items-center gap-2">
+                          <Users className="w-4 h-4 text-slate-400" />
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 tabular-nums leading-none">{staffCount}</p>
+                            <p className="text-[9px] text-slate-400 uppercase font-bold">Staff</p>
+                          </div>
+                        </div>
+                        <div className="bg-slate-50 rounded-xl p-2.5 flex items-center gap-2">
+                          <Layers className="w-4 h-4 text-slate-400" />
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 tabular-nums leading-none">{hubCount}</p>
+                            <p className="text-[9px] text-slate-400 uppercase font-bold">Hubs</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {(d.enabled_hubs || []).slice(0, 6).map(h => (
+                          <span key={h} className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 uppercase tracking-wide">{h}</span>
+                        ))}
+                        {(d.enabled_hubs || []).length > 6 && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-400">+{(d.enabled_hubs || []).length - 6}</span>
+                        )}
+                      </div>
+
+                      <div className="flex gap-1.5 pt-3 border-t border-slate-100">
+                        <button onClick={() => setEditing(d)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition">
+                          <Pencil className="w-3.5 h-3.5" /> Edit
+                        </button>
+                        <button onClick={() => setDeleting(d)} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-semibold transition">
+                          <Trash2 className="w-3.5 h-3.5" /> Remove
+                        </button>
                       </div>
                     </div>
-                    <div className="flex gap-1 flex-shrink-0">
-                      <button onClick={() => setEditing(d)} className="p-1.5 rounded-lg hover:bg-slate-100 transition"><Pencil className="w-4 h-4 text-slate-400" /></button>
-                      <button onClick={async () => {
-                        if (!confirm(`Delete division "${d.name}"? Records will keep their division_id but the division card disappears.`)) return;
-                        try { await base44.entities.Division.delete(d.id); toast({ title: 'Division deleted' }); invalidate(); }
-                        catch (e) { toast({ title: 'Delete failed', description: e.message, variant: 'destructive' }); }
-                      }} className="p-1.5 rounded-lg hover:bg-rose-50 transition"><Trash2 className="w-4 h-4 text-rose-400" /></button>
-                    </div>
                   </div>
-                  {d.description && <p className="pl-2 mt-2 text-xs text-slate-500 line-clamp-2">{d.description}</p>}
-                  <div className="pl-2 mt-2 flex flex-wrap gap-1">
-                    {(d.enabled_hubs || []).map(h => (
-                      <span key={h} className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 uppercase tracking-wide">{h}</span>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       )}
 
-      {/* Staff Assignment tab */}
+      {/* ═══ Staff Assignment tab ═══ */}
       {tab === 'staff' && (
         <div className="insight-card rounded-2xl p-4">
-          <p className="text-sm text-slate-500 mb-3">Assign each staff member to a division. This controls which division's data they see across the platform.</p>
-          <div className="space-y-1.5 max-h-[60vh] overflow-y-auto">
-            {staff.map(s => {
+          {/* Division summary chips */}
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {divisions.map(d => (
+              <span key={d.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-600">
+                <span className="w-2 h-2 rounded-full" style={{ background: d.color || '#2E5A1A' }} />
+                {d.name}
+                <span className="text-slate-400 tabular-nums">{divisionStaffCounts[d.id] || 0}</span>
+              </span>
+            ))}
+          </div>
+
+          {/* Search */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              value={staffSearch}
+              onChange={e => setStaffSearch(e.target.value)}
+              placeholder="Search staff by name, title or email..."
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10"
+            />
+          </div>
+
+          <p className="text-xs text-slate-500 mb-2">Assign each staff member to a division. This controls which division's data they see across the platform.</p>
+          <div className="space-y-1.5 max-h-[55vh] overflow-y-auto">
+            {filteredStaff.length === 0 ? (
+              <div className="text-center py-8 text-sm text-slate-400">No staff match "{staffSearch}"</div>
+            ) : filteredStaff.map(s => {
               const div = divisions.find(d => d.id === s.division_id);
               return (
                 <div key={s.id} className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50/50 transition">
@@ -177,7 +258,7 @@ export default function DivisionManager() {
         </div>
       )}
 
-      {/* Migration tab */}
+      {/* ═══ Migration tab ═══ */}
       {tab === 'migration' && (
         <div className="insight-card rounded-2xl p-6">
           <div className="flex items-start gap-4">
@@ -187,7 +268,7 @@ export default function DivisionManager() {
             <div className="flex-1">
               <h3 className="text-base font-extrabold text-slate-900">Tag Existing Data</h3>
               <p className="text-sm text-slate-500 mt-1">
-                This one-time migration creates the default <strong>Geotechnical</strong> division (if it doesn't exist) and tags every existing Staff, Job, Vehicle, Rota and Timesheet record to it — so all your current data is correctly scoped to the Geotechnical division.
+                This one-time migration creates the default <strong>Geotechnical</strong> division (if it doesn't exist) and tags every existing Staff, Job, Vehicle, Rota and Timesheet record to it — so all your current data is correctly scoped to the Geotechnical division. It also syncs each linked user's division so RLS isolation works correctly.
               </p>
               <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -213,7 +294,7 @@ export default function DivisionManager() {
                     {Object.entries(migrationResult.counts || {}).map(([k, v]) => (
                       <div key={k} className="bg-white rounded-lg p-2 border border-emerald-100">
                         <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">{k}</p>
-                        <p className="text-sm font-bold text-slate-800 tabular-nums">{v.tagged} / {v.total} tagged</p>
+                        <p className="text-sm font-bold text-slate-800 tabular-nums">{v.tagged !== undefined ? `${v.tagged} / ${v.total} tagged` : `${v.synced} synced`}</p>
                       </div>
                     ))}
                   </div>
@@ -230,6 +311,16 @@ export default function DivisionManager() {
           division={editing === 'new' ? null : editing}
           onClose={() => setEditing(null)}
           onSaved={() => { setEditing(null); invalidate(); }}
+        />
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleting && (
+        <DeleteDivisionModal
+          division={deleting}
+          staffCount={divisionStaffCounts[deleting.id] || 0}
+          onCancel={() => setDeleting(null)}
+          onDeleted={() => { setDeleting(null); invalidate(); }}
         />
       )}
     </div>
@@ -273,6 +364,54 @@ function DivisionSelect({ divisions, value, onChange }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function DeleteDivisionModal({ division, staffCount, onCancel, onDeleted }) {
+  const { toast } = useToast();
+  const [deleting, setDeleting] = useState(false);
+  const doDelete = async () => {
+    setDeleting(true);
+    try {
+      await base44.entities.Division.delete(division.id);
+      toast({ title: 'Division deleted' });
+      onDeleted();
+    } catch (e) {
+      toast({ title: 'Delete failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setDeleting(false);
+    }
+  };
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onCancel}>
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-md p-5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-11 h-11 rounded-xl bg-rose-100 flex items-center justify-center flex-shrink-0">
+            <Trash2 className="w-5 h-5 text-rose-600" />
+          </div>
+          <div>
+            <h3 className="text-base font-extrabold text-slate-900">Delete "{division.name}"?</h3>
+            <p className="text-xs text-slate-500">This action cannot be undone.</p>
+          </div>
+        </div>
+        <div className="space-y-2 mb-4">
+          <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50">
+            <Users className="w-4 h-4 text-slate-400" />
+            <span className="text-sm text-slate-600">{staffCount} staff member{staffCount === 1 ? '' : 's'} currently assigned</span>
+          </div>
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
+            <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700">Records keep their <code>division_id</code> tag but the division card disappears from the switcher and Enterprise Dashboard. Staff assigned here will become "unassigned" until reassigned.</p>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <button onClick={onCancel} className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Cancel</button>
+          <button onClick={doDelete} disabled={deleting} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-rose-600 text-white text-sm font-bold shadow-md hover:bg-rose-700 disabled:opacity-60 transition">
+            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Delete Division
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -330,8 +469,13 @@ function DivisionEditor({ division, onClose, onSaved }) {
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white border-b border-slate-100 px-5 py-4 flex items-center justify-between">
-          <h3 className="text-base font-extrabold text-slate-900">{division ? 'Edit Division' : 'New Division'}</h3>
+        <div className="sticky top-0 bg-white border-b border-slate-100 px-5 py-4 flex items-center justify-between z-10">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style={{ background: `linear-gradient(135deg, ${form.color}, ${form.color}cc)` }}>
+              <Building2 className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="text-base font-extrabold text-slate-900">{division ? 'Edit Division' : 'New Division'}</h3>
+          </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100"><X className="w-5 h-5 text-slate-400" /></button>
         </div>
         <div className="p-5 space-y-4">
@@ -349,6 +493,7 @@ function DivisionEditor({ division, onClose, onSaved }) {
           </div>
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Division Type</label>
+            <p className="text-[11px] text-slate-400 mt-0.5">Determines which hubs are enabled by default.</p>
             <div className="mt-1.5 grid grid-cols-3 gap-1.5">
               {DIVISION_TYPES.map(t => (
                 <button key={t.value} type="button" onClick={() => setHubsFromType(t.value)}
@@ -382,7 +527,9 @@ function DivisionEditor({ division, onClose, onSaved }) {
             </div>
           </div>
           <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Enabled Hubs</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5" /> Enabled Hubs
+            </label>
             <p className="text-[11px] text-slate-400 mt-0.5">Which hubs show in this division's sidebar. Geotechnical includes Investigation; others typically don't.</p>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {ALL_HUBS.map(h => (
