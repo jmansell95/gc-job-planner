@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Staff member"
     },
+    "division_id": {
+      "type": "string",
+      "description": "The division this timesheet entry belongs to (inherited from the staff member's division). Drives division-scoped timesheet views."
+    },
     "job_id": {
       "type": "string",
       "description": "Job worked on. Empty for break entries."
@@ -189,7 +193,7 @@
     },
     "withdrawal_acknowledged_at": {
       "type": "string",
-      "description": "ISO timestamp when the withdrawal was acknowledged"
+      "description": "ISO timestamp of when the withdrawal was acknowledged"
     },
     "chargeable": {
       "type": "boolean",

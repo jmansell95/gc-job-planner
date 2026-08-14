@@ -17,17 +17,23 @@ import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
 import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
 import CommandJobModal from '@/components/dashboard/CommandJobModal';
 import { useSafetyCultureStatus } from '@/hooks/useSafetyCultureStatus';
+import { useDivisionFilter } from '@/hooks/useDivisionScope';
 
 export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [drawerJob, setDrawerJob] = useState(null);
   const [modalJob, setModalJob] = useState(null);
   const { selectedJobId } = useJobFilter();
   const isAllJobs = selectedJobId === 'all';
+  const inDivision = useDivisionFilter();
 
-  const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
-  const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
-  const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
-  const { data: timesheets = [] } = useQuery({ queryKey: ['timesheets'], queryFn: () => base44.entities.Timesheet.list('-created_date', 100) });
+  const { data: staffRaw = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
+  const { data: vehiclesRaw = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
+  const { data: jobsRaw = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
+  const { data: timesheetsRaw = [] } = useQuery({ queryKey: ['timesheets'], queryFn: () => base44.entities.Timesheet.list('-created_date', 100) });
+  const staff = inDivision(staffRaw);
+  const vehicles = inDivision(vehiclesRaw);
+  const jobs = inDivision(jobsRaw);
+  const timesheets = inDivision(timesheetsRaw);
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const { data: deliveries = [] } = useQuery({ queryKey: ['deliveries'], queryFn: () => base44.entities.DeliveryLog.filter({ scheduled_date: todayStr }) });
   const { data: safetyReports = [] } = useQuery({ queryKey: ['safety-reports-open'], queryFn: () => base44.entities.SafetyReport.filter({ status: 'open' }) });
@@ -37,15 +43,17 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
   const weekDays = Array.from({ length: 7 }, (_, i) => format(addDays(weekStart, i), 'yyyy-MM-dd'));
 
-  const { data: thisWeekRotas = [] } = useQuery({
+  const { data: thisWeekRotasRaw = [] } = useQuery({
     queryKey: ['rotas-this-week', weekStartStr],
     queryFn: () => base44.entities.RotaAssignment.filter({ week_start: weekStartStr })
   });
+  const thisWeekRotas = inDivision(thisWeekRotasRaw);
 
-  const { data: todayRotasRaw = [] } = useQuery({
+  const { data: todayRotasRawUnscoped = [] } = useQuery({
     queryKey: ['rotas-today', todayStr],
     queryFn: () => base44.entities.RotaAssignment.filter({ assigned_date: todayStr })
   });
+  const todayRotasRaw = inDivision(todayRotasRawUnscoped);
 
   const { data: profile } = useQuery({
     queryKey: ['my-staff-profile'],

@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Assigned job. Blank for non-job assignments (annual_leave, sick, training, yard_depot)."
     },
+    "division_id": {
+      "type": "string",
+      "description": "The division this rota assignment belongs to (inherited from the staff member's division). Drives division-scoped rota views."
+    },
     "staff_id": {
       "type": "string",
       "description": "Assigned staff member"

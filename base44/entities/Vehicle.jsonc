@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Vehicle name or description"
     },
+    "division_id": {
+      "type": "string",
+      "description": "The division this vehicle belongs to. Blank = shared pool (available to all divisions)."
+    },
     "registration_number": {
       "type": "string",
       "description": "Vehicle registration/license plate"

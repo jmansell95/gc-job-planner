@@ -11,6 +11,7 @@ import RouteGuard from '@/components/RouteGuard';
 import AppLayout from '@/components/AppLayout';
 import HubReadinessGate from '@/components/HubReadinessGate';
 import Home from './pages/Home';
+import EnterpriseDashboard from './pages/EnterpriseDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import StaffDashboard from './pages/StaffDashboard';
 import StaffProfile from './pages/StaffProfile';
@@ -39,6 +40,7 @@ import { StaffAssistantProvider } from '@/components/StaffAssistantChat';
 import { SchedulingAssistantProvider } from '@/components/SchedulingAssistantChat';
 import { DrillingIntelligenceProvider } from '@/components/DrillingIntelligenceChat';
 import { AIHubProvider } from '@/components/ai/AIHub';
+import { DivisionProvider } from '@/contexts/DivisionContext';
 import RouteLoadingOverlay from '@/components/RouteLoadingOverlay';
 import AppBaseUrlSync from '@/components/AppBaseUrlSync';
 import AssetScannerPage from './pages/AssetScannerPage';
@@ -71,6 +73,7 @@ const AuthenticatedApp = () => {
       <SchedulingAssistantProvider>
         <DrillingIntelligenceProvider>
         <AIHubProvider>
+        <DivisionProvider>
         <AppBaseUrlSync />
         <RouteLoadingOverlay />
         <Routes>
@@ -82,6 +85,7 @@ const AuthenticatedApp = () => {
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route path="/" element={<KioskScannerRedirect><Home /></KioskScannerRedirect>} />
           <Route path="/scanner" element={<RouteGuard><AssetScannerPage /></RouteGuard>} />
+          <Route path="/enterprise" element={<RouteGuard><EnterpriseDashboard /></RouteGuard>} />
           <Route path="/admin" element={<RouteGuard><AdminDashboard /></RouteGuard>} />
           {/* Staff pages — full-screen, no admin header bar; they render their own mobile-first headers */}
           <Route path="/staff-schedule" element={<RouteGuard><StaffDashboard /></RouteGuard>} />
@@ -119,6 +123,7 @@ const AuthenticatedApp = () => {
         <Route path="/subcontractor-onboarding/:token" element={<SubcontractorOnboarding />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
+        </DivisionProvider>
         </AIHubProvider>
         </DrillingIntelligenceProvider>
       </SchedulingAssistantProvider>

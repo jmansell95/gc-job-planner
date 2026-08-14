@@ -10,6 +10,15 @@
       ],
       "default": "user",
       "description": "Platform access role. 'admin' = Super Admin (full platform bypass including user management and all app data), 'user' = standard authenticated user (app-level access is controlled by their linked Staff record's system_role)."
+    },
+    "division_id": {
+      "type": "string",
+      "description": "The division this user belongs to. Set by an enterprise admin when linking the user to a division in Settings \u2192 Divisions. Used by division-scoped RLS so a user only sees records in their own division. Blank for enterprise admins who oversee all divisions."
+    },
+    "is_enterprise_admin": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for users who oversee all divisions from the Enterprise Dashboard (cross-division analytics, global settings & lockdowns). Enterprise admins are NOT scoped to a single division even when their role is 'user'."
     }
   }
 }

@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Staff member full name"
     },
+    "division_id": {
+      "type": "string",
+      "description": "The division this staff member belongs to. Set in Settings \u2192 Divisions. Drives division-scoped views across the platform (a staff member only sees jobs, rotas and data within their division). Blank = unassigned (visible to enterprise admins only)."
+    },
     "email": {
       "type": "string",
       "description": "Staff member email address"

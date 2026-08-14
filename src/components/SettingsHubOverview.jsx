@@ -199,6 +199,28 @@ export default function SettingsHubOverview({ onNavigate }) {
         </button>
       )}
 
+      {/* ── Divisions banner ── */}
+      {!q && (
+        <button
+          onClick={() => onNavigate('divisions')}
+          className="w-full insight-card relative rounded-3xl p-6 text-left group overflow-hidden"
+        >
+          <div className="flex items-center gap-5">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-xl icon-tile-glow">
+              <Building2 className="w-8 h-8 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2.5">
+                <h3 className="text-lg font-extrabold text-slate-900">Divisions</h3>
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">Multi-division</span>
+              </div>
+              <p className="text-sm text-slate-500 mt-1">Create divisions, link staff to their division, and tag existing data — each division is an isolated workspace sharing the same core platform</p>
+            </div>
+            <ChevronRight className="w-6 h-6 text-slate-300 group-hover:text-[#2E5A1A] group-hover:translate-x-1 transition flex-shrink-0" />
+          </div>
+        </button>
+      )}
+
       {/* ── Readiness Manager banner ── */}
       {!q && (
         <button

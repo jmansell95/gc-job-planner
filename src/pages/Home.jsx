@@ -19,12 +19,13 @@ export default function Home() {
         const res = await base44.functions.invoke('getMyStaffProfile');
         const profile = res.data;
         if (cancelled) return;
+        if (user.role === 'admin') { navigate('/enterprise', { replace: true }); return; }
         const landing = resolveRoleLandingPage(profile, user.role === 'admin');
         navigate(landing, { replace: true });
       } catch (err) {
         if (cancelled) return;
         // Fallback to role-based redirect if profile fetch fails
-        navigate(user.role === 'admin' ? '/admin' : '/staff-schedule', { replace: true });
+        navigate(user.role === 'admin' ? '/enterprise' : '/staff-schedule', { replace: true });
       }
     })();
 

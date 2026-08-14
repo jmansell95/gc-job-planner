@@ -14,6 +14,8 @@ import { settingsGroups, HUB_MIGRATED_ITEMS, accessibleSettingsItems } from '@/c
 import Logo from '@/components/Logo';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 import { useReadiness } from '@/hooks/useReadiness';
+import DivisionSwitcher from '@/components/DivisionSwitcher';
+import { useDivision } from '@/contexts/DivisionContext';
 
 export default function AdminNav({ activeSection, setActiveSection, onSettingsTabClick }) {
   const navigate = useNavigate();
@@ -30,6 +32,7 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
   const { openChat } = useStaffAssistant();
   const { openChat: openDrillingIntelligence } = useDrillingIntelligence();
   const { isComingSoon, isLocked } = useReadiness();
+  const { isHubEnabled } = useDivision();
 
   useEffect(() => {
     (async () => {
@@ -92,6 +95,7 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
   const navItems = allNavItems
     .filter(item => canAccessSection(profile, item.id))
     .filter(item => !isLocked(item.id))
+    .filter(item => isHubEnabled(item.id))
     .map(item => ({ ...item, comingSoon: isComingSoon(item.id) }));
   const canViewSchedule = canAccessSection(profile, 'staff_schedule');
 
@@ -112,6 +116,7 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
 
         </div>
       </div>
+      {!collapsed && <DivisionSwitcher variant="sidebar" />}
       <div className="flex-1 px-2 py-1.5 space-y-0.5 overflow-y-auto">
         {navItems.map(item => {
           const Icon = item.icon;
@@ -183,8 +188,9 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
               className="h-11 w-11 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <Menu className="w-5 h-5" />
             </button>
-            <div className="flex items-center min-w-0">
+            <div className="flex items-center min-w-0 gap-2">
               <Logo variant="full" height={30} tone="light" />
+              <DivisionSwitcher variant="header" />
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">

@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Job name"
     },
+    "division_id": {
+      "type": "string",
+      "description": "The division this job belongs to. Set automatically from the active division when the job is created, or assigned via the migration. Drives division-scoped filtering on the dashboard and hubs."
+    },
     "project_id": {
       "type": "string",
       "description": "Linked Project \u2014 groups multiple jobs (e.g. 5 jobs across 2 sites) under one parent project. Blank for standalone jobs."
