@@ -16,16 +16,34 @@ export default function Home() {
     let cancelled = false;
     (async () => {
       try {
+        // Super Admins and Directors land on the Enterprise Division Selector
+        if (user.role === 'admin' || user.role === 'director') {
+          navigate('/enterprise', { replace: true });
+          return;
+        }
+
+        // Standard users: fetch their staff profile to resolve the landing page
         const res = await base44.functions.invoke('getMyStaffProfile');
         const profile = res.data;
         if (cancelled) return;
-        if (user.role === 'admin') { navigate('/enterprise', { replace: true }); return; }
-        const landing = resolveRoleLandingPage(profile, user.role === 'admin');
+
+        // If the user has no division assigned, send them to the pending page
+        const userDivisionId = profile?.division_id || user?.division_id;
+        if (!userDivisionId) {
+          navigate('/pending-access', { replace: true });
+          return;
+        }
+
+        const landing = resolveRoleLandingPage(profile, false);
         navigate(landing, { replace: true });
       } catch (err) {
         if (cancelled) return;
-        // Fallback to role-based redirect if profile fetch fails
-        navigate(user.role === 'admin' ? '/enterprise' : '/staff-schedule', { replace: true });
+        // Fallback: check division_id from the user record before sending to pending
+        if (user?.division_id) {
+          navigate(user.role === 'admin' ? '/enterprise' : '/staff-schedule', { replace: true });
+        } else {
+          navigate('/pending-access', { replace: true });
+        }
       }
     })();
 

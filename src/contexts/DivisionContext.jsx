@@ -10,17 +10,22 @@ const STORAGE_KEY = 'gc-active-division';
 /**
  * DivisionProvider — the multi-division context that powers the whole platform.
  *
- * - Loads every Division record.
- * - Resolves the current user's division (from their Staff profile or User record).
- * - Enterprise admins (platform role 'admin' or is_enterprise_admin) can switch
- *   between divisions and view the Enterprise Overview (no division selected).
- * - Regular users are locked to their own division.
- * - Persists the selected division in localStorage so it survives refreshes.
+ * Three access tiers:
+ *  - Super Admin (role='admin'): sees ALL divisions, can switch freely, lands on
+ *    the Enterprise Selector after login.
+ *  - Director (role='director'): sees only their managed_division_ids, can switch
+ *    between those divisions only, lands on the Enterprise Selector (filtered).
+ *  - Standard User (role='user'): locked to their single division_id, cannot
+ *    switch, lands directly in that division's workspace.
+ *
+ * Persists the selected division in localStorage so it survives refreshes.
  */
 export function DivisionProvider({ children }) {
   const { user, isAuthenticated } = useAuth();
-  const isPlatformAdmin = user?.role === 'admin';
-  const isEnterpriseAdmin = isPlatformAdmin || user?.is_enterprise_admin === true;
+  const isSuperAdmin = user?.role === 'admin';
+  const isDirector = user?.role === 'director';
+  // Enterprise admin = anyone who can access the Enterprise Selector and switch
+  const isEnterpriseAdmin = isSuperAdmin || isDirector || user?.is_enterprise_admin === true;
 
   const { data: divisions = [], isLoading: divisionsLoading } = useQuery({
     queryKey: ['divisions'],
@@ -35,6 +40,7 @@ export function DivisionProvider({ children }) {
   });
 
   const myDivisionId = profile?.division_id || user?.division_id || null;
+  const managedDivisionIds = user?.managed_division_ids || [];
 
   const [activeDivisionId, setActiveDivisionIdState] = useState(() => {
     try { return localStorage.getItem(STORAGE_KEY) || null; } catch { return null; }
@@ -45,7 +51,21 @@ export function DivisionProvider({ children }) {
     [divisions, activeDivisionId]
   );
 
-  // Lock regular (non-enterprise) users to their own division.
+  // Permitted divisions based on role:
+  // Super Admin → all, Director → managed_division_ids, User → single division
+  const permittedDivisions = useMemo(() => {
+    if (isSuperAdmin) return divisions;
+    if (isDirector) return divisions.filter(d => managedDivisionIds.includes(d.id));
+    // Standard user: only their own division
+    return divisions.filter(d => d.id === myDivisionId);
+  }, [divisions, isSuperAdmin, isDirector, managedDivisionIds, myDivisionId]);
+
+  const permittedDivisionIds = useMemo(
+    () => permittedDivisions.map(d => d.id),
+    [permittedDivisions]
+  );
+
+  // Lock standard (non-enterprise) users to their own division.
   useEffect(() => {
     if (divisionsLoading || !isAuthenticated) return;
     if (!isEnterpriseAdmin && myDivisionId && activeDivisionId !== myDivisionId) {
@@ -54,7 +74,32 @@ export function DivisionProvider({ children }) {
     }
   }, [divisionsLoading, isAuthenticated, isEnterpriseAdmin, myDivisionId, activeDivisionId]);
 
+  // Validate stored active division against permitted list.
+  // If a director's managed divisions changed, or a user's division was reassigned,
+  // reset the stale stored selection.
+  useEffect(() => {
+    if (divisionsLoading || !isAuthenticated || !divisions.length) return;
+    if (!activeDivisionId) return; // null = enterprise overview, valid for enterprise admins
+    if (isEnterpriseAdmin) {
+      // Directors: must be in managed list. Super admins: anything is fine.
+      if (isDirector && !permittedDivisionIds.includes(activeDivisionId)) {
+        setActiveDivisionIdState(null);
+        try { localStorage.removeItem(STORAGE_KEY); } catch {}
+      }
+    } else {
+      // Standard user: must be their own division
+      if (myDivisionId && activeDivisionId !== myDivisionId) {
+        setActiveDivisionIdState(myDivisionId);
+        try { localStorage.setItem(STORAGE_KEY, myDivisionId); } catch {}
+      }
+    }
+  }, [divisionsLoading, isAuthenticated, divisions, isEnterpriseAdmin, isDirector, permittedDivisionIds, myDivisionId, activeDivisionId]);
+
   const setActiveDivision = (id) => {
+    // Block standard users from switching
+    if (!isEnterpriseAdmin && id && id !== myDivisionId) return;
+    // Block directors from switching to non-managed divisions
+    if (isDirector && id && !managedDivisionIds.includes(id)) return;
     setActiveDivisionIdState(id);
     try { localStorage.setItem(STORAGE_KEY, id || ''); } catch {}
   };
@@ -67,8 +112,6 @@ export function DivisionProvider({ children }) {
   };
 
   // Resolve the mobile bottom-nav items for the active division.
-  // Returns config objects from the nav registry — empty for enterprise overview
-  // (the enterprise dashboard doesn't show a division bottom nav).
   const navItems = useMemo(() => {
     if (!activeDivision) return [];
     return getNavConfigs(activeDivision);
@@ -79,7 +122,6 @@ export function DivisionProvider({ children }) {
     return resolveNavItems(activeDivision);
   }, [activeDivision]);
 
-  // Get a division-specific setting value, falling back to the default.
   const getDivisionSetting = (key, fallback) => {
     if (!activeDivision?.settings) return fallback;
     const val = activeDivision.settings[key];
@@ -88,11 +130,16 @@ export function DivisionProvider({ children }) {
 
   const value = {
     divisions,
+    permittedDivisions,
+    permittedDivisionIds,
     activeDivision,
     activeDivisionId,
     setActiveDivision,
+    isSuperAdmin,
+    isDirector,
     isEnterpriseAdmin,
     myDivisionId,
+    managedDivisionIds,
     isLoading: divisionsLoading,
     isHubEnabled,
     navItems,
@@ -107,8 +154,10 @@ export function useDivision() {
   const ctx = useContext(DivisionContext);
   if (!ctx) {
     return {
-      divisions: [], activeDivision: null, activeDivisionId: null,
-      setActiveDivision: () => {}, isEnterpriseAdmin: false, myDivisionId: null,
+      divisions: [], permittedDivisions: [], permittedDivisionIds: [],
+      activeDivision: null, activeDivisionId: null,
+      setActiveDivision: () => {}, isSuperAdmin: false, isDirector: false,
+      isEnterpriseAdmin: false, myDivisionId: null, managedDivisionIds: [],
       isLoading: true, isHubEnabled: () => true,
       navItems: [], navItemIds: [], getDivisionSetting: (k, f) => f,
     };

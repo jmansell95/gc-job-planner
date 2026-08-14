@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useDivision } from '@/contexts/DivisionContext';
+import { useAuth } from '@/lib/AuthContext';
 import {
   Building2, Users, Briefcase, Truck, ClipboardCheck, ShieldCheck, PoundSterling,
   ArrowRight, Settings, Sparkles, TrendingUp, AlertTriangle, CheckCircle2,
-  ChevronRight, LayoutGrid, X, Activity, Zap, Link2, Calendar, Crown,
+  ChevronRight, LayoutGrid, X, Activity, Zap, Link2, Calendar, Crown, Crown as DirectorIcon,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 
@@ -37,7 +38,8 @@ const TODAY_LABEL = new Date().toLocaleDateString('en-GB', { weekday: 'long', da
 
 export default function EnterpriseDashboard() {
   const navigate = useNavigate();
-  const { divisions, setActiveDivision, isLoading: divisionsLoading } = useDivision();
+  const { user } = useAuth();
+  const { divisions, permittedDivisions, setActiveDivision, isSuperAdmin, isDirector, isLoading: divisionsLoading } = useDivision();
   const [customising, setCustomising] = useState(false);
   const [widgets, setWidgets] = useState(() => {
     try { return { ...DEFAULT_WIDGETS, ...JSON.parse(localStorage.getItem(WIDGET_STORAGE_KEY) || '{}') }; }
@@ -58,7 +60,7 @@ export default function EnterpriseDashboard() {
   };
 
   const divisionStats = useMemo(() => {
-    return divisions.map(d => {
+    return permittedDivisions.map(d => {
       const dStaff = staff.filter(s => s.division_id === d.id);
       const dJobs = jobs.filter(j => j.division_id === d.id);
       const dVehicles = vehicles.filter(v => v.division_id === d.id);
@@ -77,11 +79,14 @@ export default function EnterpriseDashboard() {
         outstanding,
       };
     });
-  }, [divisions, staff, jobs, vehicles, invoices]);
+  }, [permittedDivisions, staff, jobs, vehicles, invoices]);
 
   const globalStats = useMemo(() => {
-    const activeJobs = jobs.filter(j => (j.status || 'planning') === 'in_progress').length;
-    const pendingTs = timesheets.filter(t => t.status === 'submitted').length;
+    const permittedJobIds = new Set(jobs.filter(j => permittedDivisions.some(d => d.id === j.division_id)).map(j => j.id));
+    const permittedStaffIds = new Set(staff.filter(s => permittedDivisions.some(d => d.id === s.division_id)).map(s => s.id));
+    const permittedVehicleIds = new Set(vehicles.filter(v => permittedDivisions.some(d => d.id === v.division_id)).map(v => v.id));
+    const activeJobs = jobs.filter(j => permittedJobIds.has(j.id) && (j.status || 'planning') === 'in_progress').length;
+    const pendingTs = timesheets.filter(t => permittedStaffIds.has(t.staff_id) && t.status === 'submitted').length;
     const openCompliance = compliance.filter(c => {
       if (!c.expiry_date) return false;
       return new Date(c.expiry_date) < new Date();
@@ -90,16 +95,16 @@ export default function EnterpriseDashboard() {
       .filter(i => i.status && i.status !== 'paid' && i.status !== 'void')
       .reduce((sum, i) => sum + (i.gross_total || 0), 0);
     return {
-      divisions: divisions.length,
-      activeDivisions: divisions.filter(d => d.status === 'active').length,
-      staff: staff.length,
+      divisions: permittedDivisions.length,
+      activeDivisions: permittedDivisions.filter(d => d.status === 'active').length,
+      staff: staff.filter(s => permittedStaffIds.has(s.id)).length,
       activeJobs,
-      vehicles: vehicles.length,
+      vehicles: vehicles.filter(v => permittedVehicleIds.has(v.id)).length,
       pendingTs,
       openCompliance,
       totalOutstanding,
     };
-  }, [divisions, staff, jobs, vehicles, timesheets, compliance, invoices]);
+  }, [permittedDivisions, staff, jobs, vehicles, timesheets, compliance, invoices]);
 
   const gbp = (n) => n ? '\u00A3' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '\u00A30';
 
@@ -112,6 +117,9 @@ export default function EnterpriseDashboard() {
   const goToSettings = (tab) => {
     navigate('/admin', { state: { section: 'settings', settingsTab: tab || 'hub' } });
   };
+
+  // Only super admins can manage divisions and integrations
+  const canManageDivisions = isSuperAdmin;
 
   if (divisionsLoading) {
     return (
@@ -130,11 +138,16 @@ export default function EnterpriseDashboard() {
     { label: 'Outstanding', value: gbp(globalStats.totalOutstanding), sub: 'unpaid invoices', icon: PoundSterling, gradient: 'stat-gradient-indigo' },
   ];
 
-  const quickActions = [
+  const quickActions = isSuperAdmin ? [
     { label: 'Settings', icon: Settings, action: () => goToSettings('hub'), gradient: 'from-slate-600 to-slate-800' },
     { label: 'Divisions', icon: Building2, action: () => goToSettings('divisions'), gradient: 'from-emerald-600 to-teal-700' },
     { label: 'Readiness', icon: Zap, action: () => goToSettings('readiness'), gradient: 'from-amber-500 to-orange-600' },
     { label: 'Integrations', icon: Link2, action: () => goToSettings('integrations'), gradient: 'from-blue-600 to-indigo-700' },
+  ] : [
+    { label: 'Settings', icon: Settings, action: () => goToSettings('hub'), gradient: 'from-slate-600 to-slate-800' },
+    { label: 'Readiness', icon: Zap, action: () => goToSettings('readiness'), gradient: 'from-amber-500 to-orange-600' },
+    { label: 'Compliance', icon: ShieldCheck, action: () => { setActiveDivision(null); navigate('/admin', { state: { section: 'compliance' } }); }, gradient: 'from-rose-500 to-pink-600' },
+    { label: 'Billing', icon: PoundSterling, action: () => { setActiveDivision(null); navigate('/admin', { state: { section: 'billing' } }); }, gradient: 'from-indigo-500 to-blue-600' },
   ];
 
   const heroHighlights = [
@@ -157,8 +170,10 @@ export default function EnterpriseDashboard() {
               </div>
               <div className="min-w-0">
                 <h1 className="text-lg font-extrabold text-white tracking-tight leading-none flex items-center gap-2">
-                  <Crown className="w-4 h-4 text-amber-300 flex-shrink-0" />
-                  <span className="truncate">Ground Control Divisions</span>
+                  {isSuperAdmin
+                    ? <Crown className="w-4 h-4 text-amber-300 flex-shrink-0" />
+                    : <DirectorIcon className="w-4 h-4 text-emerald-300 flex-shrink-0" />}
+                  <span className="truncate">{isSuperAdmin ? 'Ground Control Divisions' : 'My Divisions'}</span>
                 </h1>
                 <p className="text-[11px] text-white/70 font-medium mt-0.5 flex items-center gap-1.5">
                   <Calendar className="w-3 h-3 flex-shrink-0" /> {TODAY_LABEL}
@@ -166,9 +181,11 @@ export default function EnterpriseDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              {isSuperAdmin && (
               <button onClick={() => setCustomising(!customising)} className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 text-white text-sm font-semibold hover:bg-white/25 transition">
                 <LayoutGrid className="w-4 h-4" /> Customise
               </button>
+            )}
               <button onClick={() => goToSettings('hub')} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-[#2E5A1A] text-sm font-bold shadow-lg hover:shadow-xl active:scale-95 transition">
                 <Settings className="w-4 h-4" /> Settings
               </button>
@@ -316,15 +333,17 @@ export default function EnterpriseDashboard() {
                 </button>
               );
             })}
-            <button
-              onClick={() => goToSettings('divisions')}
-              className="rounded-2xl border-2 border-dashed border-slate-300 p-5 text-left hover:border-[#2E5A1A] hover:bg-emerald-50/30 transition group flex flex-col items-center justify-center gap-2 min-h-[200px]">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 group-hover:bg-[#2E5A1A]/10 flex items-center justify-center transition">
-                <Sparkles className="w-6 h-6 text-slate-400 group-hover:text-[#2E5A1A] transition" />
-              </div>
-              <p className="text-sm font-bold text-slate-500 group-hover:text-[#2E5A1A] transition">Add a Division</p>
-              <p className="text-xs text-slate-400 text-center">Configure in Settings {'\u2192'} Divisions</p>
-            </button>
+            {canManageDivisions && (
+              <button
+                onClick={() => goToSettings('divisions')}
+                className="rounded-2xl border-2 border-dashed border-slate-300 p-5 text-left hover:border-[#2E5A1A] hover:bg-emerald-50/30 transition group flex flex-col items-center justify-center gap-2 min-h-[200px]">
+                <div className="w-12 h-12 rounded-2xl bg-slate-100 group-hover:bg-[#2E5A1A]/10 flex items-center justify-center transition">
+                  <Sparkles className="w-6 h-6 text-slate-400 group-hover:text-[#2E5A1A] transition" />
+                </div>
+                <p className="text-sm font-bold text-slate-500 group-hover:text-[#2E5A1A] transition">Add a Division</p>
+                <p className="text-xs text-slate-400 text-center">Configure in Settings {'\u2192'} Divisions</p>
+              </button>
+            )}
           </div>
         </section>
       )}

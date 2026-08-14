@@ -10,10 +10,15 @@ import { useDivision } from '@/contexts/DivisionContext';
  * Variants:
  *  - 'sidebar' (default): full-width button for the desktop sidebar.
  *  - 'header': compact button for the mobile top header.
+ *
+ * Access tiers:
+ *  - Super Admin: sees all divisions + "Manage Divisions" link
+ *  - Director: sees only their managed_division_ids + "Enterprise Overview"
+ *  - Standard User: static badge (no switching)
  */
 export default function DivisionSwitcher({ variant = 'sidebar' }) {
   const navigate = useNavigate();
-  const { divisions, activeDivision, activeDivisionId, setActiveDivision, isEnterpriseAdmin, isLoading } = useDivision();
+  const { permittedDivisions, activeDivision, activeDivisionId, setActiveDivision, isEnterpriseAdmin, isSuperAdmin, isLoading } = useDivision();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -86,7 +91,7 @@ export default function DivisionSwitcher({ variant = 'sidebar' }) {
               <span className="flex-1 text-slate-700">Enterprise Overview</span>
               {!activeDivisionId && <Check className="w-4 h-4 text-emerald-600" />}
             </button>
-            {divisions.filter(d => d.is_active !== false).map(d => (
+            {permittedDivisions.filter(d => d.is_active !== false).map(d => (
               <button
                 key={d.id}
                 onClick={() => select(d.id)}
@@ -102,14 +107,16 @@ export default function DivisionSwitcher({ variant = 'sidebar' }) {
               </button>
             ))}
           </div>
-          <div className="border-t border-slate-100 py-1">
-            <button
-              onClick={() => { setOpen(false); navigate('/enterprise'); }}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-semibold text-[#2E5A1A] hover:bg-slate-50 transition text-left">
-              <Plus className="w-4 h-4" />
-              Manage Divisions
-            </button>
-          </div>
+          {isSuperAdmin && (
+            <div className="border-t border-slate-100 py-1">
+              <button
+                onClick={() => { setOpen(false); navigate('/enterprise'); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-semibold text-[#2E5A1A] hover:bg-slate-50 transition text-left">
+                <Plus className="w-4 h-4" />
+                Manage Divisions
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

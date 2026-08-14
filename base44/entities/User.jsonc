@@ -6,19 +6,28 @@
       "type": "string",
       "enum": [
         "admin",
+        "director",
         "user"
       ],
       "default": "user",
-      "description": "Platform access role. 'admin' = Super Admin (full platform bypass including user management and all app data), 'user' = standard authenticated user (app-level access is controlled by their linked Staff record's system_role)."
+      "description": "Platform access role. 'admin' = Super Admin (full platform bypass \u2014 sees and manages every division, creates directors, assigns divisions). 'director' = Division Director (oversees multiple assigned divisions via managed_division_ids \u2014 can switch between only those divisions). 'user' = standard authenticated user scoped to their single division_id (cannot switch divisions)."
     },
     "division_id": {
       "type": "string",
-      "description": "The division this user belongs to. Set by an enterprise admin when linking the user to a division in Settings \u2192 Divisions. Used by division-scoped RLS so a user only sees records in their own division. Blank for enterprise admins who oversee all divisions."
+      "description": "The division this user belongs to. For standard users (role 'user'), this is their single assigned division \u2014 they are locked to it and cannot switch. For directors, this is their primary division (typically the first of their managed_division_ids). Blank for super admins who oversee all divisions."
+    },
+    "managed_division_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Divisions a Director (role='director') is permitted to manage and switch between. Assigned by a super admin in Settings \u2192 Divisions \u2192 Directors. Ignored for super admins (who see all divisions) and standard users (who see only their division_id). When a director logs in, they land on the Enterprise Selector showing only these divisions."
     },
     "is_enterprise_admin": {
       "type": "boolean",
       "default": false,
-      "description": "True for users who oversee all divisions from the Enterprise Dashboard (cross-division analytics, global settings & lockdowns). Enterprise admins are NOT scoped to a single division even when their role is 'user'."
+      "description": "Legacy flag for users who previously oversaw all divisions. Super admins (role='admin') have full access regardless of this flag. Directors use managed_division_ids for scoped multi-division access instead of this flag."
     }
   }
 }

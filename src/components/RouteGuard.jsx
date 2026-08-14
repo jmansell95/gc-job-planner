@@ -11,7 +11,9 @@ import { canAccessRoute, resolveRoleLandingPage } from '@/utils/access';
 export default function RouteGuard({ children }) {
   const { user, isAuthenticated, isLoadingAuth } = useAuth();
   const location = useLocation();
-  const isPlatformAdmin = user?.role === 'admin';
+  // Super admins AND directors bypass the lockdown — directors manage divisions
+  // so they need full route access within their assigned divisions.
+  const isPlatformAdmin = user?.role === 'admin' || user?.role === 'director';
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['my-staff-profile'],
