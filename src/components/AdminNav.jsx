@@ -13,6 +13,7 @@ import { canAccessSection, resolveRole } from '@/utils/access';
 import { settingsGroups, HUB_MIGRATED_ITEMS, accessibleSettingsItems } from '@/components/SettingsNav';
 import Logo from '@/components/Logo';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
+import { useReadiness } from '@/hooks/useReadiness';
 
 export default function AdminNav({ activeSection, setActiveSection, onSettingsTabClick }) {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
   const notifCount = notifications.count;
   const { openChat } = useStaffAssistant();
   const { openChat: openDrillingIntelligence } = useDrillingIntelligence();
+  const { isComingSoon, isLocked } = useReadiness();
 
   useEffect(() => {
     (async () => {
@@ -111,13 +113,22 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
         {navItems.map(item => {
           const Icon = item.icon;
           const isActive = activeSection === item.id;
-          if (item.comingSoon) {
+          const comingSoon = isComingSoon(item.id);
+          const locked = isLocked(item.id);
+          if (locked) return null; // hide locked hubs entirely from the nav
+          if (comingSoon) {
             return (
-              <div key={item.id} className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium opacity-40 cursor-not-allowed select-none">
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveSection(item.id)}
+                title={collapsed ? item.label : undefined}
+                className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium opacity-50 hover:opacity-70 transition cursor-pointer touch-manipulation select-none"
+              >
                 <Icon className="w-[18px] h-[18px] flex-shrink-0 text-white/40" />
                 {!collapsed && <span className="text-white/40 flex-1">{item.label}</span>}
-                {!collapsed && <span className="text-[9px] font-bold text-white/40 bg-white/10 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Soon</span>}
-              </div>
+                {!collapsed && <span className="text-[9px] font-bold text-amber-300/80 bg-amber-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Soon</span>}
+              </button>
             );
           }
           return (

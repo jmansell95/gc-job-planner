@@ -9,6 +9,7 @@ import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import RouteGuard from '@/components/RouteGuard';
 import AppLayout from '@/components/AppLayout';
+import HubReadinessGate from '@/components/HubReadinessGate';
 import Home from './pages/Home';
 import AdminDashboard from './pages/AdminDashboard';
 import StaffDashboard from './pages/StaffDashboard';
@@ -89,16 +90,16 @@ const AuthenticatedApp = () => {
           <Route path="/help" element={<HelpGuide />} />
           <Route element={<AppLayout />}>
             <Route path="/subcontractor" element={<RouteGuard><SubcontractorDashboard /></RouteGuard>} />
-            <Route path="/admin/logistics" element={<RouteGuard><AdminDeliveryHub /></RouteGuard>} />
+            <Route path="/admin/logistics" element={<RouteGuard><HubReadinessGate featureId="logistics"><AdminDeliveryHub /></HubReadinessGate></RouteGuard>} />
             <Route path="/presentation-pack" element={<PresentationPack />} />
 
             <Route path="/pat-testing" element={<RouteGuard><PATTestingConsole /></RouteGuard>} />
-            <Route path="/compliance" element={<RouteGuard><CompliancePage /></RouteGuard>} />
-            <Route path="/billing" element={<RouteGuard><BillingPage /></RouteGuard>} />
-            <Route path="/staff" element={<RouteGuard><StaffPage /></RouteGuard>} />
+            <Route path="/compliance" element={<RouteGuard><HubReadinessGate featureId="compliance"><CompliancePage /></HubReadinessGate></RouteGuard>} />
+            <Route path="/billing" element={<RouteGuard><HubReadinessGate featureId="billing"><BillingPage /></HubReadinessGate></RouteGuard>} />
+            <Route path="/staff" element={<RouteGuard><HubReadinessGate featureId="staff"><StaffPage /></HubReadinessGate></RouteGuard>} />
             <Route path="/safety" element={<Navigate to="/compliance" replace />} />
-            <Route path="/assets" element={<RouteGuard><AssetHub /></RouteGuard>} />
-            <Route path="/fleet" element={<RouteGuard><FleetHub /></RouteGuard>} />
+            <Route path="/assets" element={<RouteGuard><HubReadinessGate featureId="assets"><AssetHub /></HubReadinessGate></RouteGuard>} />
+            <Route path="/fleet" element={<RouteGuard><HubReadinessGate featureId="fleet"><FleetHub /></HubReadinessGate></RouteGuard>} />
             <Route path="/timesheets" element={<Navigate to="/staff" replace />} />
             <Route path="/contacts" element={<Navigate to="/staff" replace />} />
             <Route path="/audit" element={<Navigate to="/compliance" replace />} />

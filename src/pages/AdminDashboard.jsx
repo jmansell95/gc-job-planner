@@ -19,6 +19,8 @@ import DashboardUserMenu from '@/components/DashboardUserMenu';
 import RedAlertBanner from '@/components/safety/RedAlertBanner';
 import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
 import PageLoadingOverlay from '@/components/PageLoadingOverlay';
+import ReadinessGate from '@/components/ReadinessGate';
+import { useReadiness } from '@/hooks/useReadiness';
 
 const SECTION_LABELS = {
   overview: 'Dashboard',
@@ -59,6 +61,8 @@ export default function AdminDashboard() {
   const [profile, setProfile] = useState(null);
   const [pageLoading, setPageLoading] = useState(false);
   const prevSection = useRef(activeSection);
+  const { isComingSoon, isLocked } = useReadiness();
+  const goToSettings = () => { setSettingsTab('readiness'); setActiveSection('settings'); };
 
   // Read navigation state passed from other pages (e.g. Vehicles → Manage Records).
   // Standalone sections are redirected immediately so the dashboard never
@@ -158,22 +162,38 @@ export default function AdminDashboard() {
           >
             <ErrorBoundary key={activeSection}>
             {activeSection === 'overview' && (
-              <JobFilterProvider>
-                <DashboardOverview
-                  onNavigate={handleSetActiveSection}
-                  onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }}
-                />
-              </JobFilterProvider>
+              <ReadinessGate featureId="dashboard" onConfigure={goToSettings}>
+                <JobFilterProvider>
+                  <DashboardOverview
+                    onNavigate={handleSetActiveSection}
+                    onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }}
+                  />
+                </JobFilterProvider>
+              </ReadinessGate>
             )}
             {activeSection === 'job-detail' && selectedJob && (
               <JobDetail job={selectedJob} onBack={() => setActiveSection('overview')} />
             )}
-            {activeSection === 'jobs' && <JobManager onNavigateRota={() => setActiveSection('scheduling')} />}
-            {(activeSection === 'scheduling' || activeSection === 'rota' || activeSection === 'calendar') && (
-              <SchedulingHub initialTab={activeSection === 'calendar' ? 'calendar' : schedulingTab} />
+            {activeSection === 'jobs' && (
+              <ReadinessGate featureId="jobs" onConfigure={goToSettings}>
+                <JobManager onNavigateRota={() => setActiveSection('scheduling')} />
+              </ReadinessGate>
             )}
-            {activeSection === 'logistics' && <AdminDeliveryHub />}
-            {activeSection === 'investigation' && <InvestigationHub onNavigate={handleSetActiveSection} />}
+            {(activeSection === 'scheduling' || activeSection === 'rota' || activeSection === 'calendar') && (
+              <ReadinessGate featureId="scheduling" onConfigure={goToSettings}>
+                <SchedulingHub initialTab={activeSection === 'calendar' ? 'calendar' : schedulingTab} />
+              </ReadinessGate>
+            )}
+            {activeSection === 'logistics' && (
+              <ReadinessGate featureId="logistics" onConfigure={goToSettings}>
+                <AdminDeliveryHub />
+              </ReadinessGate>
+            )}
+            {activeSection === 'investigation' && (
+              <ReadinessGate featureId="investigation" onConfigure={goToSettings}>
+                <InvestigationHub onNavigate={handleSetActiveSection} />
+              </ReadinessGate>
+            )}
             {activeSection === 'settings' && <SettingsPage initialTab={settingsTab} onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }} />}
             </ErrorBoundary>
           </motion.div>

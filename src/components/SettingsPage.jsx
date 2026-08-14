@@ -68,6 +68,7 @@ import PushNotificationSettings from '@/components/settings/PushNotificationSett
 import Microsoft365Hub from '@/components/settings/Microsoft365Hub';
 import IncrementalImportSettings from '@/components/settings/IncrementalImportSettings';
 import OpenGroundSettings from '@/components/settings/OpenGroundSettings';
+import ReadinessManager from '@/components/settings/ReadinessManager';
 import SettingsAccessGuard from '@/components/settings/SettingsAccessGuard';
 import SettingsSidebar from '@/components/SettingsSidebar';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
@@ -125,6 +126,7 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
    
     switch (activeTab) {
       case 'hub': return <SettingsHubOverview onNavigate={setActiveTab} />;
+      case 'readiness': return <ReadinessManager />;
       case 'integrations': return <IntegrationsHub onNavigate={setActiveTab} />;
       case 'staff': return <StaffCommand />;
       case 'teams': return <CrewTypeCommand />;

@@ -25,6 +25,7 @@ export const settingsGroups = [
     label: 'Overview',
     items: [
       { id: 'hub', label: 'Command Hub', icon: LayoutGrid, desc: 'At-a-glance overview of every settings area with live counts' },
+      { id: 'readiness', label: 'Readiness Manager', icon: Zap, desc: 'Control which hubs, tabs & integration features are Active, Coming Soon, or Locked across the platform', roles: ['admin'] },
       { id: 'integrations', label: 'Integrations Hub', icon: Link2, desc: 'All external system connections in one place — API keys, webhooks & sync status for every integration', roles: ['admin'] },
     ],
   },
