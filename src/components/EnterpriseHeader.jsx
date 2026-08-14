@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, HelpCircle, User } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import Logo from '@/components/Logo';
+import { LandWaterLogo } from '@/components/Logo';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 
 /**
@@ -50,8 +50,8 @@ export default function EnterpriseHeader() {
     >
       <div className="absolute inset-0 sidebar-modern" />
       <div className="relative z-10 h-14 flex items-center justify-between px-3">
-        <div className="bg-white rounded-xl px-2.5 py-1.5 shadow-md flex-shrink-0">
-          <Logo height={28} />
+        <div className="flex-shrink-0">
+          <LandWaterLogo height={32} tone="light" />
         </div>
         <div className="relative">
           <button

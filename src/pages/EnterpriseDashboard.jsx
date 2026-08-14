@@ -10,7 +10,7 @@ import {
   ChevronRight, LayoutGrid, X, Activity, Zap, Link2, Calendar, Crown, Crown as DirectorIcon,
   User, HelpCircle, LogOut,
 } from 'lucide-react';
-import Logo from '@/components/Logo';
+import { LandWaterLogo } from '@/components/Logo';
 import EnterpriseHeader from '@/components/EnterpriseHeader';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 
@@ -183,15 +183,15 @@ export default function EnterpriseDashboard() {
         <div className="relative px-5 sm:px-6 pt-5 pb-5 sm:pt-6 sm:pb-6">
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="bg-white rounded-xl px-2.5 py-1.5 shadow-md flex-shrink-0">
-                <Logo height={28} />
+              <div className="flex-shrink-0">
+                <LandWaterLogo height={40} tone="light" />
               </div>
               <div className="min-w-0">
                 <h1 className="text-lg font-extrabold text-white tracking-tight leading-none flex items-center gap-2">
                   {isSuperAdmin
                     ? <Crown className="w-4 h-4 text-amber-300 flex-shrink-0" />
                     : <DirectorIcon className="w-4 h-4 text-emerald-300 flex-shrink-0" />}
-                  <span className="truncate">{isSuperAdmin ? 'Ground Control Divisions' : 'My Divisions'}</span>
+                  <span className="truncate">{isSuperAdmin ? 'Enterprise Command Centre' : 'My Divisions'}</span>
                 </h1>
                 <p className="text-[11px] text-white/70 font-medium mt-0.5 flex items-center gap-1.5">
                   <Calendar className="w-3 h-3 flex-shrink-0" /> {TODAY_LABEL}

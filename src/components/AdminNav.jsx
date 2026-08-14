@@ -11,7 +11,7 @@ import MobileNavDrawer from '@/components/MobileNavDrawer';
 import GlobalSearch from '@/components/GlobalSearch';
 import { canAccessSection, resolveRole } from '@/utils/access';
 import { settingsGroups, HUB_MIGRATED_ITEMS, accessibleSettingsItems } from '@/components/SettingsNav';
-import Logo from '@/components/Logo';
+import Logo, { LogoFull } from '@/components/Logo';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 import { useReadiness } from '@/hooks/useReadiness';
 import DivisionSwitcher from '@/components/DivisionSwitcher';
@@ -113,10 +113,10 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
         <div className="flex flex-col items-start gap-3">
           <div className="flex flex-col items-center w-full">
             {collapsed ? (
-              <img src="https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/993ce8312_GC_Logo-removebg-preview.png" alt="Ground Control" className="w-10 h-auto object-contain" />
+              <Logo height={36} />
             ) : (
               <>
-                <img src="https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/993ce8312_GC_Logo-removebg-preview.png" alt="Ground Control" className="w-28 h-auto object-contain" />
+                <LogoFull height={32} tone="light" />
                 <p className="text-[11px] text-white/60 mt-1.5 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
               </>
             )}
@@ -207,7 +207,7 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
               <Menu className="w-5 h-5" />
             </button>
             <div className="flex items-center min-w-0 gap-2">
-              <Logo variant="full" height={30} tone="light" />
+              <LogoFull height={30} tone="light" />
               <DivisionSwitcher variant="header" />
             </div>
           </div>
