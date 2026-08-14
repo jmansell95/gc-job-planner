@@ -183,9 +183,6 @@ export default function EnterpriseDashboard() {
         <div className="relative px-5 sm:px-6 pt-5 pb-5 sm:pt-6 sm:pb-6">
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="bg-white rounded-xl px-2.5 py-1.5 shadow-lg flex-shrink-0 ring-2 ring-white/20">
-                <Logo height={30} />
-              </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 mb-1">
                   <span className="text-[9px] font-bold text-white/50 uppercase tracking-[0.2em]">Ground Control</span>
@@ -236,9 +233,6 @@ export default function EnterpriseDashboard() {
                 <LayoutGrid className="w-4 h-4" /> Customise
               </button>
             )}
-              <button onClick={() => goToSettings('hub')} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-[#2E5A1A] text-sm font-bold shadow-lg hover:shadow-xl active:scale-95 transition">
-                <Settings className="w-4 h-4" /> Settings
-              </button>
             </div>
           </div>
 
