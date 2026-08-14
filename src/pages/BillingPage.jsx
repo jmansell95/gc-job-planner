@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   PoundSterling, Receipt, FileBarChart, FileText, Banknote, TrendingDown,
-  FileCheck, ArrowRight, CheckCircle2, Lock, TrendingUp,
+  FileCheck, ArrowRight, CheckCircle2, Lock, TrendingUp, Shield, ScrollText,
 } from 'lucide-react';
 import SettingsPage from '@/components/SettingsPage';
 import InvoiceDiscrepancyWidget from '@/components/billing/InvoiceDiscrepancyWidget';
@@ -11,6 +11,8 @@ import BillingReadinessReport from '@/components/billing/BillingReadinessReport'
 import FinancialOverviewWidget from '@/components/billing/FinancialOverviewWidget';
 import POAWorklist from '@/components/billing/POAWorklist';
 import BillingInsightsTab from '@/components/billing/BillingInsightsTab';
+import ContractsAndOrdersTab from '@/components/billing/ContractsAndOrdersTab';
+import MarginGuardTab from '@/components/billing/MarginGuardTab';
 import PageHeader from '@/components/PageHeader';
 import TabBar from '@/components/TabBar';
 
@@ -39,7 +41,7 @@ function PipelineFlow({ activeTab, onSelect }) {
           <FileBarChart className="w-3.5 h-3.5 text-white" />
         </div>
         <h3 className="text-sm font-bold text-slate-900">Billing Workflow</h3>
-        <span className="text-xs text-slate-400">— follow these 3 steps in order</span>
+        <span className="text-xs text-slate-400 hidden sm:inline">— follow these 3 steps in order</span>
       </div>
       <div className="flex items-center gap-2 overflow-x-auto">
         {PIPELINE_STEPS.map((step, i) => {
@@ -96,7 +98,7 @@ function PipelineIntro({ activeTab }) {
       <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0">
         <Icon className="w-4 h-4 text-white" />
       </div>
-      <div>
+      <div className="min-w-0">
         <p className="text-sm font-bold text-slate-900">
           {step.label} — Step {PIPELINE_STEPS.findIndex((s) => s.id === activeTab) + 1} of {PIPELINE_STEPS.length}
         </p>
@@ -111,18 +113,15 @@ export default function BillingPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('billing-readiness');
 
-  // Financial config & monitoring tabs — trimmed to the essentials.
-  // Niche settings (overtime, GL mapping, payroll export, data exchange,
-  // custom reports, client reports, business rules, expense presets) are
-  // still accessible from the main Settings page — just not surfaced here.
+  // Consolidated config tabs — merged from 9 down to 7:
+  // • Contracts & POs = billing-contracts + purchase-orders
+  // • Margin Guard = subcon-markup + job-alerts
   const tabs = [
     { id: 'rate-card', label: 'Price List', icon: Receipt },
     { id: 'poa-lock', label: 'POA Locks', icon: Lock },
     { id: 'billing', label: 'Billing Rules', icon: Banknote },
-    { id: 'subcon-markup', label: 'Sub-Con Markup', icon: TrendingDown },
-    { id: 'billing-contracts', label: 'Contracts', icon: FileText },
-    { id: 'purchase-orders', label: 'Purchase Orders', icon: FileText },
-    { id: 'job-alerts', label: 'Budget Alerts', icon: FileCheck },
+    { id: 'contracts-orders', label: 'Contracts & POs', icon: ScrollText },
+    { id: 'margin-guard', label: 'Margin Guard', icon: Shield },
     { id: 'financial-audit', label: 'Audit Log', icon: FileCheck },
     { id: 'insights', label: 'Insights', icon: TrendingUp },
   ];
@@ -173,8 +172,14 @@ export default function BillingPage() {
       {/* POA worklist */}
       {tab === 'poa-lock' && <POAWorklist />}
 
-      {/* Settings-backed config tabs */}
-      {!isPipelineTab && tab !== 'insights' && tab !== 'poa-lock' && (
+      {/* Merged: Contracts & Purchase Orders */}
+      {tab === 'contracts-orders' && <ContractsAndOrdersTab />}
+
+      {/* Merged: Sub-Con Markup & Budget Alerts */}
+      {tab === 'margin-guard' && <MarginGuardTab />}
+
+      {/* Settings-backed config tabs (Price List, Billing Rules, Audit Log) */}
+      {['rate-card', 'billing', 'financial-audit'].includes(tab) && (
         <SettingsPage
           key={tab}
           initialTab={tab}

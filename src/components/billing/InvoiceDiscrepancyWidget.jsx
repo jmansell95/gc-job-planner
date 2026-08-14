@@ -44,7 +44,7 @@ export default function InvoiceDiscrepancyWidget() {
       ) : (
         <div className="px-4 pb-4">
           {/* Summary strip */}
-          <div className="flex items-center gap-3 mb-3 text-xs">
+          <div className="flex items-center gap-3 mb-3 text-xs flex-wrap gap-y-2">
             <span className="flex items-center gap-1.5 text-orange-700 font-bold">
               <AlertTriangle className="w-3.5 h-3.5" />
               {discrepancies.length} discrepancy{discrepancies.length !== 1 ? 's' : ''}
@@ -53,7 +53,7 @@ export default function InvoiceDiscrepancyWidget() {
               <CheckCircle2 className="w-3.5 h-3.5" />
               {matchedCount} matched
             </span>
-            <span className="flex items-center gap-1.5 text-slate-500 ml-auto">
+            <span className="flex items-center gap-1.5 text-slate-500 sm:ml-auto">
               <PoundSterling className="w-3.5 h-3.5" />
               Net variance: <strong className={totalVariance >= 0 ? 'text-orange-600' : 'text-emerald-600'}>
                 £{Math.abs(totalVariance).toLocaleString('en-GB', { minimumFractionDigits: 2 })}

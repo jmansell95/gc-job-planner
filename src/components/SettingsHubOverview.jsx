@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   Users, Briefcase, Truck, Building2, Receipt, Package, HardHat, Boxes, Mail,
-  Palette, Zap, Timer, Banknote, Tag, ListChecks, ShieldCheck, FileText,
+  Palette, Zap, Timer, Banknote, ListChecks, ShieldCheck, FileText,
   Scale, ArrowRight, Activity, BookOpen,
   Sparkles, QrCode, ArrowUpDown, TrendingUp, FileSpreadsheet, ScrollText,
   History, Gauge, Link2, Search, ChevronRight, GitBranch, Lock, AlertTriangle,
@@ -89,7 +89,6 @@ export default function SettingsHubOverview({ onNavigate }) {
       { id: 'push-notifications', icon: Bell, label: 'Push Notifications', value: '—', sub: 'Browser push alerts', color: 'blue' },
     ]},
     { group: 'System Configuration', icon: Sparkles, accent: 'from-slate-500 to-slate-700', items: [
-      { id: 'job-types', icon: Tag, label: 'Job Types', value: '—', sub: 'Types & colours', color: 'slate' },
       { id: 'dropdowns', icon: ListChecks, label: 'Dropdown Manager', value: '—', sub: 'Edit every dropdown', color: 'violet' },
       { id: 'global-branding', icon: Palette, label: 'Global Branding', value: '—', sub: 'Email colours & banners', color: 'violet' },
       { id: 'login-branding', icon: Lock, label: 'Login Page Customiser', value: '—', sub: 'Login & reset screen branding', color: 'blue' },
