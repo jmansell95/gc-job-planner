@@ -13,6 +13,7 @@ import HubReadinessGate from '@/components/HubReadinessGate';
 import Home from './pages/Home';
 import PendingAccess from './pages/PendingAccess';
 import EnterpriseDashboard from './pages/EnterpriseDashboard';
+import EnterpriseProfile from './pages/EnterpriseProfile';
 import AdminDashboard from './pages/AdminDashboard';
 import StaffDashboard from './pages/StaffDashboard';
 import StaffProfile from './pages/StaffProfile';
@@ -94,6 +95,7 @@ const AuthenticatedApp = () => {
           <Route path="/deliveries" element={<RouteGuard><DeliveryDashboard /></RouteGuard>} />
           <Route path="/help" element={<HelpGuide />} />
           <Route path="/enterprise" element={<RouteGuard><EnterpriseDashboard /></RouteGuard>} />
+          <Route path="/enterprise-profile" element={<RouteGuard><EnterpriseProfile /></RouteGuard>} />
           <Route element={<AppLayout />}>
             <Route path="/subcontractor" element={<RouteGuard><SubcontractorDashboard /></RouteGuard>} />
             <Route path="/admin/logistics" element={<RouteGuard><HubReadinessGate featureId="logistics"><AdminDeliveryHub /></HubReadinessGate></RouteGuard>} />

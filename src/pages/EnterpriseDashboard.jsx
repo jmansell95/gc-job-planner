@@ -207,7 +207,7 @@ export default function EnterpriseDashboard() {
                   {user?.email && <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>}
                 </div>
                 <div className="py-1">
-                  <button onClick={() => { navigate('/staff-profile'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
+                  <button onClick={() => { navigate('/enterprise-profile'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
                     <User className="w-4 h-4 text-slate-400" /> My Profile
                   </button>
                   <button onClick={() => { navigate('/help'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
