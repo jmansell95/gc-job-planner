@@ -13,6 +13,7 @@ import {
 import Logo, { LandWaterLogo } from '@/components/Logo';
 import EnterpriseHeader from '@/components/EnterpriseHeader';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
+import DivisionWizard from '@/components/wizard/DivisionWizard';
 
 const WIDGET_STORAGE_KEY = 'gc-enterprise-widgets';
 const DEFAULT_WIDGETS = {
@@ -45,6 +46,7 @@ export default function EnterpriseDashboard() {
   const { divisions, permittedDivisions, setActiveDivision, isSuperAdmin, isDirector, isLoading: divisionsLoading } = useDivision();
   const [customising, setCustomising] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const { data: myProfile } = useQuery({ queryKey: ['ent-my-profile'], queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; } });
   // Clear division context on mount — the Enterprise Dashboard sits above all
   // divisions. No division sidebar, no division-scoped data, no crossover.
@@ -354,13 +356,13 @@ export default function EnterpriseDashboard() {
             })}
             {canManageDivisions && (
               <button
-                onClick={() => goToSettings('divisions')}
+                onClick={() => setShowWizard(true)}
                 className="rounded-2xl border-2 border-dashed border-slate-300 p-5 text-left hover:border-[#2E5A1A] hover:bg-emerald-50/30 transition group flex flex-col items-center justify-center gap-2 min-h-[200px]">
                 <div className="w-12 h-12 rounded-2xl bg-slate-100 group-hover:bg-[#2E5A1A]/10 flex items-center justify-center transition">
                   <Sparkles className="w-6 h-6 text-slate-400 group-hover:text-[#2E5A1A] transition" />
                 </div>
                 <p className="text-sm font-bold text-slate-500 group-hover:text-[#2E5A1A] transition">Add a Division</p>
-                <p className="text-xs text-slate-400 text-center">Configure in Settings {'\u2192'} Divisions</p>
+                <p className="text-xs text-slate-400 text-center">Guided setup wizard</p>
               </button>
             )}
           </div>
@@ -453,6 +455,11 @@ export default function EnterpriseDashboard() {
           <span>{globalStats.activeDivisions} of {globalStats.divisions} divisions live</span>
         </div>
       </section>
+
+      {/* Division creation wizard */}
+      {showWizard && (
+        <DivisionWizard onClose={() => setShowWizard(false)} onCreated={() => setShowWizard(false)} />
+      )}
 
       {/* Customise panel */}
       {customising && (

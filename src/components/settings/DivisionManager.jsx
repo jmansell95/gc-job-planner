@@ -7,6 +7,7 @@ import {
   AlertTriangle, ChevronDown, Search, ArrowRight, Layers, ShieldCheck, Navigation,
 } from 'lucide-react';
 import DivisionEditor from '@/components/settings/DivisionEditor';
+import DivisionWizard from '@/components/wizard/DivisionWizard';
 import { resolveNavItems } from '@/utils/divisionNav';
 
 const DIVISION_TYPES = [
@@ -31,6 +32,7 @@ export default function DivisionManager() {
   const { toast } = useToast();
   const [tab, setTab] = useState('divisions');
   const [editing, setEditing] = useState(null);
+  const [showWizard, setShowWizard] = useState(false);
   const [deleting, setDeleting] = useState(null);
   const [migrating, setMigrating] = useState(false);
   const [migrationResult, setMigrationResult] = useState(null);
@@ -119,7 +121,7 @@ export default function DivisionManager() {
       {tab === 'divisions' && (
         <div className="space-y-3">
           <div className="flex justify-end">
-            <button onClick={() => setEditing('new')} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl command-gradient text-white text-sm font-semibold shadow-md hover:shadow-lg transition">
+            <button onClick={() => setShowWizard(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl command-gradient text-white text-sm font-semibold shadow-md hover:shadow-lg transition">
               <Plus className="w-4 h-4" /> New Division
             </button>
           </div>
@@ -317,12 +319,20 @@ export default function DivisionManager() {
         </div>
       )}
 
-      {/* Edit/Create modal */}
+      {/* Edit modal (existing divisions only — new divisions use the wizard) */}
       {editing && (
         <DivisionEditor
-          division={editing === 'new' ? null : editing}
+          division={editing}
           onClose={() => setEditing(null)}
           onSaved={() => { setEditing(null); invalidate(); }}
+        />
+      )}
+
+      {/* New division wizard */}
+      {showWizard && (
+        <DivisionWizard
+          onClose={() => setShowWizard(false)}
+          onCreated={() => { setShowWizard(false); invalidate(); }}
         />
       )}
 
