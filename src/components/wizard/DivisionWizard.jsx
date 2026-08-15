@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { X, ChevronLeft, ChevronRight, Check, Loader2, Rocket, Building2, Layers, Plug } from 'lucide-react';
 import { defaultsForType, toProperCase } from './divisionWizardData';
 import DivisionPreviewCard from './DivisionPreviewCard';
@@ -31,6 +31,13 @@ export default function DivisionWizard({ onClose, onCreated }) {
   const [form, setFormRaw] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [launched, setLaunched] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(null);
+
+  // Fetch existing divisions to offer as copy templates.
+  const { data: divisions = [], isLoading: divisionsLoading } = useQuery({
+    queryKey: ['wizard-divisions'],
+    queryFn: () => base44.entities.Division.list('-sort_order', 100),
+  });
 
   // Custom setter: when the division type changes, atomically apply the full
   // blueprint (color, tagline, hubs, nav, settings) so every new division
@@ -43,6 +50,33 @@ export default function DivisionWizard({ onClose, onCreated }) {
       }
       return next;
     });
+  };
+
+  // Apply a template division — copies hubs, nav, settings, type, colour and
+  // tagline from an existing division. Pass null to start from scratch.
+  const applyTemplate = (template) => {
+    if (!template) {
+      setFormRaw(prev => ({
+        ...prev,
+        ...defaultsForType('general'),
+        division_type: 'general',
+      }));
+      setSelectedTemplateId(null);
+      return;
+    }
+    setFormRaw(prev => ({
+      ...prev,
+      division_type: template.division_type || 'general',
+      color: template.color || '#2E5A1A',
+      tagline: template.tagline || '',
+      description: template.description || '',
+      logo_url: template.logo_url || '',
+      enabled_hubs: [...(template.enabled_hubs || [])],
+      nav_items: [...(template.nav_items || [])],
+      settings: { ...(template.settings || {}) },
+      landing_page: template.landing_page || '',
+    }));
+    setSelectedTemplateId(template.id);
   };
 
   const canProceed = step === 0 ? form.name.trim() && form.code.trim() : true;
@@ -85,7 +119,7 @@ export default function DivisionWizard({ onClose, onCreated }) {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: '100%', opacity: 0 }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-2xl max-h-[94dvh] overflow-hidden flex flex-col relative"
+        className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-7xl h-[97dvh] overflow-hidden flex flex-col relative"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -124,7 +158,7 @@ export default function DivisionWizard({ onClose, onCreated }) {
 
         {/* Body: step content + preview */}
         <div className="flex-1 overflow-y-auto">
-          <div className="grid lg:grid-cols-[1fr_280px] gap-0">
+          <div className="grid lg:grid-cols-[1fr_320px] gap-0">
             <div className="p-5">
               <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
@@ -135,7 +169,7 @@ export default function DivisionWizard({ onClose, onCreated }) {
                   exit={{ x: direction > 0 ? -40 : 40, opacity: 0 }}
                   transition={{ duration: 0.25, ease: 'easeOut' }}
                 >
-                  <StepComponent form={form} setForm={setForm} />
+                  <StepComponent form={form} setForm={setForm} divisions={divisions} divisionsLoading={divisionsLoading} applyTemplate={applyTemplate} selectedTemplateId={selectedTemplateId} />
                 </motion.div>
               </AnimatePresence>
             </div>

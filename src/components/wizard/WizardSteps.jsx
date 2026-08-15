@@ -1,13 +1,11 @@
 import React from 'react';
 import {
-  Building2, Layers, Plug, Check, Palette, Mountain, Leaf, Map, Building,
-  Sun, Briefcase, Sparkles, Waves, Construction, FlaskConical,
+  Building2, Layers, Plug, Check, Palette, Sparkles,
 } from 'lucide-react';
 import {
-  DIVISION_TYPES, DIVISION_TYPE_LABELS, ALL_HUBS, HUB_LABELS, HUB_DESCRIPTIONS, INTEGRATIONS, COLOR_SWATCHES,
+  DIVISION_TYPE_LABELS, ALL_HUBS, HUB_LABELS, HUB_DESCRIPTIONS, INTEGRATIONS, COLOR_SWATCHES,
 } from './divisionWizardData';
-
-const TYPE_ICONS = { Mountain, Leaf, Map, Building, Sun, Briefcase, Waves, Construction, FlaskConical };
+import TemplatePicker from './TemplatePicker';
 
 const labelCls = 'text-xs font-bold text-slate-500 uppercase tracking-wide';
 const requiredMark = <span className="text-rose-500"> *</span>;
@@ -20,7 +18,7 @@ function inputClass(hasError) {
 }
 
 /* ───────────────────────── Step 1: Identity ───────────────────────── */
-export function StepIdentity({ form, setForm }) {
+export function StepIdentity({ form, setForm, divisions, divisionsLoading, applyTemplate, selectedTemplateId }) {
   return (
     <div className="space-y-4">
       <div>
@@ -44,25 +42,9 @@ export function StepIdentity({ form, setForm }) {
       </div>
 
       <div>
-        <label className={labelCls + ' mb-1.5 block'}>Choose a Division Type{requiredMark}</label>
-        <p className="text-[11px] text-slate-400 mb-2">Pre-selects smart defaults for hubs, navigation and integrations.</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {DIVISION_TYPES.map(t => {
-            const Icon = TYPE_ICONS[t.icon] || Briefcase;
-            const active = form.division_type === t.value;
-            return (
-              <button key={t.value} type="button" onClick={() => setForm({ ...form, division_type: t.value })}
-                className={'relative flex flex-col items-start gap-1 p-3 rounded-xl border-2 text-left transition ' + (active ? 'border-[#2E5A1A] bg-emerald-50 shadow-md' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50')}>
-                {active && <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#2E5A1A] flex items-center justify-center"><Check className="w-3 h-3 text-white" /></span>}
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, ' + t.color + ', ' + t.color + 'cc)' }}>
-                  <Icon className="w-4 h-4 text-white" />
-                </div>
-                <p className="text-sm font-bold text-slate-800 mt-1">{t.label}</p>
-                <p className="text-[10px] text-slate-400 leading-tight">{t.blurb}</p>
-              </button>
-            );
-          })}
-        </div>
+        <label className={labelCls + ' mb-1.5 block'}>Copy from an Existing Division</label>
+        <p className="text-[11px] text-slate-400 mb-2">Pick a division to copy its hubs, navigation, integrations and settings. You can tweak everything afterwards.</p>
+        <TemplatePicker divisions={divisions} selectedId={selectedTemplateId} onSelect={applyTemplate} isLoading={divisionsLoading} />
       </div>
 
       <div>
