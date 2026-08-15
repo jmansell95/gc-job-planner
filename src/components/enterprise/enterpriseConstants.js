@@ -8,7 +8,6 @@ export const STATUS_STYLES = {
 
 export const WIDGET_STORAGE_KEY = 'gc-enterprise-widgets';
 export const DEFAULT_WIDGETS = {
-  companyKpis: true,
   divisionHealth: true,
   financialRollup: true,
   complianceSnapshot: true,

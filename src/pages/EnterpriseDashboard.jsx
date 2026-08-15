@@ -8,7 +8,7 @@ import {
   Building2, Users, Briefcase, Truck, ClipboardCheck, ShieldCheck, PoundSterling,
   ArrowRight, Settings, Sparkles, AlertTriangle, CheckCircle2,
   LayoutGrid, X, Activity, Zap, Link2, Crown,
-  User, HelpCircle, LogOut, TrendingUp,
+  User, HelpCircle, LogOut,
 } from 'lucide-react';
 import EnterpriseHeader from '@/components/EnterpriseHeader';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
@@ -16,7 +16,7 @@ import DivisionWizard from '@/components/wizard/DivisionWizard';
 import EnterpriseIntegrationsOverview from '@/components/enterprise/EnterpriseIntegrationsOverview';
 import EnterpriseReadinessOverview from '@/components/enterprise/EnterpriseReadinessOverview';
 import DivisionCard from '@/components/enterprise/DivisionCard';
-import KpiTile from '@/components/enterprise/KpiTile';
+
 import { STATUS_STYLES, WIDGET_STORAGE_KEY, DEFAULT_WIDGETS } from '@/components/enterprise/enterpriseConstants';
 
 export default function EnterpriseDashboard() {
@@ -112,15 +112,6 @@ export default function EnterpriseDashboard() {
       </div>
     );
   }
-
-  const kpiTiles = [
-    { label: 'Divisions', value: globalStats.divisions, sub: globalStats.activeDivisions + ' active', icon: Building2, gradient: 'stat-gradient-emerald' },
-    { label: 'Total Crew', value: globalStats.staff, sub: 'across all divisions', icon: Users, gradient: 'stat-gradient-blue' },
-    { label: 'Active Jobs', value: globalStats.activeJobs, sub: jobs.length + ' total', icon: Briefcase, gradient: 'stat-gradient-amber' },
-    { label: 'Fleet', value: globalStats.vehicles, sub: 'vehicles', icon: Truck, gradient: 'stat-gradient-violet' },
-    { label: 'Ts Queue', value: globalStats.pendingTs, sub: 'awaiting approval', icon: ClipboardCheck, gradient: 'stat-gradient-rose' },
-    { label: 'Outstanding', value: gbp(globalStats.totalOutstanding), sub: 'unpaid invoices', icon: PoundSterling, gradient: 'stat-gradient-indigo' },
-  ];
 
   const quickActions = isSuperAdmin ? [
     { label: 'Settings', icon: Settings, action: () => goToSettings('divisions'), gradient: 'from-slate-600 to-slate-800' },
@@ -229,16 +220,6 @@ export default function EnterpriseDashboard() {
             );
           })}
         </div>
-
-        {/* Company KPIs */}
-        {widgets.companyKpis && (
-          <section className="insight-card rounded-3xl p-5 sm:p-6">
-            <SectionTitle icon={TrendingUp} title="Company KPIs" subtitle="Live rollup across every division" gradient="from-[#2E5A1A] to-[#5A8C1E]" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-2.5">
-              {kpiTiles.map(t => <KpiTile key={t.label} {...t} />)}
-            </div>
-          </section>
-        )}
 
         {/* Divisions */}
         {widgets.divisionHealth && (
@@ -353,7 +334,6 @@ export default function EnterpriseDashboard() {
             </div>
             <div className="space-y-2">
               {[
-                { key: 'companyKpis', label: 'Company KPIs', desc: 'Global rollup stat tiles' },
                 { key: 'divisionHealth', label: 'Divisions', desc: 'Division cards grid' },
                 { key: 'financialRollup', label: 'Financial Roll-up', desc: 'Outstanding invoices per division' },
                 { key: 'complianceSnapshot', label: 'Compliance Snapshot', desc: 'Expired items & timesheet queue' },
