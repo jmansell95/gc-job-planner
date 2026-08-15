@@ -4,16 +4,19 @@
   "properties": {
     "name": {
       "type": "string",
-      "description": "Division name (e.g. 'Geotechnical', 'Environmental', 'Surveys'). Stored in proper case."
+      "description": "Division name (e.g. 'Geotechnical', 'Land & Water', 'Infrastructure'). Stored in proper case."
     },
     "code": {
       "type": "string",
-      "description": "Short uppercase code used as a slug/prefix (e.g. 'GEO', 'ENV', 'SUR'). Should be unique \u2014 used in references and badges."
+      "description": "Short uppercase code used as a slug/prefix (e.g. 'GEO', 'LWS', 'INF'). Should be unique \u2014 used in references and badges."
     },
     "division_type": {
       "type": "string",
       "enum": [
         "geotechnical",
+        "land_water",
+        "infrastructure",
+        "lde",
         "environmental",
         "surveys",
         "structural",
@@ -21,7 +24,7 @@
         "general"
       ],
       "default": "general",
-      "description": "Determines which operational hubs and technical modules are enabled for this division. 'geotechnical' enables the Investigation Hub (boreholes, AGS, KeyLogBook); other types hide it."
+      "description": "Determines which operational hubs and technical modules are enabled for this division. 'geotechnical' enables the Investigation Hub (boreholes, AGS, KeyLogBook); 'land_water' for marine & waterway operations; 'infrastructure' for civil & infrastructure; 'lde' for laboratory & engineering services; other types hide the Investigation Hub."
     },
     "description": {
       "type": "string",

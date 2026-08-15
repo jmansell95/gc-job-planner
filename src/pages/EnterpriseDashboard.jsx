@@ -16,6 +16,7 @@ import ProfileAvatar from '@/components/ui/ProfileAvatar';
 import DivisionWizard from '@/components/wizard/DivisionWizard';
 import EnterpriseIntegrationsOverview from '@/components/enterprise/EnterpriseIntegrationsOverview';
 import EnterpriseReadinessOverview from '@/components/enterprise/EnterpriseReadinessOverview';
+import { DIVISION_TYPE_LABELS } from '@/components/wizard/divisionWizardData';
 
 const WIDGET_STORAGE_KEY = 'gc-enterprise-widgets';
 const DEFAULT_WIDGETS = {
@@ -25,15 +26,6 @@ const DEFAULT_WIDGETS = {
   complianceSnapshot: true,
   integrationsOverview: true,
   readinessOverview: true,
-};
-
-const DIVISION_TYPE_LABELS = {
-  geotechnical: 'Geotechnical',
-  environmental: 'Environmental',
-  surveys: 'Surveys',
-  structural: 'Structural',
-  renewables: 'Renewables',
-  general: 'General',
 };
 
 const STATUS_STYLES = {

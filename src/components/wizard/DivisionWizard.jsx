@@ -5,8 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { X, ChevronLeft, ChevronRight, Check, Loader2, Rocket, Building2, Layers, Plug } from 'lucide-react';
-import { DIVISION_TYPE_NAV_DEFAULTS } from '@/utils/divisionNav';
-import { defaultsForType, toProperCase, ALL_HUBS } from './divisionWizardData';
+import { defaultsForType, toProperCase } from './divisionWizardData';
 import DivisionPreviewCard from './DivisionPreviewCard';
 import { StepIdentity, StepHubs, StepIntegrations, StepReview } from './WizardSteps';
 
@@ -18,17 +17,10 @@ const STEPS = [
 ];
 
 const EMPTY_FORM = {
-  name: '', code: '', division_type: 'general', description: '', tagline: '',
-  color: '#475569', logo_url: '', is_active: true, status: 'setup', sort_order: 0,
-  enabled_hubs: ALL_HUBS.filter(h => h !== 'investigation'),
-  nav_items: [...(DIVISION_TYPE_NAV_DEFAULTS.general || [])],
+  name: '', code: '', division_type: 'general', description: '',
+  logo_url: '', is_active: true, status: 'setup', sort_order: 0,
   landing_page: '',
-  settings: {
-    vat_rate: 20, default_markup_percentage: 0,
-    require_briefing_signature: true, allow_timesheet_edit: true,
-    enable_geotab_tracking: false, enable_safetyculture: false,
-    enable_asset_panda: false, enable_open_ground: false, enable_keylogbook: false,
-  },
+  ...defaultsForType('general'),
 };
 
 export default function DivisionWizard({ onClose, onCreated }) {
@@ -40,20 +32,14 @@ export default function DivisionWizard({ onClose, onCreated }) {
   const [saving, setSaving] = useState(false);
   const [launched, setLaunched] = useState(false);
 
-  // Custom setter: when the division type changes, auto-apply smart defaults
-  // (colour, hubs, nav, geotech-only integrations) so the user doesn't have to.
+  // Custom setter: when the division type changes, atomically apply the full
+  // blueprint (color, tagline, hubs, nav, settings) so every new division
+  // starts with the exact same base configuration as Geotechnical.
   const setForm = (updater) => {
     setFormRaw(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
       if (next.division_type !== prev.division_type) {
-        const d = defaultsForType(next.division_type, DIVISION_TYPE_NAV_DEFAULTS);
-        return {
-          ...next,
-          color: next.color === prev.color ? d.color : next.color,
-          enabled_hubs: d.enabled_hubs,
-          nav_items: d.nav_items,
-          settings: { ...next.settings, ...d.settings },
-        };
+        return { ...next, ...defaultsForType(next.division_type) };
       }
       return next;
     });

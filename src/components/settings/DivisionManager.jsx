@@ -9,17 +9,7 @@ import {
 import DivisionEditor from '@/components/settings/DivisionEditor';
 import DivisionWizard from '@/components/wizard/DivisionWizard';
 import { resolveNavItems } from '@/utils/divisionNav';
-
-const DIVISION_TYPES = [
-  { value: 'geotechnical', label: 'Geotechnical', color: '#2E5A1A', hubs: ['overview', 'jobs', 'scheduling', 'staff', 'logistics', 'assets', 'fleet', 'investigation', 'compliance', 'billing', 'settings'] },
-  { value: 'environmental', label: 'Environmental', color: '#0d9488', hubs: ['overview', 'jobs', 'scheduling', 'staff', 'logistics', 'assets', 'fleet', 'compliance', 'billing', 'settings'] },
-  { value: 'surveys', label: 'Surveys', color: '#2563eb', hubs: ['overview', 'jobs', 'scheduling', 'staff', 'logistics', 'assets', 'fleet', 'compliance', 'billing', 'settings'] },
-  { value: 'structural', label: 'Structural', color: '#7c3aed', hubs: ['overview', 'jobs', 'scheduling', 'staff', 'logistics', 'assets', 'fleet', 'compliance', 'billing', 'settings'] },
-  { value: 'renewables', label: 'Renewables', color: '#d97706', hubs: ['overview', 'jobs', 'scheduling', 'staff', 'logistics', 'assets', 'fleet', 'compliance', 'billing', 'settings'] },
-  { value: 'general', label: 'General', color: '#475569', hubs: ['overview', 'jobs', 'scheduling', 'staff', 'logistics', 'assets', 'fleet', 'compliance', 'billing', 'settings'] },
-];
-
-const ALL_HUBS = ['overview', 'jobs', 'scheduling', 'staff', 'logistics', 'assets', 'fleet', 'investigation', 'compliance', 'billing', 'settings'];
+import { DIVISION_TYPES } from '@/components/wizard/divisionWizardData';
 
 const STATUS_STYLES = {
   active: { bg: 'bg-emerald-50', text: 'text-emerald-700', ring: 'ring-emerald-200', label: 'Active', dot: 'bg-emerald-500' },

@@ -34,7 +34,10 @@ export const NAV_ITEM_REGISTRY = {
  * Used when a division has no nav_items configured.
  */
 export const DIVISION_TYPE_NAV_DEFAULTS = {
-  geotechnical: ['home', 'schedule', 'scan', 'ai_hub', 'profile'],
+  geotechnical:  ['home', 'schedule', 'scan', 'ai_hub', 'profile'],
+  land_water:    ['home', 'schedule', 'scan', 'ai_hub', 'profile'],
+  infrastructure:['home', 'schedule', 'scan', 'ai_hub', 'profile'],
+  lde:           ['home', 'schedule', 'ai_hub', 'profile'],
   environmental: ['home', 'schedule', 'scan', 'ai_hub', 'profile'],
   surveys:       ['home', 'schedule', 'deliveries', 'ai_hub', 'profile'],
   structural:    ['home', 'schedule', 'ai_hub', 'profile'],

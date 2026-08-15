@@ -6,23 +6,7 @@ import {
   Palette, ChevronUp, ChevronDown, GripVertical,
 } from 'lucide-react';
 import { NAV_ITEM_REGISTRY, ALL_NAV_ITEM_IDS, DIVISION_TYPE_NAV_DEFAULTS } from '@/utils/divisionNav';
-
-const DIVISION_TYPES = [
-  { value: 'geotechnical', label: 'Geotechnical', color: '#2E5A1A' },
-  { value: 'environmental', label: 'Environmental', color: '#0d9488' },
-  { value: 'surveys', label: 'Surveys', color: '#2563eb' },
-  { value: 'structural', label: 'Structural', color: '#7c3aed' },
-  { value: 'renewables', label: 'Renewables', color: '#d97706' },
-  { value: 'general', label: 'General', color: '#475569' },
-];
-
-const ALL_HUBS = ['overview', 'jobs', 'scheduling', 'staff', 'logistics', 'assets', 'fleet', 'investigation', 'compliance', 'billing', 'settings'];
-
-const HUB_LABELS = {
-  overview: 'Dashboard', jobs: 'Jobs', scheduling: 'Scheduling', staff: 'Staff',
-  logistics: 'Deliveries', assets: 'Assets', fleet: 'Fleet', investigation: 'Investigation',
-  compliance: 'Compliance', billing: 'Billing', settings: 'Settings',
-};
+import { DIVISION_TYPES, ALL_HUBS, HUB_LABELS } from '@/components/wizard/divisionWizardData';
 
 const LANDING_OPTIONS = [
   { value: '', label: 'Auto (by role)', },

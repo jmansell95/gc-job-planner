@@ -1,48 +1,57 @@
 import React from 'react';
 import {
   Building2, Layers, Plug, Check, Palette, Mountain, Leaf, Map, Building,
-  Sun, Briefcase, Sparkles,
+  Sun, Briefcase, Sparkles, Waves, Construction, FlaskConical,
 } from 'lucide-react';
 import {
-  DIVISION_TYPES, ALL_HUBS, HUB_LABELS, HUB_DESCRIPTIONS, INTEGRATIONS, COLOR_SWATCHES,
+  DIVISION_TYPES, DIVISION_TYPE_LABELS, ALL_HUBS, HUB_LABELS, HUB_DESCRIPTIONS, INTEGRATIONS, COLOR_SWATCHES,
 } from './divisionWizardData';
 
-const TYPE_ICONS = { Mountain, Leaf, Map, Building, Sun, Briefcase };
+const TYPE_ICONS = { Mountain, Leaf, Map, Building, Sun, Briefcase, Waves, Construction, FlaskConical };
 
-const inputCls = 'mt-1 w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10 outline-none text-sm font-medium';
 const labelCls = 'text-xs font-bold text-slate-500 uppercase tracking-wide';
+const requiredMark = <span className="text-rose-500"> *</span>;
+
+function inputClass(hasError) {
+  return 'mt-1 w-full px-3 py-2.5 rounded-xl border outline-none text-sm font-medium transition ' +
+    (hasError
+      ? 'border-rose-300 ring-1 ring-rose-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100'
+      : 'border-slate-200 focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10');
+}
 
 /* ───────────────────────── Step 1: Identity ───────────────────────── */
 export function StepIdentity({ form, setForm }) {
   return (
     <div className="space-y-4">
       <div>
-        <label className={labelCls}>Division Name</label>
+        <label className={labelCls}>Division Name{requiredMark}</label>
         <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Geotechnical Site Investigation"
-          className={inputCls} autoFocus />
+          className={inputClass(!form.name.trim())} autoFocus />
+        {!form.name.trim() && <p className="text-[11px] text-rose-500 mt-1 font-semibold">Division name is required</p>}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={labelCls}>Short Code</label>
+          <label className={labelCls}>Short Code{requiredMark}</label>
           <input value={form.code} onChange={e => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="GEO" maxLength={6}
-            className={inputCls + ' uppercase font-mono'} />
+            className={inputClass(!form.code.trim()) + ' uppercase font-mono'} />
+          {!form.code.trim() && <p className="text-[11px] text-rose-500 mt-1 font-semibold">Code is required</p>}
         </div>
         <div>
           <label className={labelCls}>Tagline</label>
           <input value={form.tagline} onChange={e => setForm({ ...form, tagline: e.target.value })} placeholder="Ground Investigation Specialists"
-            className={inputCls} />
+            className={inputClass(false)} />
         </div>
       </div>
 
       <div>
-        <label className={labelCls + ' mb-1.5 block'}>Choose a Division Type</label>
-        <p className="text-[11px] text-slate-400 mb-2">This pre-selects smart defaults for hubs, navigation and integrations.</p>
+        <label className={labelCls + ' mb-1.5 block'}>Choose a Division Type{requiredMark}</label>
+        <p className="text-[11px] text-slate-400 mb-2">Pre-selects smart defaults for hubs, navigation and integrations.</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {DIVISION_TYPES.map(t => {
             const Icon = TYPE_ICONS[t.icon] || Briefcase;
             const active = form.division_type === t.value;
             return (
-              <button key={t.value} type="button" onClick={() => setForm({ ...form, division_type: t.value, color: t.color })}
+              <button key={t.value} type="button" onClick={() => setForm({ ...form, division_type: t.value })}
                 className={'relative flex flex-col items-start gap-1 p-3 rounded-xl border-2 text-left transition ' + (active ? 'border-[#2E5A1A] bg-emerald-50 shadow-md' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50')}>
                 {active && <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#2E5A1A] flex items-center justify-center"><Check className="w-3 h-3 text-white" /></span>}
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, ' + t.color + ', ' + t.color + 'cc)' }}>
@@ -106,7 +115,6 @@ export function StepHubs({ form, setForm }) {
 
 /* ───────────────────────── Step 3: Integrations ───────────────────────── */
 export function StepIntegrations({ form, setForm }) {
-  const isGeotech = form.division_type === 'geotechnical';
   const toggle = (key) => setForm(f => ({ ...f, settings: { ...f.settings, [key]: !f.settings[key] } }));
   return (
     <div className="space-y-3">
@@ -114,14 +122,18 @@ export function StepIntegrations({ form, setForm }) {
       <p className="text-[11px] text-slate-400">Toggle the services this division uses. You can connect credentials later in Settings.</p>
       <div className="space-y-2">
         {INTEGRATIONS.map(i => {
-          const locked = i.geotechOnly && !isGeotech;
+          const locked = i.restrictedTypes && !i.restrictedTypes.includes(form.division_type);
           const value = locked ? false : !!form.settings[i.key];
           return (
             <div key={i.key} className={'flex items-center justify-between gap-3 p-3 rounded-xl border transition ' + (locked ? 'border-slate-100 bg-slate-50 opacity-60' : 'border-slate-200 bg-white')}>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
                   {i.label}
-                  {i.geotechOnly && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 uppercase">Geotech</span>}
+                  {i.restrictedTypes && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 uppercase">
+                      {i.restrictedTypes.map(t => DIVISION_TYPE_LABELS[t] || t).join(', ')}
+                    </span>
+                  )}
                 </p>
                 <p className="text-[11px] text-slate-400">{i.desc}</p>
               </div>
@@ -139,7 +151,7 @@ export function StepIntegrations({ form, setForm }) {
 
 /* ───────────────────────── Step 4: Review ───────────────────────── */
 export function StepReview({ form }) {
-  const typeLabel = (DIVISION_TYPES.find(t => t.value === form.division_type) || {}).label || form.division_type;
+  const typeLabel = DIVISION_TYPE_LABELS[form.division_type] || form.division_type;
   const activeIntegrations = INTEGRATIONS.filter(i => form.settings[i.key]).map(i => i.label);
   return (
     <div className="space-y-3">
