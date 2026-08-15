@@ -101,72 +101,139 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
   return (
     <div>
-      {/* Hero header — context-aware */}
+      {/* Hero header — context-aware, responsive across mobile / tablet / desktop */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-4 mt-0">
-        <div className="bg-white relative overflow-hidden rounded-t-none rounded-b-2xl md:rounded-2xl shadow-sm border border-slate-200/80 px-4 py-3 sm:px-5 sm:py-4">
+        <div className="bg-white relative overflow-hidden rounded-t-none rounded-b-2xl md:rounded-2xl shadow-sm border border-slate-200/80 px-3 py-2.5 sm:px-5 sm:py-4 lg:px-6">
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#2E5A1A] to-[#8DC63F]" />
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 relative z-10 pl-2">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="p-2 sm:p-2.5 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] rounded-xl flex-shrink-0 shadow-sm">
-                {isAllJobs ? <Grid3x3 className="w-6 h-6 text-white" /> : <Briefcase className="w-6 h-6 text-white" />}
+          <div className="relative z-10 pl-2">
+        {isAllJobs ? (
+          /* ===== All Jobs mode ===== */
+          <>
+            {/* Mobile (<640px) — stacked rows, everything visible */}
+            <div className="flex items-center gap-2.5 sm:hidden">
+              <div className="p-1.5 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] rounded-lg flex-shrink-0 shadow-sm">
+                <Grid3x3 className="w-5 h-5 text-white" />
               </div>
-              <div className="min-w-0">
-                {isAllJobs ? (
-                  <h1 className="text-base sm:text-xl md:text-2xl font-bold text-slate-900 tracking-tight truncate">
-                    {greeting}{firstName ? `, ${firstName}` : ''}
-                  </h1>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 tracking-tight truncate">{selectedJob?.name || 'Job'}</h1>
-                      {selectedJob?.status && (
-                        <span className="text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-[#2E5A1A]/10 text-[#2E5A1A] ring-1 ring-[#2E5A1A]/20">
-                          {titleCase(selectedJob.status.replace(/_/g, ' '))}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-slate-600 text-sm mt-1 flex items-center gap-1.5 flex-wrap">
-                      {selectedJob?.location && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{selectedJob.location}</span>}
-                      {selectedJob?.start_date && selectedJob?.end_date && (
-                        <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{format(new Date(selectedJob.start_date), 'dd MMM')} – {format(new Date(selectedJob.end_date), 'dd MMM yyyy')}</span>
-                      )}
-                    </p>
-                  </>
+              <h1 className="text-base font-bold text-slate-900 tracking-tight truncate flex-1">
+                {greeting}{firstName ? `, ${firstName}` : ''}
+              </h1>
+            </div>
+            <div className="flex items-center gap-2 mt-2 sm:hidden">
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 flex-1 min-w-0">
+                <Calendar className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                <span className="text-xs font-semibold text-slate-700 truncate">{format(new Date(), 'EEEE do MMMM')}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gradient-to-br from-[#2E5A1A]/8 to-[#8DC63F]/8 border border-[#2E5A1A]/15 flex-shrink-0">
+                <Calendar className="w-3.5 h-3.5 text-[#2E5A1A]" />
+                <span className="text-sm font-bold text-[#2E5A1A] tabular-nums">{thisWeekRotas.length}</span>
+                <span className="text-[10px] text-slate-500 font-semibold uppercase">{thisWeekRotas.length === 1 ? 'Shift' : 'Shifts'}</span>
+              </div>
+            </div>
+
+            {/* Tablet (640px+) & Desktop (1024px+) — two-column inline */}
+            <div className="hidden sm:flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="p-2 lg:p-2.5 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] rounded-xl flex-shrink-0 shadow-sm">
+                  <Grid3x3 className="w-6 h-6 text-white" />
+                </div>
+                <h1 className="text-lg lg:text-xl xl:text-2xl font-bold text-slate-900 tracking-tight truncate">
+                  {greeting}{firstName ? `, ${firstName}` : ''}
+                </h1>
+              </div>
+              <div className="flex items-center gap-2 lg:gap-3 flex-shrink-0">
+                <div className="flex flex-col items-end leading-tight">
+                  <span className="text-sm font-bold text-slate-900">{format(new Date(), 'EEEE')}</span>
+                  <span className="text-[11px] text-slate-500 font-medium">{format(new Date(), 'do MMMM yyyy')}</span>
+                </div>
+                <div className="h-9 w-px bg-slate-200" />
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-br from-[#2E5A1A]/8 to-[#8DC63F]/8 border border-[#2E5A1A]/15">
+                  <Calendar className="w-4 h-4 text-[#2E5A1A]" />
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-lg font-bold text-[#2E5A1A] tabular-nums">{thisWeekRotas.length}</span>
+                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">{thisWeekRotas.length === 1 ? 'Shift' : 'Shifts'} This Week</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* ===== Selected Job mode ===== */
+          <>
+            {/* Mobile (<640px) — stacked */}
+            <div className="sm:hidden">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] rounded-lg flex-shrink-0 shadow-sm">
+                  <Briefcase className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-base font-bold text-slate-900 tracking-tight truncate">{selectedJob?.name || 'Job'}</h1>
+                  <p className="text-slate-600 text-xs mt-0.5 flex items-center gap-1.5 flex-wrap">
+                    {selectedJob?.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{selectedJob.location}</span>}
+                    {selectedJob?.start_date && selectedJob?.end_date && (
+                      <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{format(new Date(selectedJob.start_date), 'dd MMM')} – {format(new Date(selectedJob.end_date), 'dd MMM')}</span>
+                    )}
+                  </p>
+                </div>
+                {selectedJob?.status && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-[#2E5A1A]/10 text-[#2E5A1A] ring-1 ring-[#2E5A1A]/20 flex-shrink-0">
+                    {titleCase(selectedJob.status.replace(/_/g, ' '))}
+                  </span>
                 )}
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {isAllJobs ? (
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="hidden sm:flex flex-col items-end leading-tight">
-                    <span className="text-sm font-bold text-slate-900">{format(new Date(), 'EEEE')}</span>
-                    <span className="text-[11px] text-slate-500 font-medium">{format(new Date(), 'do MMMM yyyy')}</span>
-                  </div>
-                  <div className="h-9 w-px bg-slate-200" />
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-br from-[#2E5A1A]/8 to-[#8DC63F]/8 border border-[#2E5A1A]/15">
-                    <Calendar className="w-4 h-4 text-[#2E5A1A]" />
-                    <div className="flex flex-col leading-tight">
-                      <span className="text-lg font-bold text-[#2E5A1A] tabular-nums">{thisWeekRotas.length}</span>
-                      <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">{thisWeekRotas.length === 1 ? 'Shift' : 'Shifts'} This Week</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {gbp(selectedJob?.budget_amount) && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
-                      <span className="text-[11px] text-slate-500 font-medium">Budget</span>
-                      <span className="text-sm font-bold text-slate-900 tabular-nums">{gbp(selectedJob.budget_amount)}</span>
-                    </span>
-                  )}
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
-                    <Users className="w-3.5 h-3.5 text-[#2E5A1A]" />
-                    <span className="text-sm font-bold text-slate-900 tabular-nums">{staffToday}</span>
-                    <span className="text-[11px] text-slate-500 font-medium">Crew Today</span>
+              <div className="flex items-center gap-1.5 mt-2">
+                {gbp(selectedJob?.budget_amount) && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200">
+                    <span className="text-[10px] text-slate-500 font-medium">Budget</span>
+                    <span className="text-xs font-bold text-slate-900 tabular-nums">{gbp(selectedJob.budget_amount)}</span>
                   </span>
-                </div>
-              )}
+                )}
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200">
+                  <Users className="w-3 h-3 text-[#2E5A1A]" />
+                  <span className="text-xs font-bold text-slate-900 tabular-nums">{staffToday}</span>
+                  <span className="text-[10px] text-slate-500 font-medium">Crew</span>
+                </span>
+              </div>
             </div>
+
+            {/* Tablet (640px+) & Desktop (1024px+) — two-column */}
+            <div className="hidden sm:flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="p-2 lg:p-2.5 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] rounded-xl flex-shrink-0 shadow-sm">
+                  <Briefcase className="w-6 h-6 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-lg lg:text-xl xl:text-2xl font-bold text-slate-900 tracking-tight truncate">{selectedJob?.name || 'Job'}</h1>
+                    {selectedJob?.status && (
+                      <span className="text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-[#2E5A1A]/10 text-[#2E5A1A] ring-1 ring-[#2E5A1A]/20">
+                        {titleCase(selectedJob.status.replace(/_/g, ' '))}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-slate-600 text-sm mt-1 flex items-center gap-1.5 flex-wrap">
+                    {selectedJob?.location && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{selectedJob.location}</span>}
+                    {selectedJob?.start_date && selectedJob?.end_date && (
+                      <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{format(new Date(selectedJob.start_date), 'dd MMM')} – {format(new Date(selectedJob.end_date), 'dd MMM yyyy')}</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 flex-shrink-0">
+                {gbp(selectedJob?.budget_amount) && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
+                    <span className="text-[11px] text-slate-500 font-medium">Budget</span>
+                    <span className="text-sm font-bold text-slate-900 tabular-nums">{gbp(selectedJob.budget_amount)}</span>
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
+                  <Users className="w-3.5 h-3.5 text-[#2E5A1A]" />
+                  <span className="text-sm font-bold text-slate-900 tabular-nums">{staffToday}</span>
+                  <span className="text-[11px] text-slate-500 font-medium">Crew Today</span>
+                </span>
+              </div>
+            </div>
+          </>
+        )}
           </div>
         </div>
       </motion.div>

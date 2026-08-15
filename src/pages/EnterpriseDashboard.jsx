@@ -189,23 +189,23 @@ export default function EnterpriseDashboard() {
     <div className="min-h-screen page-bg-vibrant">
       <EnterpriseHeader />
       <div className="px-4 pb-24 pt-[calc(3.5rem+env(safe-area-inset-top)+0.5rem)] xl:pt-6 xl:px-6 xl:pb-6 space-y-4">
-      {/* Page header with title + desktop profile menu */}
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-lg glow-brand">
-            <Building2 className="w-6 h-6 text-white" />
+      {/* Page header with title + desktop profile menu — responsive mobile / tablet / desktop */}
+      <div className="flex items-center justify-between gap-2 sm:gap-3 mb-4">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-lg glow-brand">
+            <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-none truncate">
+            <h1 className="text-base sm:text-xl lg:text-2xl font-extrabold text-slate-900 tracking-tight leading-none truncate">
               Land &amp; Water Solutions
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-0.5">Enterprise Command Centre</p>
+            <p className="text-[11px] sm:text-sm text-slate-500 font-semibold mt-0.5 truncate">Enterprise Command Centre</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {isSuperAdmin && (
             <button onClick={() => setCustomising(!customising)} className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition shadow-sm">
-              <LayoutGrid className="w-4 h-4" /> Customise
+              <LayoutGrid className="w-4 h-4" /> <span className="hidden md:inline">Customise</span>
             </button>
           )}
           <div className="hidden xl:block relative">
@@ -237,14 +237,14 @@ export default function EnterpriseDashboard() {
         </div>
       </div>
 
-      {/* Quick Access strip */}
-      <div className="grid grid-cols-4 gap-2 sm:gap-3">
+      {/* Quick Access strip — responsive */}
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
         {quickActions.map(a => {
           const Icon = a.icon;
           return (
-            <button key={a.label} onClick={a.action} className={'bg-gradient-to-br ' + a.gradient + ' rounded-2xl p-3 flex flex-col items-center gap-1.5 text-white shadow-md hover:shadow-lg hover:scale-105 transition'}>
-              <Icon className="w-5 h-5" />
-              <span className="text-[11px] font-bold">{a.label}</span>
+            <button key={a.label} onClick={a.action} className={'bg-gradient-to-br ' + a.gradient + ' rounded-xl sm:rounded-2xl p-2.5 sm:p-3 flex flex-col items-center gap-1 sm:gap-1.5 text-white shadow-md hover:shadow-lg hover:scale-105 transition'}>
+              <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-[10px] sm:text-[11px] font-bold truncate w-full text-center">{a.label}</span>
             </button>
           );
         })}
@@ -262,20 +262,20 @@ export default function EnterpriseDashboard() {
               <p className="text-xs text-slate-500">Live rollup across every division</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-2.5">
             {kpiTiles.map(t => {
               const Icon = t.icon;
               return (
-                <div key={t.label} className={t.gradient + ' rounded-2xl p-3 sm:p-3.5 text-white relative overflow-hidden shadow-md'}>
+                <div key={t.label} className={t.gradient + ' rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 text-white relative overflow-hidden shadow-md'}>
                   <div className="absolute right-2 top-2 opacity-20">
-                    <Icon className="w-8 h-8" />
+                    <Icon className="w-7 h-7 sm:w-8 sm:h-8" />
                   </div>
                   <div className="relative">
-                    <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center mb-2">
-                      <Icon className="w-4 h-4 text-white" />
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-white/20 flex items-center justify-center mb-1.5 sm:mb-2">
+                      <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                     </div>
                     <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">{t.label}</p>
-                    <p className="text-xl font-extrabold text-white mt-0.5 tabular-nums">{t.value}</p>
+                    <p className="text-lg sm:text-xl font-extrabold text-white mt-0.5 tabular-nums">{t.value}</p>
                     <p className="text-[10px] text-white/70 mt-0.5 truncate">{t.sub}</p>
                   </div>
                 </div>
@@ -310,22 +310,22 @@ export default function EnterpriseDashboard() {
                   key={d.id}
                   onClick={() => enterDivision(d)}
                   className="insight-card relative rounded-2xl overflow-hidden text-left group">
-                  <div className="h-20 px-5 flex items-center justify-between relative overflow-hidden" style={{ background: headerGradient }}>
+                  <div className="h-16 sm:h-20 px-4 sm:px-5 flex items-center justify-between relative overflow-hidden" style={{ background: headerGradient }}>
                     <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, rgba(255,255,255,0.3) 0%, transparent 60%)' }} />
-                    <div className="relative flex items-center gap-3 min-w-0">
-                      <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg ring-1 ring-white/30">
-                        <Building2 className="w-7 h-7 text-white" />
+                    <div className="relative flex items-center gap-2.5 sm:gap-3 min-w-0">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg ring-1 ring-white/30">
+                        <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-base font-extrabold text-white truncate drop-shadow-sm">{d.name}</h3>
-                        <p className="text-[11px] text-white/80 font-semibold uppercase tracking-wide">{DIVISION_TYPE_LABELS[d.division_type] || d.division_type} {'\u00B7'} {d.code}</p>
+                        <h3 className="text-sm sm:text-base font-extrabold text-white truncate drop-shadow-sm">{d.name}</h3>
+                        <p className="text-[10px] sm:text-[11px] text-white/80 font-semibold uppercase tracking-wide">{DIVISION_TYPE_LABELS[d.division_type] || d.division_type} {'\u00B7'} {d.code}</p>
                       </div>
                     </div>
                     <span className="relative inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/20 backdrop-blur-sm text-white ring-1 ring-white/30 flex-shrink-0">
                       <span className={'w-1.5 h-1.5 rounded-full ' + st.dot} /> {st.label}
                     </span>
                   </div>
-                  <div className="p-5">
+                  <div className="p-4 sm:p-5">
                     {d.tagline && <p className="text-[11px] text-slate-500 font-medium truncate mb-3">{d.tagline}</p>}
                     <div className="grid grid-cols-4 gap-1.5 mb-3.5">
                       <div className="bg-slate-50 rounded-xl p-2 text-center">
