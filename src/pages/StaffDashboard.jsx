@@ -30,6 +30,8 @@ import StaffAlerts from '@/components/staff/StaffAlerts';
 import ActiveJobCard from '@/components/staff/ActiveJobCard';
 import IncentiveQuickLook from '@/components/staff/IncentiveQuickLook';
 import DrillingWeatherWidget from '@/components/DrillingWeatherWidget';
+import DivisionIdentityBar from '@/components/DivisionIdentityBar';
+import { useDivision } from '@/contexts/DivisionContext';
 
 
 export default function StaffDashboard() {
@@ -38,6 +40,7 @@ export default function StaffDashboard() {
   const { toast } = useToast();
   const { user } = useAuth();
   const isPlatformAdmin = user?.role === 'admin';
+  const { activeDivision } = useDivision();
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [shiftWizard, setShiftWizard] = useState(null);
@@ -551,7 +554,9 @@ export default function StaffDashboard() {
       icon={Calendar}
       actions={<StaffHeaderActions staff={staff} />}
       contentClassName="pb-20"
+      accentColor={activeDivision?.color}
     >
+      <DivisionIdentityBar />
       <RedAlertBanner />
 
       {/* Today Tab — zero-scroll, action-first */}

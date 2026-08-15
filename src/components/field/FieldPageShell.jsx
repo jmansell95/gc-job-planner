@@ -21,11 +21,16 @@ export default function FieldPageShell({
   children,
   contentClassName = '',
   headerTone = 'light',
+  accentColor,
 }) {
   return (
     <div className="min-h-screen page-bg-vibrant">
       {/* Sticky header */}
       <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-slate-200 safe-area-top">
+        {/* Division accent strip — always visible at the top of the screen */}
+        {accentColor && (
+          <div className="h-1 w-full flex-shrink-0" style={{ background: accentColor }} />
+        )}
         <div className="flex items-center justify-between px-4 py-3 gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
             {onBack && (

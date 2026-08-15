@@ -20,6 +20,7 @@ import RedAlertBanner from '@/components/safety/RedAlertBanner';
 import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
 import PageLoadingOverlay from '@/components/PageLoadingOverlay';
 import ReadinessGate from '@/components/ReadinessGate';
+import DivisionIdentityBar from '@/components/DivisionIdentityBar';
 import { useReadiness } from '@/hooks/useReadiness';
 
 const SECTION_LABELS = {
@@ -147,6 +148,7 @@ export default function AdminDashboard() {
       <div className="flex-1 flex flex-col min-h-0">
         <RedAlertBanner />
       <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] xl:pt-0">
+        <DivisionIdentityBar />
         <div className="px-4 pb-24 md:px-6 xl:pb-4 xl:pt-6 w-full">
           <div className="flex items-center justify-between gap-3">
             <Breadcrumbs sectionLabel={SECTION_LABELS[activeSection]} />
