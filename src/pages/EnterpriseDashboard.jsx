@@ -14,6 +14,8 @@ import Logo, { LandWaterLogo } from '@/components/Logo';
 import EnterpriseHeader from '@/components/EnterpriseHeader';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 import DivisionWizard from '@/components/wizard/DivisionWizard';
+import EnterpriseIntegrationsOverview from '@/components/enterprise/EnterpriseIntegrationsOverview';
+import EnterpriseReadinessOverview from '@/components/enterprise/EnterpriseReadinessOverview';
 
 const WIDGET_STORAGE_KEY = 'gc-enterprise-widgets';
 const DEFAULT_WIDGETS = {
@@ -21,6 +23,8 @@ const DEFAULT_WIDGETS = {
   divisionHealth: true,
   financialRollup: true,
   complianceSnapshot: true,
+  integrationsOverview: true,
+  readinessOverview: true,
 };
 
 const DIVISION_TYPE_LABELS = {
@@ -47,6 +51,12 @@ export default function EnterpriseDashboard() {
   const [customising, setCustomising] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+  const integrationsRef = React.useRef(null);
+  const readinessRef = React.useRef(null);
+
+  const scrollTo = (ref) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   const { data: myProfile } = useQuery({ queryKey: ['ent-my-profile'], queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; } });
   // Clear division context on mount — the Enterprise Dashboard sits above all
   // divisions. No division sidebar, no division-scoped data, no crossover.
@@ -159,12 +169,12 @@ export default function EnterpriseDashboard() {
   const quickActions = isSuperAdmin ? [
     { label: 'Settings', icon: Settings, action: () => goToSettings('hub'), gradient: 'from-slate-600 to-slate-800' },
     { label: 'Divisions', icon: Building2, action: () => goToSettings('divisions'), gradient: 'from-emerald-600 to-teal-700' },
-    { label: 'Readiness', icon: Zap, action: () => goToSettings('readiness'), gradient: 'from-amber-500 to-orange-600' },
-    { label: 'Integrations', icon: Link2, action: () => goToSettings('integrations'), gradient: 'from-blue-600 to-indigo-700' },
+    { label: 'Readiness', icon: Zap, action: () => scrollTo(readinessRef), gradient: 'from-amber-500 to-orange-600' },
+    { label: 'Integrations', icon: Link2, action: () => scrollTo(integrationsRef), gradient: 'from-blue-600 to-indigo-700' },
   ] : [
     { label: 'Settings', icon: Settings, action: () => goToSettings('hub'), gradient: 'from-slate-600 to-slate-800' },
-    { label: 'Readiness', icon: Zap, action: () => goToSettings('readiness'), gradient: 'from-amber-500 to-orange-600' },
-    { label: 'Integrations', icon: Link2, action: () => goToSettings('integrations'), gradient: 'from-blue-600 to-indigo-700' },
+    { label: 'Readiness', icon: Zap, action: () => scrollTo(readinessRef), gradient: 'from-amber-500 to-orange-600' },
+    { label: 'Integrations', icon: Link2, action: () => scrollTo(integrationsRef), gradient: 'from-blue-600 to-indigo-700' },
     { label: 'Help', icon: HelpCircle, action: () => navigate('/help'), gradient: 'from-rose-500 to-pink-600' },
   ];
 
@@ -189,7 +199,7 @@ export default function EnterpriseDashboard() {
             <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-none truncate">
               Land &amp; Water Solutions
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-0.5">Division Dashboard</p>
+            <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-0.5">Enterprise Command Centre</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -439,6 +449,20 @@ export default function EnterpriseDashboard() {
         )}
       </div>
 
+      {/* Integrations & Readiness Overview — cross-division, enterprise-level */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {widgets.integrationsOverview && (
+          <div ref={integrationsRef}>
+            <EnterpriseIntegrationsOverview />
+          </div>
+        )}
+        {widgets.readinessOverview && (
+          <div ref={readinessRef}>
+            <EnterpriseReadinessOverview />
+          </div>
+        )}
+      </div>
+
       {/* System Status strip */}
       <section className="insight-card rounded-2xl p-4 flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2">
@@ -475,6 +499,8 @@ export default function EnterpriseDashboard() {
                 { key: 'divisionHealth', label: 'Divisions', desc: 'Division cards grid' },
                 { key: 'financialRollup', label: 'Financial Roll-up', desc: 'Outstanding invoices per division' },
                 { key: 'complianceSnapshot', label: 'Compliance Snapshot', desc: 'Expired items & timesheet queue' },
+                { key: 'integrationsOverview', label: 'Integrations Overview', desc: 'Cross-division integration status' },
+                { key: 'readinessOverview', label: 'Readiness Overview', desc: 'Hub readiness across divisions' },
               ].map(w => (
                 <label key={w.key} className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
                   <div>
