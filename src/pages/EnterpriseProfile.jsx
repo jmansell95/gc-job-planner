@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import EnterpriseHeader from '@/components/EnterpriseHeader';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
-import StaffProfileEditDrawer from '@/components/staff/StaffProfileEditDrawer';
+import EnterpriseProfileEditDrawer from '@/components/enterprise/EnterpriseProfileEditDrawer';
 
 /**
  * Enterprise Profile — a global, cross-division profile view shown when the
@@ -213,7 +213,7 @@ export default function EnterpriseProfile() {
 
         {/* Quick links */}
         <section className="insight-card rounded-2xl p-4 flex items-center gap-3 flex-wrap">
-          <button onClick={() => navigate('/help')} type="button"
+          <button onClick={() => navigate('/enterprise/help')} type="button"
             className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition active:scale-95 touch-manipulation">
             <HelpCircle className="w-4 h-4" /> Help Guides
           </button>
@@ -228,8 +228,8 @@ export default function EnterpriseProfile() {
         </section>
       </div>
 
-      {/* Edit Profile Drawer — shared with the division StaffProfile page */}
-      <StaffProfileEditDrawer open={showEditDrawer} onOpenChange={setShowEditDrawer} staff={myProfile} />
+      {/* Edit Profile Drawer — self-contained enterprise drawer, no division dependency */}
+      <EnterpriseProfileEditDrawer open={showEditDrawer} onOpenChange={setShowEditDrawer} staff={myProfile} />
     </div>
   );
 }

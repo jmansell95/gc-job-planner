@@ -143,7 +143,7 @@ export default function EnterpriseDashboard() {
   };
 
   const goToSettings = (tab) => {
-    navigate('/admin', { state: { section: 'settings', settingsTab: tab || 'hub' } });
+    navigate('/enterprise/settings', { state: { tab: tab || 'divisions' } });
   };
 
   // Only super admins can manage divisions and integrations
@@ -167,7 +167,7 @@ export default function EnterpriseDashboard() {
   ];
 
   const quickActions = isSuperAdmin ? [
-    { label: 'Settings', icon: Settings, action: () => goToSettings('hub'), gradient: 'from-slate-600 to-slate-800' },
+    { label: 'Settings', icon: Settings, action: () => goToSettings('divisions'), gradient: 'from-slate-600 to-slate-800' },
     { label: 'Divisions', icon: Building2, action: () => goToSettings('divisions'), gradient: 'from-emerald-600 to-teal-700' },
     { label: 'Readiness', icon: Zap, action: () => scrollTo(readinessRef), gradient: 'from-amber-500 to-orange-600' },
     { label: 'Integrations', icon: Link2, action: () => scrollTo(integrationsRef), gradient: 'from-blue-600 to-indigo-700' },
@@ -175,7 +175,7 @@ export default function EnterpriseDashboard() {
     { label: 'Settings', icon: Settings, action: () => goToSettings('hub'), gradient: 'from-slate-600 to-slate-800' },
     { label: 'Readiness', icon: Zap, action: () => scrollTo(readinessRef), gradient: 'from-amber-500 to-orange-600' },
     { label: 'Integrations', icon: Link2, action: () => scrollTo(integrationsRef), gradient: 'from-blue-600 to-indigo-700' },
-    { label: 'Help', icon: HelpCircle, action: () => navigate('/help'), gradient: 'from-rose-500 to-pink-600' },
+    { label: 'Help', icon: HelpCircle, action: () => navigate('/enterprise/help'), gradient: 'from-rose-500 to-pink-600' },
   ];
 
   const heroHighlights = [
@@ -222,7 +222,7 @@ export default function EnterpriseDashboard() {
                   <button onClick={() => { navigate('/enterprise-profile'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
                     <User className="w-4 h-4 text-slate-400" /> My Profile
                   </button>
-                  <button onClick={() => { navigate('/help'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
+                  <button onClick={() => { navigate('/enterprise/help'); setProfileMenuOpen(false); }} type="button" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
                     <HelpCircle className="w-4 h-4 text-slate-400" /> Help Guides
                   </button>
                 </div>
@@ -442,7 +442,7 @@ export default function EnterpriseDashboard() {
                 </div>
               </div>
             </div>
-            <button onClick={() => goToSettings('hub')} className="w-full mt-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-sm font-semibold text-slate-600 transition">
+            <button onClick={() => goToSettings('readiness')} className="w-full mt-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-sm font-semibold text-slate-600 transition">
               Manage in Settings <ChevronRight className="w-4 h-4" />
             </button>
           </section>
