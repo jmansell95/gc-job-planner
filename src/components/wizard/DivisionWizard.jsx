@@ -113,7 +113,7 @@ export default function DivisionWizard({ onClose, onCreated }) {
   const StepComponent = [StepIdentity, StepHubs, StepIntegrations, StepReview][step];
 
   return (
-    <div className="fixed inset-0 z-[70] bg-slate-950/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[70] bg-blue-950/60 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <motion.div
         initial={{ y: '100%', opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}

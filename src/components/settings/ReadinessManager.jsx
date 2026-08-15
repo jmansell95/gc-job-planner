@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useReadiness, STATE_ACTIVE, STATE_COMING_SOON, STATE_LOCKED } from '@/hooks/useReadiness';
 import { FEATURE_REGISTRY, HUB_ORDER, INTEGRATIONS, getFeaturesForHub } from '@/utils/featureRegistry';
-import { Clock, Lock, CheckCircle2, Search, ChevronDown, ChevronRight, RefreshCw, Loader2, Zap } from 'lucide-react';
+import { Clock, Lock, CheckCircle2, Search, ChevronDown, ChevronRight, RefreshCw, Loader2, Zap, Info, AlertCircle, ArrowRight, Plug } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -144,6 +144,28 @@ export default function ReadinessManager() {
         }
       />
 
+      {/* ─── Explainer ─── */}
+      <div className="mb-4 insight-card rounded-2xl p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+            <Info className="w-5 h-5 text-blue-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-bold text-slate-900">What is Readiness?</h3>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              Readiness controls which hubs, tabs and features your team can see and use across the platform. Each section can be <strong className="text-emerald-600">Active</strong> (fully visible), <strong className="text-amber-600">Coming Soon</strong> (greyed out with a banner — visible but not clickable), or <strong className="text-slate-500">Locked</strong> (hidden from everyone). Use this to phase your rollout — turn on what's ready, hide what isn't, and flag upcoming features so staff know what's coming.
+            </p>
+            <div className="mt-2.5 flex items-center gap-2 text-[11px] text-slate-400">
+              <Plug className="w-3.5 h-3.5" />
+              <span>Integration-dependent features auto-check their connection status — run <strong>Auto-Detect</strong> to flag any Active feature whose integration isn't connected yet.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Needs Attention ─── */}
+      <NeedsAttentionCard states={states} integrationStatus={integrationStatus} />
+
       {/* Search */}
       <div className="mb-4 relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -241,10 +263,111 @@ export default function ReadinessManager() {
       </div>
 
       {/* Legend */}
-      <div className="mt-5 flex flex-wrap items-center gap-4 text-xs text-slate-500">
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Active — fully visible and functional</span>
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500" /> Coming Soon — greyed out with a banner</span>
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-slate-500" /> Locked — hidden from all users</span>
+      <div className="mt-5 insight-card rounded-2xl p-4">
+        <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-3">What each state means & what to do</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-emerald-800">Active</p>
+              <p className="text-[11px] text-emerald-600 mt-0.5">Fully visible and functional. Staff can open and use this section now.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-100">
+            <Clock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-amber-800">Coming Soon</p>
+              <p className="text-[11px] text-amber-600 mt-0.5">Greyed out with a "Soon" badge. Staff see it's planned but can't click it. Use while configuring or training.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-100 border border-slate-200">
+            <Lock className="w-5 h-5 text-slate-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-slate-700">Locked</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">Hidden from everyone. Use for features you don't have or aren't ready to roll out yet.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Needs Attention card — surfaces items that require action
+function NeedsAttentionCard({ states, integrationStatus }) {
+  const comingSoon = [];
+  const locked = [];
+  const unconnected = [];
+
+  for (const [id, feature] of Object.entries(FEATURE_REGISTRY)) {
+    const state = states[id];
+    if (state === STATE_COMING_SOON) comingSoon.push(feature);
+    if (state === STATE_LOCKED) locked.push(feature);
+    // Features that are Active but their integration isn't connected
+    if (feature.type === 'feature' && feature.dependsOn && state === STATE_ACTIVE) {
+      if (!integrationStatus[feature.dependsOn]) {
+        const integ = INTEGRATIONS[feature.dependsOn];
+        unconnected.push({ feature, integration: integ });
+      }
+    }
+  }
+
+  const totalIssues = comingSoon.length + locked.length + unconnected.length;
+  if (totalIssues === 0) {
+    return (
+      <div className="mb-4 rounded-2xl p-4 bg-emerald-50 border border-emerald-200 flex items-center gap-3">
+        <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+        <div>
+          <p className="text-sm font-bold text-emerald-800">Everything is ready</p>
+          <p className="text-xs text-emerald-600">All hubs are Active and all integration-dependent features are connected. Nothing needs your attention.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-4 insight-card rounded-2xl p-4">
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+          <AlertCircle className="w-4.5 h-4.5 text-amber-600" />
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-slate-900">Needs Attention</h3>
+          <p className="text-[11px] text-slate-500">{totalIssues} item{totalIssues === 1 ? '' : 's'} need your review</p>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {unconnected.length > 0 && (
+          <div className="rounded-xl bg-rose-50 border border-rose-100 p-3">
+            <p className="text-xs font-bold text-rose-700 mb-1.5 flex items-center gap-1.5">
+              <Plug className="w-3.5 h-3.5" /> {unconnected.length} Active feature{unconnected.length === 1 ? '' : 's'} with unconnected integration{unconnected.length === 1 ? '' : 's'}
+            </p>
+            <div className="space-y-1">
+              {unconnected.map(({ feature, integration }) => (
+                <div key={feature.id} className="flex items-center gap-2 text-[11px] text-rose-600">
+                  <ArrowRight className="w-3 h-3 flex-shrink-0" />
+                  <span><strong>{feature.label}</strong> needs {integration?.label || 'an integration'} connected — go to Integrations tab to configure</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {comingSoon.length > 0 && (
+          <div className="rounded-xl bg-amber-50 border border-amber-100 p-3">
+            <p className="text-xs font-bold text-amber-700 mb-1.5">{comingSoon.length} marked Coming Soon</p>
+            <p className="text-[11px] text-amber-600">
+              {comingSoon.slice(0, 5).map(f => f.label).join(', ')}{comingSoon.length > 5 ? ` +${comingSoon.length - 5} more` : ''} — these are visible but greyed out. Set to Active when ready, or Locked to hide.
+            </p>
+          </div>
+        )}
+        {locked.length > 0 && (
+          <div className="rounded-xl bg-slate-100 border border-slate-200 p-3">
+            <p className="text-xs font-bold text-slate-600 mb-1.5">{locked.length} Locked (hidden)</p>
+            <p className="text-[11px] text-slate-500">
+              {locked.slice(0, 5).map(f => f.label).join(', ')}{locked.length > 5 ? ` +${locked.length - 5} more` : ''} — completely hidden from staff. Set to Active or Coming Soon when you want them visible.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

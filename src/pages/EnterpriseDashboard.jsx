@@ -479,7 +479,7 @@ export default function EnterpriseDashboard() {
 
       {/* Customise panel */}
       {customising && (
-        <div className="fixed inset-0 z-[60] bg-slate-950/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4" onClick={() => setCustomising(false)}>
+        <div className="fixed inset-0 z-[60] bg-blue-950/60 backdrop-blur-md flex items-end sm:items-center justify-center p-4" onClick={() => setCustomising(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5 max-h-[85dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-extrabold text-slate-900">Customise Dashboard</h3>
