@@ -7,7 +7,7 @@ import {
 import EnterpriseHeader from '@/components/EnterpriseHeader';
 import DivisionManager from '@/components/settings/DivisionManager';
 import IntegrationsHub from '@/components/settings/IntegrationsHub';
-import PermissionGroupManager from '@/components/PermissionGroupManager';
+import EnterpriseAccessManager from '@/components/settings/EnterpriseAccessManager';
 import BusinessConfigManager from '@/components/BusinessConfigManager';
 import ReadinessManager from '@/components/settings/ReadinessManager';
 
@@ -32,7 +32,7 @@ export default function EnterpriseSettings() {
     switch (activeTab) {
       case 'divisions': return <DivisionManager />;
       case 'integrations': return <IntegrationsHub />;
-      case 'access': return <PermissionGroupManager />;
+      case 'access': return <EnterpriseAccessManager />;
       case 'business': return <BusinessConfigManager />;
       case 'readiness': return <ReadinessManager />;
       default: return null;
