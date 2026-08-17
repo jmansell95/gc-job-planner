@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
@@ -137,9 +138,9 @@ export default function QualificationDetailSheet({
             </button>
           </div>
 
-          {/* Smart scan upload — popup modal */}
-          {showScan && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4" onClick={() => setShowScan(false)}>
+          {/* Smart scan upload — popup modal (ported to body to escape Sheet transform) */}
+          {showScan && createPortal(
+            <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4" onClick={() => setShowScan(false)}>
               <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 max-h-[calc(100dvh-2rem)] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-slate-900 text-base">Scan Certificate</h3>
@@ -153,12 +154,13 @@ export default function QualificationDetailSheet({
                   onSaved={() => { setShowScan(false); onOpenChange(false); }}
                 />
               </div>
-            </div>
+            </div>,
+            document.body
           )}
 
-          {/* Add manually — popup modal */}
-          {showAdd && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4" onClick={() => setShowAdd(false)}>
+          {/* Add manually — popup modal (ported to body to escape Sheet transform) */}
+          {showAdd && createPortal(
+            <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4" onClick={() => setShowAdd(false)}>
               <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-5 max-h-[calc(100dvh-2rem)] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-slate-900 text-base">Add Compliance Item</h3>
@@ -189,7 +191,8 @@ export default function QualificationDetailSheet({
                   </button>
                 </form>
               </div>
-            </div>
+            </div>,
+            document.body
           )}
 
           {/* Existing compliance items */}
