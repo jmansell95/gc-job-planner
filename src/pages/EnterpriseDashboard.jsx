@@ -209,11 +209,11 @@ export default function EnterpriseDashboard() {
       <div className="px-4 xl:px-6 pb-24 xl:pb-6 space-y-4 max-w-7xl mx-auto">
 
         {/* Quick Access */}
-        <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
+        <div className="grid grid-cols-4 gap-2 sm:gap-4 mt-6 sm:mt-8 relative z-10">
           {quickActions.map(a => {
             const Icon = a.icon;
             return (
-              <button key={a.label} onClick={a.action} className={'bg-gradient-to-br ' + a.gradient + ' rounded-xl sm:rounded-2xl p-2.5 sm:p-3 flex flex-col items-center gap-1 sm:gap-1.5 text-white shadow-md hover:shadow-lg hover:scale-105 transition'}>
+              <button key={a.label} onClick={a.action} className={'bg-gradient-to-br ' + a.gradient + ' rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col items-center gap-1.5 sm:gap-2 text-white shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200'}>
                 <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="text-[10px] sm:text-[11px] font-bold truncate w-full text-center">{a.label}</span>
               </button>

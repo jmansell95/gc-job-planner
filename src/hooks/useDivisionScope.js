@@ -20,8 +20,9 @@ export function useDivisionScope() {
 
 /**
  * useDivisionFilter — returns a function that filters an already-fetched list
- * to the active division. Records with no division_id (un-migrated / shared pool)
- * are always included so nothing disappears during the transition.
+ * to the active division. Strict isolation: only records tagged with the
+ * active division_id are shown. Untagged records are hidden inside a division
+ * (they remain visible in the Enterprise Overview where no division is selected).
  *
  * Usage:
  *   const inDivision = useDivisionFilter();
@@ -32,6 +33,6 @@ export function useDivisionFilter() {
   return (items) => {
     if (!activeDivisionId) return items;
     if (!Array.isArray(items)) return items;
-    return items.filter(i => !i.division_id || i.division_id === activeDivisionId);
+    return items.filter(i => i.division_id === activeDivisionId);
   };
 }
