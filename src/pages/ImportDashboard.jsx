@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
+import { useDivision } from '@/contexts/DivisionContext';
 import {
   UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle,
   Users, Briefcase, CalendarDays, Trash2, HardHat, AlertCircle, RefreshCw,
@@ -12,6 +13,7 @@ import ImportProgressModal from '@/components/import/ImportProgressModal';
 
 export default function ImportDashboard() {
   const { toast } = useToast();
+  const { activeDivisionId } = useDivision();
   const [file, setFile] = useState(null);
   const [fileUrl, setFileUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -67,7 +69,7 @@ export default function ImportDashboard() {
     setAnalysing(true);
     setError(null);
     try {
-      const res = await base44.functions.invoke('importPlannerSpreadsheet', { file, dry_run: true });
+      const res = await base44.functions.invoke('importPlannerSpreadsheet', { file, dry_run: true, division_id: activeDivisionId });
       setPreview(res.data);
     } catch (e) {
       const msg = e?.response?.data?.error || e.message || 'Analysis failed';
@@ -97,7 +99,7 @@ export default function ImportDashboard() {
         const phase = phases[i];
         setApplyPhase(phase.label);
         setProgressModal(prev => ({ ...prev, currentStep: i }));
-        const res = await base44.functions.invoke('importPlannerSpreadsheet', { file, ...phase.params });
+        const res = await base44.functions.invoke('importPlannerSpreadsheet', { file, ...phase.params, division_id: activeDivisionId });
         phaseResults.push(res.data);
       }
       // Merge the 3 phase summaries into one result for the completion modal

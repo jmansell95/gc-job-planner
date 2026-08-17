@@ -12,6 +12,7 @@ import SubcontractorAssignments from '@/components/SubcontractorAssignments';
 import DisciplineBuilder from '@/components/disciplines/DisciplineBuilder';
 import { getJobDisciplines } from '@/utils/jobDisciplines';
 import { getJobTypeColor, isDrillingJobType } from '@/utils/jobTeams';
+import { useDivision } from '@/contexts/DivisionContext';
 
 const inputCls = "w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10 text-sm transition";
 
@@ -63,6 +64,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
   const [subAssignments, setSubAssignments] = useState([]);
   const [originalSubIds, setOriginalSubIds] = useState([]);
   const queryClient = useQueryClient();
+  const { activeDivisionId } = useDivision();
 
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list(), enabled: open });
   const { data: contractors = [] } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list(), enabled: open });
@@ -152,6 +154,13 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
     setError('');
     try {
       const clean = { ...form };
+      // Link the job to the active division so it appears in that division's
+      // database and is counted by the enterprise dashboard. New jobs always
+      // inherit the active division; edits keep the existing division_id
+      // unless it was never set (legacy records), in which case we set it now.
+      if (!editingJob?.id || !clean.division_id) {
+        clean.division_id = activeDivisionId || undefined;
+      }
       // Convert empty numeric strings to undefined so the schema uses defaults
       ['budget_amount', 'meterage', 'meterage_rate', 'meterage_target', 'unit_price', 'markup_percentage', 'vat_rate', 'client_charge'].forEach(k => {
         if (clean[k] === '' || clean[k] === undefined) delete clean[k];

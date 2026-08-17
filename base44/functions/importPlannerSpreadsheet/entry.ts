@@ -728,6 +728,7 @@ export default async function(req) {
     let dryRun = true;
     let skipPurgeAndJobs = false;
     let writePhase = 'all'; // 'all' | 'rotas' | 'cost_items' | 'training_absences'
+    let importDivisionId: string | null = null;
     let arrayBuffer: ArrayBuffer;
     const contentType = req.headers.get('content-type') || '';
     if (contentType.includes('multipart/form-data')) {
@@ -736,6 +737,7 @@ export default async function(req) {
       dryRun = formData.get('dry_run') !== 'false';
       skipPurgeAndJobs = formData.get('skip_purge_and_jobs') === 'true';
       writePhase = formData.get('write_phase') || 'all';
+      importDivisionId = (formData.get('division_id') as string) || null;
       if (!filePart) return Response.json({ error: 'A spreadsheet file is required.' }, { status: 400 });
       arrayBuffer = await (filePart as File).arrayBuffer();
     } else {
@@ -744,10 +746,25 @@ export default async function(req) {
       dryRun = body.dry_run !== false;
       skipPurgeAndJobs = body.skip_purge_and_jobs === true;
       writePhase = body.write_phase || 'all';
+      importDivisionId = body.division_id || null;
       if (!fileUrl) return Response.json({ error: 'file_url is required' }, { status: 400 });
       const fileRes = await fetch(fileUrl);
       if (!fileRes.ok) return Response.json({ error: 'Could not download the uploaded file' }, { status: 422 });
       arrayBuffer = await fileRes.arrayBuffer();
+    }
+
+    // Fallback: if no division_id was passed, use the single active division.
+    // This handles legacy callers and ensures imported jobs are never orphaned
+    // with a null division_id (which would make them invisible on the dashboard).
+    if (!importDivisionId) {
+      const allDivisions = await base44.asServiceRole.entities.Division.list('-sort_order', 100);
+      if (allDivisions.length === 1) {
+        importDivisionId = allDivisions[0].id;
+      } else if (allDivisions.length > 1) {
+        // Multiple divisions — prefer the first active one as a last resort
+        const firstActive = allDivisions.find(d => d.status === 'active');
+        importDivisionId = (firstActive || allDivisions[0]).id;
+      }
     }
 
     // -----------------------------------------------------------------------
@@ -1326,6 +1343,7 @@ export default async function(req) {
           status: jobStatus,
           drilling_method: drillingMethod,
           job_type: jobType || undefined,
+          division_id: importDivisionId || undefined,
         });
         newJobKeys.push(baseKey);
       } else {
@@ -1719,6 +1737,7 @@ export default async function(req) {
           status: (a.is_legacy || a.date < TODAY) ? 'completed' : 'assigned',
           assignment_type: a.non_job_type,
           non_job_label: a.non_job_label || undefined,
+          division_id: (staff.division_id || importDivisionId) || undefined,
         });
         nonJobCounts[a.non_job_type]++;
         nonJobDays.push({ staff_id: staff.id, staff_name: staff.name, date: a.date, type: a.non_job_type, label: a.non_job_label });
@@ -1751,6 +1770,7 @@ export default async function(req) {
           week_start: getWeekStart(a.date),
           status: (a.is_legacy || a.date < TODAY) ? 'completed' : 'assigned',
           rig_asset_id: rigAssetId || undefined,
+          division_id: (staff.division_id || importDivisionId) || undefined,
         });
       }
     }

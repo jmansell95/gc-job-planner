@@ -61,6 +61,8 @@ export default async function(req: Request): Promise<Response> {
       markup_percentage: source.markup_percentage || 0,
       vat_rate: source.vat_rate || 20,
       primary_discipline: source.primary_discipline || undefined,
+      // Inherit the division so the clone stays in the same division's database
+      division_id: source.division_id || undefined,
     };
 
     // Copy disciplines array with shifted dates
