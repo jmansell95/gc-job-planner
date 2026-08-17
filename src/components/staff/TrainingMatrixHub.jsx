@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -79,10 +79,12 @@ function MatrixView() {
   const { data: compliance = [] } = useQuery({ queryKey: ['compliance-items-staff'], queryFn: () => base44.entities.ComplianceItem.filter({ category: 'staff' }) });
   const { data: bookings = [] } = useQuery({ queryKey: ['training-bookings'], queryFn: () => base44.entities.TrainingBooking.list('-created_date', 500) });
   const { data: courses = [] } = useQuery({ queryKey: ['training-courses'], queryFn: () => base44.entities.TrainingCourse.list('-start_date', 200) });
-  const { data: requirements = [] } = useQuery({ queryKey: ['training-requirements'], queryFn: () => base44.entities.TrainingRequirement.list('sort_order', 100) });
+  const { data: requirements = [], isFetched: requirementsFetched } = useQuery({ queryKey: ['training-requirements'], queryFn: () => base44.entities.TrainingRequirement.list('sort_order', 100) });
 
+  const seedingRef = useRef(false);
   useEffect(() => {
-    if (requirements.length === 0) {
+    if (requirementsFetched && requirements.length === 0 && !seedingRef.current) {
+      seedingRef.current = true;
       (async () => {
         try {
           await base44.entities.TrainingRequirement.bulkCreate(DEFAULT_CATEGORIES);
@@ -90,10 +92,18 @@ function MatrixView() {
         } catch (e) { /* ignore */ }
       })();
     }
-  }, [requirements.length]);
+  }, [requirementsFetched, requirements.length]);
 
   const categories = useMemo(() => {
-    return requirements.filter(r => r.is_active !== false).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    const seen = new Set();
+    return requirements
+      .filter(r => r.is_active !== false)
+      .filter(r => {
+        if (seen.has(r.qualification_type)) return false;
+        seen.add(r.qualification_type);
+        return true;
+      })
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   }, [requirements]);
 
   const courseCategoryMap = useMemo(() => {
