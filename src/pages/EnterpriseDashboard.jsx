@@ -185,17 +185,17 @@ export default function EnterpriseDashboard() {
             {/* Hero metrics strip */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {[
-                { label: 'Divisions', value: globalStats.divisions, icon: Building2 },
-                { label: 'Crew', value: globalStats.staff, icon: Users },
-                { label: 'Active Jobs', value: globalStats.activeJobs, icon: Briefcase },
-                { label: 'Outstanding', value: gbp(globalStats.totalOutstanding), icon: PoundSterling },
+                { label: 'Divisions', value: globalStats.divisions, icon: Building2, gradient: 'stat-gradient-brand' },
+                { label: 'Crew', value: globalStats.staff, icon: Users, gradient: 'stat-gradient-blue' },
+                { label: 'Active Jobs', value: globalStats.activeJobs, icon: Briefcase, gradient: 'stat-gradient-amber' },
+                { label: 'Outstanding', value: gbp(globalStats.totalOutstanding), icon: PoundSterling, gradient: 'stat-gradient-rose' },
               ].map(m => (
-                <div key={m.label} className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/15 flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+                <div key={m.label} className={`${m.gradient} rounded-2xl p-3 flex items-center gap-2.5 shadow-lg`}>
+                  <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
                     <m.icon className="w-4.5 h-4.5 text-white" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold text-white/60 uppercase tracking-wide truncate">{m.label}</p>
+                    <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide truncate">{m.label}</p>
                     <p className="text-lg font-extrabold text-white tabular-nums truncate">{m.value}</p>
                   </div>
                 </div>

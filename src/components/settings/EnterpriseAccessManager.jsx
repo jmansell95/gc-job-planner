@@ -9,17 +9,10 @@ import { useDivision } from '@/contexts/DivisionContext';
 import {
   PERMISSION_MODULES, SYSTEM_GROUPS, defaultPermissions, normalizePermissions,
 } from '@/utils/permissions';
-import SettingsLockdownManager from '@/components/settings/SettingsLockdownManager';
-import TabBar from '@/components/TabBar';
 import AccessGroupCard from './access/AccessGroupCard';
 import AccessGroupEditor from './access/AccessGroupEditor';
 
 export default function EnterpriseAccessManager({ profile }) {
-  const [tab, setTab] = useState('groups');
-  const tabs = [
-    { id: 'groups', label: 'Permission Groups', icon: KeyRound },
-    { id: 'lockdowns', label: 'Page Lockdowns', icon: KeyRound },
-  ];
   return (
     <div className="space-y-4">
       <div className="insight-card rounded-2xl p-4 flex items-start gap-3">
@@ -35,8 +28,7 @@ export default function EnterpriseAccessManager({ profile }) {
           </p>
         </div>
       </div>
-      <TabBar tabs={tabs} activeTab={tab} onChange={setTab} />
-      {tab === 'groups' ? <GroupsTab /> : <SettingsLockdownManager profile={profile} />}
+      <GroupsTab />
     </div>
   );
 }
