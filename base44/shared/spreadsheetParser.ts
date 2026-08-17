@@ -35,7 +35,7 @@ export const NON_PERSON_WORDS = [
   'chargehand', 'foreman', 'ganger', 'charge',
   'driller', 'drillers', 'piling', 'pile', 'coring', 'cable', 'rotary',
   'groundworks', 'enabling', 'depot', 'yard', 'dartford', 'warehouse', 'leave', 'sick',
-  'holiday', 'absence', 'off', 'rest', 'break',
+  'holiday', 'holidays', 'hoilday', 'hoildays', "h'day", 'h.day', 'absence', 'off', 'rest', 'break',
   'tbc', 'tba', 'tbd', 'unknown', 'n/a', 'na', 'none',
   'no', 'yes', 'am', 'pm', 'hrs', 'hours',
   'resource', 'resources', 'allocation', 'allocated', 'unallocated',
@@ -144,6 +144,9 @@ export function categorizeNonJobCell(cellValue) {
   // Annual leave / holidays / absence (exact match or starts-with)
   if (/^(off|golf|golf day|holiday|holidays|hoilday|hoildays|al|bh|bank holiday|annual leave|leave|vacation|pto|rest|rest day|day off|leave day|on leave|absent|awol|left|compassionate|unpaid leave|unauthorised leave|emergency leave|no longer works|last day|start date|requested absence|italy)$/.test(lower)) return 'annual_leave';
   if (lower.startsWith('annual leave') || lower.startsWith('golf') || lower.startsWith('holiday') || lower.startsWith('hoilday') || lower.startsWith('compassionate') || lower.startsWith('unpaid') || lower.startsWith('unauthorised') || lower.startsWith('emergency leave') || lower.startsWith('on leave') || lower.startsWith('requested absence') || lower.startsWith('no longer')) return 'annual_leave';
+  // Catch holiday/h'day text ANYWHERE in the cell (e.g. "Shane on Holiday",
+  // "Joe Holidays", "Chris H'day") — not just at the start.
+  if (/\bholiday|\bhoilday|h'day|h\.day/i.test(lower)) return 'annual_leave';
 
   // Sick
   if (lower.startsWith('sick') || /^(off sick|illness|unwell|sick leave)$/.test(lower)) return 'sick';
@@ -315,6 +318,26 @@ const NON_JOB_NAME_PATTERNS = [
   /^potholes$|^monitoring$|^deliveries$|^rigs$/i,     // overhead activities
   /^geotechnica$/i,                                   // company name, not a job
   /^messenza$/i,                                       // company name, not a job
+  // Rig/asset tags that were slipping through as jobs
+  /^cp\s*[\(\/]/i,                                    // "CP (2000)", "CP (2500/4000)"
+  /^cp\d+/i, /^cp\s+\d/i,                             // "CP01", "CP02", "CP 01"
+  /^gc\d+/i, /^lh\d+/i,                               // "GC001"-"GC007", "LH001", "LH002"
+  /^ads$/i,                                           // "ADS"
+  /^\d+\s+rigs?$/i,                                   // "3 Rigs"
+  /^massenza/i,                                       // "Massenza Mi8"
+  /require\s+refurbish/i,                              // "GC007 - Require refurbishing"
+  // Crew/role labels that were slipping through as jobs
+  /crew\s*\d/i,                                       // "Crew 1", "Crew 2"
+  /^(cable|rotary)\s+(percussive\s+)?crew/i,          // "Cable Percussive Crew 1", "Rotary Crew 2"
+  /^(drilling|field|snr\.?\s*operations?|senior\s+operations?|operations)\s+manager/i, // "Drilling Manager", "Field Operations Manager"
+  /^(senior|plant)\s+fitter/i,                        // "Senior Fitter", "Plant Fitter"
+  /^enablers$/i,                                      // "Enablers"
+  /^ground\s+workers?$/i,                             // "Ground Workers"
+  /^rig\s*&\s*crew/i,                                  // "Rig & Crew"
+  /^cable\s*-\s*(standard|cut\s*down)/i,              // "Cable - Standard", "Cable - Cut down"
+  // Yard/overhead notes
+  /^yard[\/\s]/i,                                     // "Yard/home?", "Yard/off aft", "Yard/holborn"
+  /^ewr\s+mob$/i,                                     // "EWR Mob" (mobilisation overhead)
 ];
 
 // Role titles and column-header text that appear in spreadsheet date cells

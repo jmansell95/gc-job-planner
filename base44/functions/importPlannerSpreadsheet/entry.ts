@@ -1101,11 +1101,18 @@ export default async function(req) {
     }
     let recoveredJobs = 0;
     const recoveredJobNames = new Set();
+    // Labels containing absence/overhead keywords must NOT be recovered as jobs
+    // even if they pass isLikelyRealJobStrict (which skips the person-name check).
+    // Without this, text like "Shane on Holiday" or "Joe Holidays" gets recovered
+    // as a real job because it doesn't match any staff member's name.
+    const ABSENCE_RECOVERY_BLOCK = /\bholiday|\bhoilday|h'day|\bsick\b|\bleave\b|\babsence\b|\boff\b|\btraining\b|\bmeeting\b|\byard\b|\bdepot\b|\bbreakdown\b|\brefurbish/i;
     for (const a of allAssignments) {
       if (!a.filtered_as_non_job || !a.non_job_label) continue;
       const label = a.non_job_label;
       // Skip if it matches a staff member's name — it's a person name in the grid
       if (staffNameKeys.has(nameKey(label))) continue;
+      // Skip if it contains absence/overhead keywords — not a real job
+      if (ABSENCE_RECOVERY_BLOCK.test(String(label).toLowerCase())) continue;
       // Skip if it doesn't pass the strict real-job check (role headers, serials, etc.)
       if (!isLikelyRealJobStrict(label)) continue;
       // Recover: it's a real job name that was incorrectly filtered
