@@ -2,19 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Cloud, Loader2, Save, Check, AlertTriangle, RefreshCw, Link2, Link2Off,
-  Settings2, MapPin, Download,
+  Cloud, Loader2, Check, AlertTriangle, RefreshCw, Link2, Download, Globe,
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
 
-const inputCls = "w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10";
-
 const DEFAULT_CONFIG = {
-  api_key: '',
-  api_url: 'http://datapoint.metoffice.gov.uk/public/data-val/wxfcs/all/json',
-  daily_sync_enabled: true,
-  sync_time: '06:00',
   last_sync_at: null,
   last_sync_status: null,
   last_sync_summary: '',
@@ -24,12 +17,10 @@ export default function MetOfficeSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [config, setConfig] = useState(DEFAULT_CONFIG);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState(null);
 
   const { data: settingsRec } = useQuery({
     queryKey: ['met-office-config'],
@@ -39,26 +30,6 @@ export default function MetOfficeSettings() {
   useEffect(() => {
     if (settingsRec?.[0]?.value) setConfig({ ...DEFAULT_CONFIG, ...settingsRec[0].value });
   }, [settingsRec]);
-
-  const configId = settingsRec?.[0]?.id;
-  const connected = !!config.api_key;
-
-  const handleSave = async () => {
-    setSaving(true);
-    setSaved(false);
-    try {
-      const payload = { key: 'met_office_config', label: 'Met Office Weather API Configuration', value: config };
-      if (configId) await base44.entities.AppSetting.update(configId, payload);
-      else await base44.entities.AppSetting.create(payload);
-      queryClient.invalidateQueries({ queryKey: ['met-office-config'] });
-      queryClient.invalidateQueries({ queryKey: ['all-integration-configs'] });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
-    } catch (e) {
-      toast({ title: 'Save failed', description: e.message, variant: 'destructive' });
-    }
-    setSaving(false);
-  };
 
   const handleSync = async () => {
     setSyncing(true);
@@ -78,13 +49,12 @@ export default function MetOfficeSettings() {
     setTesting(true);
     setTestResult(null);
     try {
-      // Simple validation — check if the API key fetches a valid response
-      const testUrl = `${config.api_url}/val/wxfcs/all/json/350852?res=3hourly&key=${config.api_key}`;
-      const res = await fetch(testUrl);
+      const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=51.5&longitude=-0.1&daily=weather_code,temperature_2m_max&timezone=auto&forecast_days=1');
       if (res.ok) {
-        setTestResult({ ok: true, msg: 'Connection successful — Met Office API key is valid.' });
+        const data = await res.json();
+        setTestResult({ ok: true, msg: `Connection successful — Open-Meteo is live. Current London forecast: ${data?.daily?.temperature_2m_max?.[0] ?? '—'}°C` });
       } else {
-        setTestResult({ ok: false, msg: `API returned ${res.status} — check your API key.` });
+        setTestResult({ ok: false, msg: `API returned ${res.status}` });
       }
     } catch (e) {
       setTestResult({ ok: false, msg: e.message || 'Connection test failed' });
@@ -96,21 +66,23 @@ export default function MetOfficeSettings() {
     <div className="space-y-4">
       <SettingsSectionHeader
         icon={Cloud}
-        title="Met Office Weather API"
-        description="Connect the Met Office DataPoint API to pull daily weather forecasts per site postcode. The system uses this to flag weather-impacted days on the rota and suggest schedule adjustments. Get a free API key from the Met Office DataPoint service."
+        title="Open-Meteo Weather API"
+        description="Free, no-API-key weather data from Open-Meteo — pulls daily forecasts for all active job sites across every division. Data is sourced from multiple NWP models (ECMWF, GFS, ICON) for high accuracy."
       />
 
-      {/* Connection status */}
-      <div className={`rounded-xl border p-4 ${connected ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}>
+      {/* Connection status — always connected (free, no key) */}
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${connected ? 'bg-emerald-100' : 'bg-slate-200'}`}>
-            {connected ? <Link2 className="w-5 h-5 text-emerald-600" /> : <Link2Off className="w-5 h-5 text-slate-400" />}
+          <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+            <Link2 className="w-5 h-5 text-emerald-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-slate-800">{connected ? 'Configured' : 'Not Connected'}</p>
-            <p className="text-xs text-slate-500">{connected ? 'Met Office API key saved — weather data can be pulled.' : 'Enter your Met Office DataPoint API key below.'}</p>
+            <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              Always Connected <Globe className="w-3.5 h-3.5 text-emerald-600" />
+            </p>
+            <p className="text-xs text-slate-500">Open-Meteo is free and requires no API key — weather data is available immediately for all divisions.</p>
           </div>
-          <button onClick={handleTest} disabled={testing || !connected}
+          <button onClick={handleTest} disabled={testing}
             className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition disabled:opacity-50">
             {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Test Connection
           </button>
@@ -123,43 +95,41 @@ export default function MetOfficeSettings() {
         )}
       </div>
 
-      {/* API credentials */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
+      {/* Info panel */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
         <div className="flex items-center gap-2">
-          <Settings2 className="w-4 h-4 text-[#2E5A1A]" />
-          <h3 className="text-sm font-bold text-slate-800">API Credentials</h3>
+          <Globe className="w-4 h-4 text-[#2E5A1A]" />
+          <h3 className="text-sm font-bold text-slate-800">About Open-Meteo</h3>
         </div>
-        <p className="text-xs text-slate-500">Register at <code className="bg-slate-100 px-1 rounded">datapoint.metoffice.gov.uk</code> to get a free API key. The key allows 5,000 calls per day.</p>
-        <div className="grid grid-cols-1 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">API Key</label>
-            <input type="password" value={config.api_key} onChange={e => setConfig({ ...config, api_key: e.target.value })}
-              placeholder="Your Met Office DataPoint API key" className={`${inputCls} font-mono`} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-600">
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-50">
+            <Check className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-slate-700">No API Key Required</p>
+              <p className="text-slate-500 mt-0.5">Free for non-commercial use — no registration needed.</p>
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">API Base URL</label>
-            <input type="text" value={config.api_url} onChange={e => setConfig({ ...config, api_url: e.target.value })}
-              placeholder="http://datapoint.metoffice.gov.uk/public/data-val/wxfcs/all/json" className={`${inputCls} font-mono`} />
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-50">
+            <Check className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-slate-700">Multi-Model Accuracy</p>
+              <p className="text-slate-500 mt-0.5">Aggregates ECMWF, GFS, ICON and 30+ other models.</p>
+            </div>
           </div>
-        </div>
-        <label className="flex items-center gap-2.5 p-3 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer">
-          <input type="checkbox" checked={config.daily_sync_enabled} onChange={e => setConfig({ ...config, daily_sync_enabled: e.target.checked })} className="w-4 h-4 accent-[#2E5A1A]" />
-          <div>
-            <p className="text-sm font-medium text-slate-700">Daily auto-sync enabled</p>
-            <p className="text-[11px] text-slate-400">Pull weather forecasts automatically each morning for all active job sites</p>
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-50">
+            <Check className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-slate-700">All Divisions Covered</p>
+              <p className="text-slate-500 mt-0.5">Every active job site across every division gets weather data.</p>
+            </div>
           </div>
-        </label>
-        {config.daily_sync_enabled && (
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Sync Time</label>
-            <input type="time" value={config.sync_time} onChange={e => setConfig({ ...config, sync_time: e.target.value })} className={inputCls} />
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-50">
+            <Check className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-slate-700">Drilling-Specific Alerts</p>
+              <p className="text-slate-500 mt-0.5">Auto-flags stop-work and caution conditions for drilling crews.</p>
+            </div>
           </div>
-        )}
-        <div className="flex items-center gap-2">
-          <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-bold hover:bg-[#1c4a12] disabled:opacity-50 transition">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Settings
-          </button>
-          {saved && <span className="text-sm text-[#2E5A1A] font-medium flex items-center gap-1"><Check className="w-4 h-4" /> Saved</span>}
         </div>
       </div>
 
@@ -169,11 +139,11 @@ export default function MetOfficeSettings() {
           <Download className="w-4 h-4 text-[#2E5A1A]" />
           <h3 className="text-sm font-bold text-slate-800">Sync Now</h3>
         </div>
-        <button onClick={handleSync} disabled={!connected || syncing}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-bold hover:bg-[#1c4a12] disabled:opacity-40 transition">
+        <p className="text-xs text-slate-500 mb-3">Pulls today's weather forecast for all active job sites and stores it as a WeatherLog record. A scheduled automation also runs this daily at 06:00.</p>
+        <button onClick={handleSync} disabled={syncing}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-bold hover:bg-[#1c4a12] disabled:opacity-50 transition">
           {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Pull Weather Forecasts Now
         </button>
-        {!connected && <p className="text-[11px] text-amber-600 mt-2 text-center">Save your API key first to enable sync.</p>}
         {syncResult && (
           <div className={`mt-3 rounded-lg px-3 py-2 text-xs ${syncResult.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
             <p className="flex items-start gap-2"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> {syncResult.msg}</p>

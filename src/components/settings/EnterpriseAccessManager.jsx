@@ -254,6 +254,7 @@ export default function EnterpriseAccessManager({ profile }) {
           {selectedGroup ? (
             <AccessGroupDetail
               group={selectedGroup}
+              groups={groups}
               staffCount={staffByGroup[selectedGroup.id] || 0}
               divisions={getDivisionsForGroup(selectedGroup.id)}
               overrideCount={manifestCountByGroup[selectedGroup.id] || 0}

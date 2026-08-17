@@ -2,6 +2,7 @@ import React from 'react';
 import { Pencil, Trash2, Lock, Users, Building2, ShieldCheck, Eye, Crown, Layers } from 'lucide-react';
 import { normalizePermissions } from '@/utils/permissions';
 import AccessMatrixEditor from './AccessMatrixEditor';
+import AccessGroupStaffManager from './AccessGroupStaffManager';
 
 const TIER_BADGES = {
   full: { label: 'Full Access', cls: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
@@ -23,7 +24,7 @@ function getTier(group, p) {
  * Shows the selected group's header (name, tier, staff count, edit/delete)
  * and embeds the inline AccessMatrixEditor (division tabs + matrix + preview).
  */
-export default function AccessGroupDetail({ group, staffCount, divisions, overrideCount, onEdit, onDelete }) {
+export default function AccessGroupDetail({ group, groups, staffCount, divisions, overrideCount, onEdit, onDelete }) {
   const p = normalizePermissions(group.permissions);
   const tier = getTier(group, p);
   const badge = TIER_BADGES[tier];
@@ -118,6 +119,9 @@ export default function AccessGroupDetail({ group, staffCount, divisions, overri
           </div>
         )}
       </div>
+
+      {/* ─── Staff in this Group (assign / reassign) ─── */}
+      <AccessGroupStaffManager group={group} groups={groups} />
 
       {/* ─── Inline Matrix Editor (division tabs + matrix + preview) ─── */}
       <AccessMatrixEditor fixedGroup={group} inline />
