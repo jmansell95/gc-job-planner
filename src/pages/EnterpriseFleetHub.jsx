@@ -6,7 +6,7 @@ import { useDivision } from '@/contexts/DivisionContext';
 import EnterpriseHeader from '@/components/EnterpriseHeader';
 import {
   Truck, ArrowLeft, Search, Building2, AlertCircle, Wrench,
-  Car, Navigation,
+  Car, Navigation, Gauge, Fuel, BadgeCheck,
 } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
 
@@ -279,8 +279,10 @@ export default function EnterpriseFleetHub() {
                     {groupVehicles.map(v => {
                       const { issues, level } = getVehicleStatus(v);
                       const badge = STATUS_BADGE[level];
+                      const motOk = v.mot_status === 'valid';
+                      const taxOk = v.tax_status === 'taxed';
                       return (
-                        <div key={v.id} className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition group">
+                        <div key={v.id} className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 hover:shadow-md hover:border-slate-300 transition group">
                           <div className="flex items-start justify-between gap-2 mb-3">
                             <div className="flex items-center gap-2.5 min-w-0">
                               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: color + '20' }}>
@@ -294,14 +296,36 @@ export default function EnterpriseFleetHub() {
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${badge.cls}`}>{badge.label}</span>
                           </div>
                           <div className="space-y-1.5 text-xs">
-                            {v.make && <p className="text-slate-600"><span className="font-semibold">Make:</span> {v.make}{v.model ? ` ${v.model}` : ''}</p>}
-                            {v.vehicle_type && <p className="text-slate-600"><span className="font-semibold">Type:</span> {v.vehicle_type}</p>}
-                            {v.current_operator_name && (
-                              <p className="text-slate-600 flex items-center gap-1">
-                                <Navigation className="w-3 h-3 text-emerald-500" />
-                                <span className="font-semibold">Driving:</span> {v.current_operator_name}
-                              </p>
-                            )}
+                            {v.make && <p className="text-slate-600 truncate"><span className="font-semibold">Make:</span> {v.make}{v.model ? ` ${v.model}` : ''}{v.year ? ` (${v.year})` : ''}</p>}
+                            <div className="flex items-center gap-3 flex-wrap">
+                              {v.vehicle_type && <span className="text-slate-600 truncate"><span className="font-semibold">Type:</span> {v.vehicle_type}</span>}
+                              {v.current_mileage != null && (
+                                <span className="flex items-center gap-1 text-slate-500">
+                                  <Gauge className="w-3 h-3" />
+                                  {Number(v.current_mileage).toLocaleString('en-GB')} mi
+                                </span>
+                              )}
+                              {v.fuel_type && v.fuel_type !== 'unknown' && (
+                                <span className="flex items-center gap-1 text-slate-500 capitalize">
+                                  <Fuel className="w-3 h-3" />
+                                  {v.fuel_type}
+                                </span>
+                              )}
+                            </div>
+                            {/* MOT & Tax status badges */}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${motOk ? 'bg-emerald-50 text-emerald-700' : v.mot_status === 'not_valid' ? 'bg-rose-50 text-rose-700' : 'bg-slate-100 text-slate-500'}`}>
+                                <BadgeCheck className="w-2.5 h-2.5" /> MOT {v.mot_status === 'valid' ? '✓' : v.mot_status === 'not_valid' ? '✗' : '?'}
+                              </span>
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${taxOk ? 'bg-emerald-50 text-emerald-700' : v.tax_status === 'untaxed' ? 'bg-rose-50 text-rose-700' : 'bg-slate-100 text-slate-500'}`}>
+                                Tax {v.tax_status === 'taxed' ? '✓' : v.tax_status === 'untaxed' ? '✗' : '?'}
+                              </span>
+                              {v.current_operator_name && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
+                                  <Navigation className="w-2.5 h-2.5" /> {v.current_operator_name}
+                                </span>
+                              )}
+                            </div>
                             {issues.length > 0 && (
                               <div className="flex flex-wrap gap-1 pt-1">
                                 {issues.map((issue, i) => (

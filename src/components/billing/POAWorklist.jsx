@@ -123,53 +123,53 @@ export default function POAWorklist() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <FileQuestion className="w-4 h-4 text-amber-500" />
-            <p className="text-xs text-slate-500 font-medium">Total POA Items</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
+        <div className="insight-card rounded-xl sm:rounded-2xl p-3 sm:p-4">
+          <div className="flex items-center gap-1.5 mb-1">
+            <FileQuestion className="w-3.5 h-3.5 text-amber-500" />
+            <p className="text-[10px] sm:text-xs text-slate-500 font-medium truncate">Total POA</p>
           </div>
-          <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
+          <p className="text-lg sm:text-2xl font-bold text-slate-900 tabular-nums">{stats.total}</p>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Lock className="w-4 h-4 text-emerald-500" />
-            <p className="text-xs text-slate-500 font-medium">Price Locked</p>
+        <div className="insight-card rounded-xl sm:rounded-2xl p-3 sm:p-4">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Lock className="w-3.5 h-3.5 text-emerald-500" />
+            <p className="text-[10px] sm:text-xs text-slate-500 font-medium truncate">Locked</p>
           </div>
-          <p className="text-2xl font-bold text-emerald-700">{stats.locked}</p>
+          <p className="text-lg sm:text-2xl font-bold text-emerald-700 tabular-nums">{stats.locked}</p>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <AlertCircle className="w-4 h-4 text-red-500" />
-            <p className="text-xs text-slate-500 font-medium">Outstanding</p>
+        <div className="insight-card rounded-xl sm:rounded-2xl p-3 sm:p-4">
+          <div className="flex items-center gap-1.5 mb-1">
+            <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+            <p className="text-[10px] sm:text-xs text-slate-500 font-medium truncate">Outstanding</p>
           </div>
-          <p className="text-2xl font-bold text-red-600">{stats.unlocked}</p>
+          <p className="text-lg sm:text-2xl font-bold text-red-600 tabular-nums">{stats.unlocked}</p>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <PoundSterling className="w-4 h-4 text-blue-500" />
-            <p className="text-xs text-slate-500 font-medium">Value Stamped</p>
+        <div className="insight-card rounded-xl sm:rounded-2xl p-3 sm:p-4">
+          <div className="flex items-center gap-1.5 mb-1">
+            <PoundSterling className="w-3.5 h-3.5 text-blue-500" />
+            <p className="text-[10px] sm:text-xs text-slate-500 font-medium truncate">Value Stamped</p>
           </div>
-          <p className="text-2xl font-bold text-blue-700">{fmt(stats.lockedValue)}</p>
+          <p className="text-lg sm:text-2xl font-bold text-blue-700 tabular-nums">{fmt(stats.lockedValue)}</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
-        <div className="flex flex-col sm:flex-row gap-2.5">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search POA items by description or subcategory..."
-              className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]"
-            />
-          </div>
+      <div className="insight-card rounded-2xl p-3 sm:p-4 space-y-2.5 sm:space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search POA items..."
+            className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]"
+          />
+        </div>
+        <div className="grid grid-cols-3 gap-2">
           <select
             value={filterSource}
             onChange={(e) => setFilterSource(e.target.value)}
-            className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-[#2E5A1A]"
+            className="px-2.5 py-2 border border-slate-200 rounded-lg text-xs sm:text-sm bg-white focus:outline-none focus:border-[#2E5A1A] truncate"
           >
             <option value="all">All Sources</option>
             <option value="our_company">Our Rate Card</option>
@@ -178,7 +178,7 @@ export default function POAWorklist() {
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-[#2E5A1A]"
+            className="px-2.5 py-2 border border-slate-200 rounded-lg text-xs sm:text-sm bg-white focus:outline-none focus:border-[#2E5A1A] truncate"
           >
             <option value="all">All Categories</option>
             <option value="labour">Labour</option>
@@ -188,17 +188,17 @@ export default function POAWorklist() {
           <select
             value={filterLock}
             onChange={(e) => setFilterLock(e.target.value)}
-            className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-[#2E5A1A]"
+            className="px-2.5 py-2 border border-slate-200 rounded-lg text-xs sm:text-sm bg-white focus:outline-none focus:border-[#2E5A1A] truncate"
           >
-            <option value="all">All Lock Status</option>
-            <option value="unlocked">Outstanding Only</option>
-            <option value="locked">Locked Only</option>
+            <option value="all">All Status</option>
+            <option value="unlocked">Outstanding</option>
+            <option value="locked">Locked</option>
           </select>
         </div>
       </div>
 
       {/* POA Items List */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="insight-card rounded-2xl overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-slate-300" />

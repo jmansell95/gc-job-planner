@@ -6,7 +6,7 @@ import { useDivision } from '@/contexts/DivisionContext';
 import EnterpriseHeader from '@/components/EnterpriseHeader';
 import {
   Users, ArrowLeft, Search, Mail, Phone, Wrench, Building2,
-  Briefcase, UserCheck, AlertCircle,
+  Briefcase, UserCheck, AlertCircle, ShieldCheck, HardHat, UserCog,
 } from 'lucide-react';
 
 export default function EnterpriseStaffHub() {
@@ -231,6 +231,13 @@ export default function EnterpriseStaffHub() {
                     {groupStaff.map(s => {
                       const team = teamMap[s.team_id];
                       const initials = (s.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+                      const workerTypeMeta = {
+                        direct_employee: { label: 'Direct', icon: HardHat, cls: 'bg-emerald-50 text-emerald-700' },
+                        subcontractor: { label: 'Subcon', icon: Wrench, cls: 'bg-blue-50 text-blue-700' },
+                        agency: { label: 'Agency', icon: UserCog, cls: 'bg-violet-50 text-violet-700' },
+                      };
+                      const wt = workerTypeMeta[s.worker_type] || workerTypeMeta.direct_employee;
+                      const WtIcon = wt.icon;
                       return (
                         <div
                           key={s.id}
@@ -245,14 +252,25 @@ export default function EnterpriseStaffHub() {
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-[#2E5A1A] transition">{s.name}</p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-[#2E5A1A] transition">{s.name}</p>
+                                {s.is_active === false && (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-500">INACTIVE</span>
+                                )}
+                              </div>
                               <p className="text-xs text-slate-500 truncate">{s.job_title || 'Staff'}</p>
-                              {team && (
-                                <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
-                                  <Wrench className="w-2.5 h-2.5" />
-                                  {team.name || 'Team'}
+                              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium ${wt.cls}`}>
+                                  <WtIcon className="w-2.5 h-2.5" />
+                                  {wt.label}
                                 </span>
-                              )}
+                                {team && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+                                    <Wrench className="w-2.5 h-2.5" />
+                                    {team.name || 'Team'}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-50">
