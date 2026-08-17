@@ -55,6 +55,17 @@
       "default": [],
       "description": "Hub IDs enabled for this division: overview, jobs, scheduling, staff, logistics, assets, fleet, investigation, compliance, billing, settings. Geotechnical includes 'investigation'; non-geotechnical divisions omit it."
     },
+    "enabled_tabs": {
+      "type": "object",
+      "description": "Granular tab-level enablement per hub. Keys are hub IDs (matching enabled_hubs), values are arrays of enabled tab IDs within that hub (matching HUB_TABS in divisionWizardData.js). When a hub is enabled but a tab is not listed here, the tab is hidden from the division's workspace. Empty/absent = all tabs in that hub are shown (backward compatible).",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "default": {}
+    },
     "nav_items": {
       "type": "array",
       "items": {

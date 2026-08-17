@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Users, CalendarX, Clock, UsersRound, Building2 } from 'lucide-react';
+import { Users, CalendarX, Clock, UsersRound, Building2, GraduationCap } from 'lucide-react';
 import SettingsPage from '@/components/SettingsPage';
 import PageHeader from '@/components/PageHeader';
 import TabBar from '@/components/TabBar';
@@ -8,6 +8,7 @@ import MissingRatesBanner from '@/components/staff/MissingRatesBanner';
 import StaffDirectoryGrid from '@/components/staff/StaffDirectoryGrid';
 import StaffCostAnalytics from '@/components/staff/StaffCostAnalytics';
 import StaffUtilizationWidget from '@/components/dashboard/StaffUtilizationWidget';
+import TrainingMatrixHub from '@/components/staff/TrainingMatrixHub';
 
 // Map legacy tab IDs to the new grouped structure so existing navigation doesn't break
 const TAB_MAP = {
@@ -22,6 +23,7 @@ const TAB_MAP = {
   'contractors': { tab: 'contacts', subTab: 'contractors' },
   'suppliers': { tab: 'contacts', subTab: 'suppliers' },
   'access-levels': { tab: 'staff', subTab: 'staff' },
+  'training': { tab: 'training' },
   'directory': { tab: 'directory' },
   'cost-analytics': { tab: 'cost-analytics' },
   'utilization': { tab: 'utilization' },
@@ -36,6 +38,7 @@ const TABS = [
     ],
   },
   { id: 'teams', label: 'Crew Types', icon: UsersRound },
+  { id: 'training', label: 'Training', icon: GraduationCap },
   {
     id: 'timesheets', label: 'Timesheets', icon: Clock,
     subTabs: [
@@ -114,12 +117,16 @@ export default function StaffPage() {
             </div>
           )}
 
-          <SettingsPage
-            key={renderTab}
-            initialTab={renderTab}
-            standalone
-            onSelectJob={(job) => navigate('/admin', { state: { section: 'job-detail', job } })}
-          />
+          {tab === 'training' ? (
+            <TrainingMatrixHub />
+          ) : (
+            <SettingsPage
+              key={renderTab}
+              initialTab={renderTab}
+              standalone
+              onSelectJob={(job) => navigate('/admin', { state: { section: 'job-detail', job } })}
+            />
+          )}
         </>
       )}
     </div>

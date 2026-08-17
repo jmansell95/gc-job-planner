@@ -3,7 +3,7 @@ import {
   Building2, Layers, Plug, Check, Palette, Sparkles,
 } from 'lucide-react';
 import {
-  DIVISION_TYPE_LABELS, ALL_HUBS, HUB_LABELS, HUB_DESCRIPTIONS, INTEGRATIONS, COLOR_SWATCHES,
+  DIVISION_TYPE_LABELS, ALL_HUBS, HUB_LABELS, HUB_DESCRIPTIONS, HUB_TABS, INTEGRATIONS, COLOR_SWATCHES,
 } from './divisionWizardData';
 import TemplatePicker from './TemplatePicker';
 
@@ -63,30 +63,80 @@ export function StepIdentity({ form, setForm, divisions, divisionsLoading, apply
   );
 }
 
-/* ───────────────────────── Step 2: Hubs ───────────────────────── */
+/* ───────────────────────── Step 2: Hubs & Tabs ───────────────────────── */
 export function StepHubs({ form, setForm }) {
   const toggleHub = (h) => setForm(f => {
     const hubs = f.enabled_hubs.includes(h) ? f.enabled_hubs.filter(x => x !== h) : [...f.enabled_hubs, h];
-    return { ...f, enabled_hubs: hubs };
+    const tabs = { ...(f.enabled_tabs || {}) };
+    if (!hubs.includes(h)) {
+      delete tabs[h];
+    } else {
+      tabs[h] = HUB_TABS[h]?.map(t => t.id) || [];
+    }
+    return { ...f, enabled_hubs: hubs, enabled_tabs: tabs };
   });
+
+  const toggleTab = (hub, tabId) => setForm(f => {
+    const hubTabs = f.enabled_tabs?.[hub] || [];
+    const newTabs = hubTabs.includes(tabId) ? hubTabs.filter(t => t !== tabId) : [...hubTabs, tabId];
+    return { ...f, enabled_tabs: { ...(f.enabled_tabs || {}), [hub]: newTabs } };
+  });
+
+  const toggleAllTabs = (hub, selectAll) => setForm(f => ({
+    ...f,
+    enabled_tabs: { ...(f.enabled_tabs || {}), [hub]: selectAll ? (HUB_TABS[hub]?.map(t => t.id) || []) : [] },
+  }));
+
   return (
     <div className="space-y-3">
-      <label className={labelCls + ' flex items-center gap-1.5'}><Layers className="w-3.5 h-3.5" /> Choose Operational Hubs</label>
-      <p className="text-[11px] text-slate-400">Each hub is a module in this division's workspace. Tap to enable or disable.</p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <label className={labelCls + ' flex items-center gap-1.5'}><Layers className="w-3.5 h-3.5" /> Choose Hubs & Tabs</label>
+      <p className="text-[11px] text-slate-400">Enable hubs, then choose which tabs within each hub you need. Disabled tabs are hidden from your team's workspace.</p>
+      <div className="space-y-2 max-h-[calc(100dvh-22rem)] overflow-y-auto pr-1">
         {ALL_HUBS.map(h => {
           const enabled = form.enabled_hubs.includes(h);
+          const tabs = HUB_TABS[h] || [];
+          const hubTabs = form.enabled_tabs?.[h] || [];
           return (
-            <button key={h} type="button" onClick={() => toggleHub(h)}
-              className={'relative flex flex-col items-start gap-1 p-3 rounded-xl border-2 text-left transition ' + (enabled ? 'border-[#2E5A1A] bg-emerald-50' : 'border-slate-200 hover:bg-slate-50')}>
-              <div className="flex items-center justify-between w-full">
-                <span className="text-sm font-bold text-slate-800">{HUB_LABELS[h] || h}</span>
-                <span className={'w-5 h-5 rounded-md flex items-center justify-center transition ' + (enabled ? 'bg-[#2E5A1A]' : 'bg-slate-200')}>
-                  {enabled && <Check className="w-3 h-3 text-white" />}
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-400 leading-tight">{HUB_DESCRIPTIONS[h] || h}</p>
-            </button>
+            <div key={h} className={'rounded-xl border-2 transition ' + (enabled ? 'border-[#2E5A1A] bg-emerald-50/30' : 'border-slate-200')}>
+              <button type="button" onClick={() => toggleHub(h)} className="w-full flex items-center justify-between p-3 text-left">
+                <div className="flex items-center gap-2.5">
+                  <span className={'w-5 h-5 rounded-md flex items-center justify-center transition flex-shrink-0 ' + (enabled ? 'bg-[#2E5A1A]' : 'bg-slate-200')}>
+                    {enabled && <Check className="w-3 h-3 text-white" />}
+                  </span>
+                  <div>
+                    <span className="text-sm font-bold text-slate-800">{HUB_LABELS[h] || h}</span>
+                    <p className="text-[10px] text-slate-400 leading-tight">{HUB_DESCRIPTIONS[h] || h}</p>
+                  </div>
+                </div>
+                {enabled && tabs.length > 0 && (
+                  <span className="text-[10px] font-bold text-[#2E5A1A] bg-[#2E5A1A]/10 px-2 py-0.5 rounded-full flex-shrink-0">{hubTabs.length}/{tabs.length} tabs</span>
+                )}
+              </button>
+              {enabled && tabs.length > 0 && (
+                <div className="px-3 pb-3 pt-1 border-t border-emerald-100">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Tabs in this hub</span>
+                    <button type="button" onClick={() => toggleAllTabs(h, hubTabs.length < tabs.length)}
+                      className="text-[10px] font-semibold text-[#2E5A1A] hover:underline">
+                      {hubTabs.length < tabs.length ? 'Select all' : 'Deselect all'}
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {tabs.map(t => {
+                      const tabOn = hubTabs.includes(t.id);
+                      return (
+                        <button key={t.id} type="button" onClick={() => toggleTab(h, t.id)}
+                          className={'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition ' +
+                            (tabOn ? 'bg-[#2E5A1A] text-white border-[#2E5A1A]' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50')}>
+                          {tabOn && <Check className="w-3 h-3" />}
+                          {t.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           );
         })}
       </div>

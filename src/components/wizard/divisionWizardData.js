@@ -29,6 +29,71 @@ export const HUB_DESCRIPTIONS = {
   settings: 'Division configuration',
 };
 
+// Tabs within each hub — granular sub-sections that can be individually
+// enabled/disabled per division. When a hub is enabled, all its tabs are
+// enabled by default; the wizard lets admins deselect tabs they don't need.
+export const HUB_TABS = {
+  overview: [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'weather', label: 'Weather' },
+  ],
+  jobs: [
+    { id: 'pipeline', label: 'Job Pipeline' },
+    { id: 'projects', label: 'Projects' },
+    { id: 'kanban', label: 'Kanban Board' },
+  ],
+  scheduling: [
+    { id: 'rota', label: 'Rota Builder' },
+    { id: 'availability', label: 'Availability' },
+  ],
+  staff: [
+    { id: 'crew', label: 'Crew Members' },
+    { id: 'types', label: 'Crew Types' },
+    { id: 'training', label: 'Training Matrix' },
+    { id: 'timesheets', label: 'Timesheets' },
+    { id: 'absences', label: 'Absences' },
+    { id: 'contacts', label: 'Contacts' },
+  ],
+  logistics: [
+    { id: 'deliveries', label: 'Deliveries' },
+    { id: 'goods_in', label: 'Goods In' },
+  ],
+  assets: [
+    { id: 'rigs', label: 'Rigs' },
+    { id: 'plant', label: 'Plant & Equipment' },
+    { id: 'gear', label: 'Lifting Gear' },
+    { id: 'pat', label: 'PAT Testing' },
+  ],
+  fleet: [
+    { id: 'vehicles', label: 'Vehicles' },
+    { id: 'maintenance', label: 'Maintenance' },
+    { id: 'live_map', label: 'Live Map' },
+  ],
+  investigation: [
+    { id: 'boreholes', label: 'Boreholes' },
+    { id: 'ags', label: 'AGS Import' },
+    { id: 'site_logs', label: 'Site Logs' },
+    { id: 'samples', label: 'Samples' },
+  ],
+  compliance: [
+    { id: 'audits', label: 'Audits' },
+    { id: 'safety', label: 'Safety Reports' },
+    { id: 'certs', label: 'Certificates' },
+    { id: 'skills_matrix', label: 'Skills Matrix' },
+    { id: 'training_gap', label: 'Training Gap' },
+  ],
+  billing: [
+    { id: 'invoices', label: 'Invoices' },
+    { id: 'rate_cards', label: 'Rate Cards' },
+    { id: 'billing_rules', label: 'Billing Rules' },
+    { id: 'cost_items', label: 'Cost Items' },
+  ],
+  settings: [
+    { id: 'general', label: 'General Settings' },
+    { id: 'access', label: 'Access Levels' },
+  ],
+};
+
 // Base settings shared by every division type — ensures every new division
 // starts with the same foundational configuration as Geotechnical.
 const BASE_SETTINGS = {
@@ -157,10 +222,16 @@ export const COLOR_SWATCHES = ['#2E5A1A', '#0d9488', '#2563eb', '#7c3aed', '#d97
  *  of the blueprint fields (color, tagline, enabled_hubs, nav_items, settings). */
 export function defaultsForType(type) {
   const preset = DIVISION_TYPES.find(t => t.value === type) || DIVISION_TYPES.find(t => t.value === 'general');
+  // Build enabled_tabs from HUB_TABS — all tabs enabled for each enabled hub
+  const enabled_tabs = {};
+  preset.enabled_hubs.forEach(hub => {
+    if (HUB_TABS[hub]) enabled_tabs[hub] = HUB_TABS[hub].map(t => t.id);
+  });
   return {
     color: preset.color,
     tagline: preset.tagline,
     enabled_hubs: [...preset.enabled_hubs],
+    enabled_tabs,
     nav_items: [...preset.nav_items],
     settings: { ...preset.settings },
   };

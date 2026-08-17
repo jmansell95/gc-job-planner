@@ -72,6 +72,7 @@ export default function DivisionWizard({ onClose, onCreated }) {
       description: template.description || '',
       logo_url: template.logo_url || '',
       enabled_hubs: [...(template.enabled_hubs || [])],
+      enabled_tabs: { ...(template.enabled_tabs || {}) },
       nav_items: [...(template.nav_items || [])],
       settings: { ...(template.settings || {}) },
       landing_page: template.landing_page || '',

@@ -39,7 +39,7 @@ const TABS = [
   { id: 'bookings', label: 'Hotel Bookings', icon: Hotel },
 ];
 
-const emptyStaff = { name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, permission_group_id: '' };
+const emptyStaff = { name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false };
 
 export default function StaffCommand() {
   const { toast } = useToast();
@@ -314,10 +314,10 @@ export default function StaffCommand() {
                 <option value="">Select crew *</option>
                 {teams.map(t => <option key={t.id} value={t.id}>{teamName(t.id)}</option>)}
               </select>
-              <select value={addForm.permission_group_id || ''} onChange={e => setAddForm({ ...addForm, permission_group_id: e.target.value })} className={inputCls}>
-                <option value="">Field Staff (default)</option>
-                {permissionGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-              </select>
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-50 border border-blue-200">
+                <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                <p className="text-xs text-blue-700 font-medium">Access managed at enterprise level via Settings → Access Levels.</p>
+              </div>
               <button type="submit" disabled={adding} className="w-full px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] transition disabled:opacity-50 flex items-center justify-center gap-2">
                 {adding ? <><Loader2 className="w-4 h-4 animate-spin" /> Adding…</> : <><Save className="w-4 h-4" /> Add & Send Invite</>}
               </button>
@@ -399,12 +399,12 @@ function ProfileTab({ staff: m, user, teams, permissionGroups, vehicles, staffLi
             {teams.map(t => { const p = teams.find(p => p.id === t.parent_team_id); return <option key={t.id} value={t.id}>{p ? `${p.name} — ${t.name}` : t.name}</option>; })}
           </select>
         </Field>
-        <Field label="Permission Group">
-          <select value={form.permission_group_id || ''} onChange={e => setForm({ ...form, permission_group_id: e.target.value })} className={inputCls}>
-            <option value="">Field Staff (default)</option>
-            {permissionGroups.map(g => <option key={g.id} value={g.id}>{g.name}{g.is_read_only ? ' (Read-Only)' : ''}</option>)}
-          </select>
-        </Field>
+        <div className="sm:col-span-2">
+          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-50 border border-blue-200">
+            <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0" />
+            <p className="text-xs text-blue-700 font-medium">Access permissions are managed at the enterprise level via Settings → Access Levels. Assign this crew member to a group or crew from there.</p>
+          </div>
+        </div>
         <Field label="Default Vehicle">
           <select value={form.default_vehicle_id || ''} onChange={e => setForm({ ...form, default_vehicle_id: e.target.value })} className={inputCls}>
             <option value="">None</option>
@@ -425,16 +425,11 @@ function ProfileTab({ staff: m, user, teams, permissionGroups, vehicles, staffLi
         <ToggleChip active={!!form.delivery_dashboard_enabled} onClick={() => toggle('delivery_dashboard_enabled')} icon={Truck} label="Delivery dashboard" />
       </div>
 
-      {/* App access — synced from permission group */}
+      {/* App access status */}
       {user && (
-        <div className="bg-slate-50 rounded-lg p-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span className="text-sm text-slate-700">App account active</span>
-          </div>
-          <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-slate-200 text-slate-600">
-            {permissionGroups.find(g => g.id === form.permission_group_id)?.name || 'Field Staff'}
-          </span>
+        <div className="bg-slate-50 rounded-lg p-3 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <span className="text-sm text-slate-700">App account active</span>
         </div>
       )}
 
