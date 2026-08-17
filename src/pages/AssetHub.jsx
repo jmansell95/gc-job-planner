@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Cog, Wrench, Package, Truck, Anchor, Plug,
   Plus, Search, Boxes, ScanLine, X, TrendingUp, TrendingDown, RefreshCw, Lock, ShieldCheck,
-  CheckSquare, Upload, Database, MapPin, QrCode, Trash2, CircleDot, Warehouse,
+  CheckSquare, Upload, Database, MapPin, QrCode, Trash2, CircleDot, Warehouse, AlertTriangle,
 } from 'lucide-react';
 import ConsumableInventoryManager from '@/components/settings/ConsumableInventoryManager';
 import { rollupCompliance, daysUntil } from '@/utils/rigRollup';
@@ -35,6 +35,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { Skeleton } from '@/components/StateViews';
 import PageHeader from '@/components/PageHeader';
 import TabBar from '@/components/TabBar';
+import HubStatsBar from '@/components/dashboard/HubStatsBar';
 
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: Boxes },
@@ -144,6 +145,18 @@ export default function AssetHub() {
         }
       />
       <TabBar tabs={subTabs} activeTab={view} onChange={setView} />
+
+      {/* Assets KPI Bar — quick category + compliance overview */}
+      {assets.length > 0 && (
+        <HubStatsBar tiles={[
+          { icon: Boxes, label: 'Total Assets', value: assets.length, sublabel: 'Excl. vehicles', color: 'brand' },
+          { icon: Cog, label: 'Rigs', value: categoryCounts.rig, sublabel: 'Drilling units', color: 'amber' },
+          { icon: Anchor, label: 'Lifting', value: categoryCounts.lifting, sublabel: 'LOLER gear', color: 'blue' },
+          { icon: Wrench, label: 'Machinery', value: categoryCounts.machinery, sublabel: 'Plant & equip', color: 'violet' },
+          { icon: ShieldCheck, label: 'Compliant', value: fleetCounts.compliant, sublabel: `${Math.round(fleetHealthPct)}% of known`, color: 'emerald' },
+          { icon: AlertTriangle, label: 'Needs Recert', value: recertCount, sublabel: 'Expired/expiring', color: recertCount > 0 ? 'rose' : 'slate' },
+        ]} />
+      )}
 
       {/* Consumables tab — warehouse inventory managed separately from rigs/gear */}
       {view === 'consumables' ? (

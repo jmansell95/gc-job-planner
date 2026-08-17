@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, FolderOpen, Copy, LayoutGrid, BarChart3 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, FolderOpen, Copy, LayoutGrid, BarChart3, Users, Truck, PoundSterling, Calendar } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { EmptyState, ErrorState, CardGridSkeleton } from '@/components/StateViews';
 import JobDetail from '@/components/JobDetail';
@@ -14,7 +14,8 @@ import { getJobPrimaryType, getJobTypeColor, getJobTypeLabel } from '@/utils/job
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
 import JobSummaryCard from '@/components/jobs/JobSummaryCard';
 import WorkloadOwnershipPanel from '@/components/jobs/WorkloadOwnershipPanel';
-import { format, parseISO, differenceInCalendarDays } from 'date-fns';
+import HubStatsBar from '@/components/dashboard/HubStatsBar';
+import { format, parseISO, differenceInCalendarDays, addDays } from 'date-fns';
 
 const fmtDate = (d) => {
   try { return d ? format(parseISO(d), 'dd MMM yyyy') : '—'; } catch { return d || '—'; }
@@ -279,6 +280,36 @@ export default function JobManager({ onNavigateRota }) {
       {view === 'jobs' && jobs.length > 0 && (
         <WorkloadOwnershipPanel />
       )}
+
+      {/* Jobs KPI Stats Bar — quick overview of job portfolio health */}
+      {view === 'jobs' && jobs.length > 0 && (() => {
+        const active = jobs.filter(j => ['planning', 'in_progress', 'decommissioning'].includes(j.status || 'planning')).length;
+        const inProgress = jobs.filter(j => (j.status || 'planning') === 'in_progress').length;
+        const totalCrew = Object.values(crewCountByJob).reduce((s, n) => s + n, 0);
+        const totalRigs = Object.values(rigCountByJob).reduce((s, n) => s + n, 0);
+        const totalBudget = jobs.reduce((s, j) => s + (Number(j.budget_amount) || 0), 0);
+        const startingThisWeek = jobs.filter(j => {
+          if (!j.start_date) return false;
+          try {
+            const d = parseISO(j.start_date);
+            const now = new Date();
+            const weekEnd = addDays(now, 7);
+            return d >= now && d <= weekEnd;
+          } catch { return false; }
+        }).length;
+        return (
+          <div className="mb-4">
+            <HubStatsBar tiles={[
+              { icon: Briefcase, label: 'Total Jobs', value: jobs.length, sublabel: `${active} active`, color: 'brand' },
+              { icon: BarChart3, label: 'In Progress', value: inProgress, sublabel: 'On site now', color: 'emerald' },
+              { icon: Users, label: 'Crew Deployed', value: totalCrew, sublabel: 'Across all jobs', color: 'blue' },
+              { icon: Truck, label: 'Rigs In Use', value: totalRigs, sublabel: 'Active drilling', color: 'amber' },
+              { icon: PoundSterling, label: 'Total Budget', value: totalBudget > 0 ? '£' + totalBudget.toLocaleString('en-GB', { maximumFractionDigits: 0 }) : '—', sublabel: 'Portfolio value', color: 'violet' },
+              { icon: Calendar, label: 'Starting Soon', value: startingThisWeek, sublabel: 'Next 7 days', color: 'teal' },
+            ]} />
+          </div>
+        );
+      })()}
 
       {/* Status buttons + search — only in Jobs view */}
       {view === 'jobs' && jobs.length > 0 && (

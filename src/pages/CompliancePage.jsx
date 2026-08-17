@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   ShieldCheck, ShieldAlert, AlertTriangle, BarChart3, HardHat,
   CalendarDays, ExternalLink, Lock,
-  TrendingUp,
+  TrendingUp, FileX, Clock, Users,
 } from 'lucide-react';
 import SafetyCultureGate from '@/components/safety/SafetyCultureGate';
 import SafetyCultureCheckHub from '@/components/safety/SafetyCultureCheckHub';
@@ -15,6 +16,7 @@ import ComplianceCalendar from '@/components/compliance/ComplianceCalendar';
 import SiteReadinessGateWidget from '@/components/dashboard/SiteReadinessGateWidget';
 import CrewCertificationPulseWidget from '@/components/dashboard/CrewCertificationPulseWidget';
 import CarbonFootprintWidget from '@/components/dashboard/CarbonFootprintWidget';
+import HubStatsBar from '@/components/dashboard/HubStatsBar';
 import { resolveRole } from '@/utils/access';
 
 const SC_URL = 'https://app.safetyculture.com';
@@ -32,6 +34,31 @@ export default function CompliancePage() {
 
   const role = resolveRole(profile) || 'field';
   const canAccess = role === 'admin' || role === 'super_admin' || role === 'management' || role === 'manager';
+
+  // Compliance KPI data
+  const { data: safetyReports = [] } = useQuery({ queryKey: ['safety-reports-open'], queryFn: () => base44.entities.SafetyReport.filter({ status: 'open' }) });
+  const { data: complianceItems = [] } = useQuery({ queryKey: ['compliance-items-staff'], queryFn: () => base44.entities.ComplianceItem.filter({ category: 'staff' }, '-created_date', 500) });
+  const { data: toolboxTalks = [] } = useQuery({ queryKey: ['toolbox-talks'], queryFn: () => base44.entities.ToolboxTalk.list('-created_date', 100) });
+  const { data: staff = [] } = useQuery({ queryKey: ['staff-active'], queryFn: () => base44.entities.Staff.filter({ is_active: true }, 'name', 500) });
+
+  const complianceKpis = (() => {
+    const now = new Date();
+    let expiringSoon = 0, expired = 0;
+    complianceItems.forEach(ci => {
+      if (!ci.expiry_date || ci.status_override === 'not_required') return;
+      try {
+        const d = new Date(ci.expiry_date + '-01');
+        if (isNaN(d.getTime())) return;
+        const days = Math.ceil((d - now) / 86400000);
+        if (days < 0) expired++;
+        else if (days <= 30) expiringSoon++;
+      } catch {}
+    });
+    const recentTalks = toolboxTalks.filter(t => {
+      try { return new Date(t.date) >= new Date(Date.now() - 30 * 86400000); } catch { return false; }
+    }).length;
+    return { openIncidents: safetyReports.length, expiringSoon, expired, recentTalks, totalStaff: staff.length };
+  })();
 
   const tabs = [
     { id: 'safety-hub', label: 'Safety Hub', icon: ShieldAlert },
@@ -95,6 +122,15 @@ export default function CompliancePage() {
           </div>
         </div>
       </div>
+
+      {/* ── Compliance KPI Bar ── */}
+      <HubStatsBar tiles={[
+        { icon: AlertTriangle, label: 'Open Incidents', value: complianceKpis.openIncidents, sublabel: 'Needs attention', color: complianceKpis.openIncidents > 0 ? 'rose' : 'emerald' },
+        { icon: FileX, label: 'Expired Certs', value: complianceKpis.expired, sublabel: 'Overdue', color: complianceKpis.expired > 0 ? 'rose' : 'emerald' },
+        { icon: Clock, label: 'Expiring Soon', value: complianceKpis.expiringSoon, sublabel: 'Within 30 days', color: complianceKpis.expiringSoon > 0 ? 'amber' : 'slate' },
+        { icon: Users, label: 'Active Staff', value: complianceKpis.totalStaff, sublabel: 'In scope', color: 'blue' },
+        { icon: HardHat, label: 'Toolbox Talks', value: complianceKpis.recentTalks, sublabel: 'Last 30 days', color: 'brand' },
+      ]} />
 
       {/* ── Modern Tab Bar ── */}
       <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/70 shadow-sm p-1.5 flex gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
