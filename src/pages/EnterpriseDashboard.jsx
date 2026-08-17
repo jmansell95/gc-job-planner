@@ -133,6 +133,15 @@ export default function EnterpriseDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                  </span>
+                  <span className="text-sm font-bold text-white">All systems operational</span>
+                  <span className="text-white/50">·</span>
+                  <span className="text-xs font-medium text-white/70">{globalStats.activeDivisions} of {globalStats.divisions} live</span>
+                </div>
                 {isSuperAdmin && (
                   <button onClick={() => setCustomising(!customising)} className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-semibold hover:bg-white/20 transition">
                     <LayoutGrid className="w-4 h-4" /> <span className="hidden md:inline">Customise</span>
@@ -225,71 +234,6 @@ export default function EnterpriseDashboard() {
           </section>
         )}
 
-        {/* Financial Roll-up */}
-        {widgets.financialRollup && (
-          <section className="insight-card rounded-2xl p-5">
-            <SectionTitle icon={PoundSterling} title="Financial Roll-up" subtitle="Outstanding invoices per division" gradient="from-indigo-500 to-blue-600" />
-            <div className="space-y-2">
-              {divisionStats.filter(s => s.outstanding > 0).map(ds => (
-                <div key={ds.division.id} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: ds.division.color || '#2E5A1A' }} />
-                    <span className="text-sm font-semibold text-slate-700">{ds.division.name}</span>
-                  </div>
-                  <span className="text-sm font-bold text-amber-600 tabular-nums">{gbp(ds.outstanding)}</span>
-                </div>
-              ))}
-              {divisionStats.filter(s => s.outstanding > 0).length === 0 && (
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 text-emerald-700">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span className="text-sm font-semibold">All invoices settled across all divisions</span>
-                </div>
-              )}
-              <div className="flex items-center justify-between p-3 rounded-xl stat-gradient-indigo text-white mt-2">
-                <span className="text-sm font-bold">Total Outstanding</span>
-                <span className="text-lg font-extrabold tabular-nums">{gbp(globalStats.totalOutstanding)}</span>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Operational Pipeline — replaces the old Compliance Snapshot */}
-        {widgets.pipelineOverview && (
-          <section className="insight-card rounded-2xl p-5">
-            <SectionTitle icon={TrendingUp} title="Operational Pipeline" subtitle="Job flow & timesheet queue across divisions" gradient="from-emerald-500 to-teal-600" />
-            <div className="grid grid-cols-3 gap-2.5">
-              <div className="stat-gradient-amber rounded-2xl p-4 text-white relative overflow-hidden">
-                <div className="absolute right-1 top-1 opacity-20"><Briefcase className="w-9 h-9" /></div>
-                <div className="relative">
-                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">Active</p>
-                  <p className="text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.activeJobs}</p>
-                  <p className="text-[10px] text-white/70">jobs in progress</p>
-                </div>
-              </div>
-              <div className="stat-gradient-blue rounded-2xl p-4 text-white relative overflow-hidden">
-                <div className="absolute right-1 top-1 opacity-20"><Clock className="w-9 h-9" /></div>
-                <div className="relative">
-                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">Planning</p>
-                  <p className="text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.planningJobs || 0}</p>
-                  <p className="text-[10px] text-white/70">upcoming jobs</p>
-                </div>
-              </div>
-              <div className="stat-gradient-violet rounded-2xl p-4 text-white relative overflow-hidden">
-                <div className="absolute right-1 top-1 opacity-20"><ClipboardCheck className="w-9 h-9" /></div>
-                <div className="relative">
-                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">Ts Queue</p>
-                  <p className="text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.pendingTs}</p>
-                  <p className="text-[10px] text-white/70">awaiting approval</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 mt-3 p-2.5 rounded-xl bg-slate-50">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-              <span className="text-xs text-slate-600 font-medium">{globalStats.completedJobs || 0} jobs completed to date</span>
-            </div>
-          </section>
-        )}
-
         {/* Fleet & Assets */}
         {widgets.fleetAssets && (
           <section className="insight-card rounded-2xl p-5">
@@ -369,22 +313,6 @@ export default function EnterpriseDashboard() {
           </section>
         )}
 
-        {/* System Status */}
-        <section className="insight-card rounded-2xl p-4 flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-            </span>
-            <span className="text-sm font-bold text-slate-700">All systems operational</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium ml-auto">
-            <Activity className="w-3.5 h-3.5 text-emerald-500" />
-            <span>RLS isolation active</span>
-            <span className="text-slate-300">·</span>
-            <span>{globalStats.activeDivisions} of {globalStats.divisions} divisions live</span>
-          </div>
-        </section>
       </div>
 
       {/* Wizard */}
@@ -401,8 +329,6 @@ export default function EnterpriseDashboard() {
             <div className="space-y-2">
               {[
                 { key: 'divisionHealth', label: 'Divisions', desc: 'Division cards grid' },
-                { key: 'financialRollup', label: 'Financial Roll-up', desc: 'Outstanding invoices per division' },
-                { key: 'pipelineOverview', label: 'Operational Pipeline', desc: 'Job flow & timesheet queue' },
                 { key: 'fleetAssets', label: 'Fleet & Assets', desc: 'Vehicles, equipment & compliance' },
                 { key: 'workforceOverview', label: 'Workforce Overview', desc: 'Headcount across divisions' },
               ].map(w => (
