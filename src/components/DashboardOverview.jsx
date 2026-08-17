@@ -10,6 +10,7 @@ import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
 import FieldPrioritiesWidget from '@/components/dashboard/FieldPrioritiesWidget';
 import ExceptionMonitorWidget from '@/components/dashboard/ExceptionMonitorWidget';
 import CommandCentreSection from '@/components/dashboard/CommandCentreSection';
+import RigPerformanceWidget from '@/components/dashboard/RigPerformanceWidget';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
 import QuickActionBar from '@/components/dashboard/QuickActionBar';
@@ -266,6 +267,13 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       )}
 
       <JobSelectorBar onSelectJob={onSelectJob} />
+
+      {/* Rig Performance — today's meterage & revenue per rig with crew */}
+      {isAllJobs && (
+        <div className="mb-4">
+          <RigPerformanceWidget onRigClick={(rigId) => onNavigate?.('assets')} />
+        </div>
+      )}
 
       {/* Live Site Activity — visual snapshot grid of active sites */}
       {isAllJobs && (

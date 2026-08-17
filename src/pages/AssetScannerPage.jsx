@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ScanLine, X, Package, Truck, Trash2, CheckCircle2,
   AlertCircle, Lock, Unlock, ArrowLeft, Layers, Store, PackageOpen,
-  Search, Wrench, ChevronRight, Plus,
+  Search, Wrench, ChevronRight, Plus, ShieldCheck,
 } from 'lucide-react';
 import BarcodeScanner from '@/components/staff/BarcodeScanner';
 import BulkScanBasket from '@/components/logistics/BulkScanBasket';
@@ -20,6 +20,7 @@ import MyTodayTab from '@/components/fieldhub/MyTodayTab';
 import GoodsInScanner from '@/components/logistics/GoodsInScanner';
 import SiteCollectMode from '@/components/logistics/SiteCollectMode';
 import SiteCollectionScanner from '@/components/logistics/SiteCollectionScanner';
+import EquipmentSignOutModal from '@/components/staff/EquipmentSignOutModal';
 import { enableKioskScannerMode, disableKioskScannerMode, isKioskScannerMode } from '@/utils/kioskMode';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -48,6 +49,7 @@ export default function AssetScannerPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [hubTab, setHubTab] = useState('scan');
+  const [showSignOut, setShowSignOut] = useState(false);
   const searchRef = useRef(null);
 
   useEffect(() => {
@@ -248,6 +250,14 @@ export default function AssetScannerPage() {
         >
           <PackageOpen className="w-3.5 h-3.5" /> Collect
         </button>
+        {!isHubAdmin && (
+          <button
+            onClick={() => { if (basket.length > 0) setShowSignOut(true); else toast({ title: 'Scan gear first', description: 'Scan equipment to sign it out to your job.' }); }}
+            className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition active:scale-95 ${basket.length > 0 ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200'}`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" /> Sign Out
+          </button>
+        )}
       </div>
 
       {/* Main content */}
@@ -448,6 +458,16 @@ export default function AssetScannerPage() {
           asset={faultAsset}
           staffProfile={staffProfile}
           onClose={() => setFaultAsset(null)}
+        />
+      )}
+
+      {/* Equipment Sign-Out — sign scanned gear to active job */}
+      {showSignOut && (
+        <EquipmentSignOutModal
+          open={showSignOut}
+          onClose={() => { setShowSignOut(false); clearBasket(); setLastScan(''); setScanResult(null); }}
+          assets={basket}
+          staffId={staffProfile?.id}
         />
       )}
     </div>

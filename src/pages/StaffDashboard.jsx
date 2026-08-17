@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, CalendarDays, CalendarClock, Clock, HardHat, CheckCircle2, UserCircle, ShieldCheck, AlertTriangle, Truck, HelpCircle, ScanLine } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarClock, Clock, HardHat, CheckCircle2, UserCircle, ShieldCheck, AlertTriangle, Truck, HelpCircle, ScanLine, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, isFuture, isPast } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -32,6 +32,7 @@ import IncentiveQuickLook from '@/components/staff/IncentiveQuickLook';
 import DrillingWeatherWidget from '@/components/DrillingWeatherWidget';
 import DivisionIdentityBar from '@/components/DivisionIdentityBar';
 import { useDivision } from '@/contexts/DivisionContext';
+import RigSignInScanner from '@/components/staff/RigSignInScanner';
 
 
 export default function StaffDashboard() {
@@ -51,6 +52,7 @@ export default function StaffDashboard() {
   const [showAdHocVisit, setShowAdHocVisit] = useState(false);
   const [activeTab, setActiveTab] = useState('today');
   const [showComplianceAlert, setShowComplianceAlert] = useState(false);
+  const [showRigScanner, setShowRigScanner] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -154,6 +156,7 @@ export default function StaffDashboard() {
   const { data: siteAssetsStaff = [] } = useQuery({ queryKey: ['site-assets-staff'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 500) });
   const { data: equipmentCompliance = [] } = useQuery({ queryKey: ['equipment-compliance'], queryFn: () => base44.entities.ComplianceItem.filter({ category: 'equipment' }) });
   const { data: myHotelBookings = [] } = useQuery({ queryKey: ['my-hotel-bookings', staff?.id], queryFn: () => base44.entities.HotelBooking.list('-created_date', 500).then(list => list.filter(b => (b.assigned_staff_ids || []).includes(staff.id) || b.staff_id === staff.id)), enabled: !!staff?.id });
+  const { data: rigs = [] } = useQuery({ queryKey: ['rigs-active-staff'], queryFn: () => base44.entities.SiteAsset.filter({ is_rig: true, is_active: true }) });
 
   const handleStartJob = async (assignmentId) => {
     try {
@@ -423,6 +426,12 @@ export default function StaffDashboard() {
     handleOpenShiftWizard(assignmentId);
   };
 
+  // Rig QR sign-in — opens the scanner, and when a rig is matched to today's
+  // assignment, opens the shift wizard for that assignment.
+  const handleRigSignIn = (assignmentId) => {
+    handleOpenShiftWizard(assignmentId);
+  };
+
   const handleBriefingComplete = ({ offline } = {}) => {
     queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
     queryClient.invalidateQueries({ queryKey: ['all-rota-assignments'] });
@@ -610,6 +619,32 @@ export default function StaffDashboard() {
           {/* Incentive Quick-Look — mini score card */}
           {staff?.id && !staff?.is_admin && (
             <IncentiveQuickLook staffId={staff.id} teamId={staff.team_id} />
+          )}
+
+          {/* Quick Actions — Rig QR sign-in + Equipment sign-out */}
+          {staff?.id && !staff?.is_admin && (
+            <div className="grid grid-cols-2 gap-2.5">
+              <button onClick={() => setShowRigScanner(true)} type="button"
+                className="flex items-center gap-2.5 bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] rounded-2xl px-4 py-3.5 text-white active:scale-95 transition touch-manipulation shadow-sm">
+                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+                  <ScanLine className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-left min-w-0">
+                  <p className="text-sm font-bold leading-tight">Scan Rig QR</p>
+                  <p className="text-[11px] text-white/70 truncate">Sign into your rig</p>
+                </div>
+              </button>
+              <button onClick={() => navigate('/scanner')} type="button"
+                className="flex items-center gap-2.5 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 active:scale-95 transition touch-manipulation hover:border-[#2E5A1A]/30">
+                <div className="w-10 h-10 rounded-xl bg-[#2E5A1A]/10 flex items-center justify-center flex-shrink-0">
+                  <Package className="w-5 h-5 text-[#2E5A1A]" />
+                </div>
+                <div className="text-left min-w-0">
+                  <p className="text-sm font-bold leading-tight text-slate-900">Sign Out Gear</p>
+                  <p className="text-[11px] text-slate-400 truncate">Scan to your job</p>
+                </div>
+              </button>
+            </div>
           )}
 
           {/* Today's assignments — active job hero + compact secondary cards */}
@@ -853,6 +888,20 @@ export default function StaffDashboard() {
         onSubmit={handleAdHocVisit}
         jobs={jobs}
       />
+
+      {/* Rig QR Sign-In Scanner — drillers scan the rig QR to sign in */}
+      {showRigScanner && (
+        <RigSignInScanner
+          open={showRigScanner}
+          onClose={() => setShowRigScanner(false)}
+          staffId={staff?.id}
+          assignments={visibleAssignments}
+          jobs={jobs}
+          rigs={rigs}
+          allStaff={allStaff}
+          onSignIn={handleRigSignIn}
+        />
+      )}
 
       {/* Schedule summary overlay — reviewable any time */}
       {showScheduleSummary && (
