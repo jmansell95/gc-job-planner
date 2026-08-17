@@ -149,7 +149,7 @@ export default function AdminDashboard() {
         <RedAlertBanner />
       <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] xl:pt-0">
         <DivisionIdentityBar />
-        <div className="px-4 pb-24 md:px-6 xl:pb-4 xl:pt-6 w-full">
+        <div className="px-3 sm:px-4 pb-24 md:px-6 xl:pb-4 xl:pt-6 w-full">
           <div className="flex items-center justify-between gap-3">
             <Breadcrumbs sectionLabel={SECTION_LABELS[activeSection]} />
             <div className="hidden xl:block">

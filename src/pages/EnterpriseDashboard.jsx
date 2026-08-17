@@ -177,20 +177,20 @@ export default function EnterpriseDashboard() {
             </div>
 
             {/* Hero metrics strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
               {[
                 { label: 'Divisions', value: globalStats.divisions, icon: Building2, gradient: 'stat-gradient-brand' },
                 { label: 'Crew', value: globalStats.staff, icon: Users, gradient: 'stat-gradient-blue' },
                 { label: 'Active Jobs', value: globalStats.activeJobs, icon: Briefcase, gradient: 'stat-gradient-amber' },
                 { label: 'Outstanding', value: gbp(globalStats.totalOutstanding), icon: PoundSterling, gradient: 'stat-gradient-rose' },
               ].map(m => (
-                <div key={m.label} className={`${m.gradient} rounded-2xl p-3 flex items-center gap-2.5 shadow-lg`}>
-                  <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <m.icon className="w-4.5 h-4.5 text-white" />
+                <div key={m.label} className={`${m.gradient} rounded-xl sm:rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-lg`}>
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <m.icon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-white" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide truncate">{m.label}</p>
-                    <p className="text-lg font-extrabold text-white tabular-nums truncate">{m.value}</p>
+                    <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide truncate">{m.label}</p>
+                    <p className="text-base sm:text-lg font-extrabold text-white tabular-nums truncate">{m.value}</p>
                   </div>
                 </div>
               ))}
@@ -203,11 +203,11 @@ export default function EnterpriseDashboard() {
       <div className="px-4 xl:px-6 pb-24 xl:pb-6 space-y-4 max-w-7xl mx-auto">
 
         {/* Quick Access */}
-        <div className="grid grid-cols-4 gap-2 sm:gap-4 mt-6 sm:mt-8 relative z-10">
+        <div className="grid grid-cols-4 gap-2 sm:gap-3 mt-5 sm:mt-8 relative z-10">
           {quickActions.map(a => {
             const Icon = a.icon;
             return (
-              <button key={a.label} onClick={a.action} className={'bg-gradient-to-br ' + a.gradient + ' rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col items-center gap-1.5 sm:gap-2 text-white shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200'}>
+              <button key={a.label} onClick={a.action} className={'bg-gradient-to-br ' + a.gradient + ' rounded-xl sm:rounded-2xl p-2.5 sm:p-4 flex flex-col items-center gap-1 sm:gap-2 text-white shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200'}>
                 <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="text-[10px] sm:text-[11px] font-bold truncate w-full text-center">{a.label}</span>
               </button>
@@ -236,31 +236,31 @@ export default function EnterpriseDashboard() {
 
         {/* Fleet & Assets */}
         {widgets.fleetAssets && (
-          <section className="insight-card rounded-2xl p-5">
+          <section className="insight-card rounded-2xl p-4 sm:p-5">
             <SectionTitle icon={Truck} title="Fleet & Assets" subtitle="Vehicles and equipment across divisions" gradient="from-cyan-500 to-blue-600" />
-            <div className="grid grid-cols-3 gap-2.5">
-              <div className="stat-gradient-teal rounded-2xl p-4 text-white relative overflow-hidden">
-                <div className="absolute right-1 top-1 opacity-20"><Truck className="w-9 h-9" /></div>
+            <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+              <div className="stat-gradient-teal rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white relative overflow-hidden">
+                <div className="absolute right-1 top-1 opacity-20"><Truck className="w-7 h-7 sm:w-9 sm:h-9" /></div>
                 <div className="relative">
-                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">Vehicles</p>
-                  <p className="text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.vehicles}</p>
-                  <p className="text-[10px] text-white/70">in fleet</p>
+                  <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide">Vehicles</p>
+                  <p className="text-xl sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.vehicles}</p>
+                  <p className="text-[9px] sm:text-[10px] text-white/70">in fleet</p>
                 </div>
               </div>
-              <div className="stat-gradient-slate rounded-2xl p-4 text-white relative overflow-hidden">
-                <div className="absolute right-1 top-1 opacity-20"><Wrench className="w-9 h-9" /></div>
+              <div className="stat-gradient-slate rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white relative overflow-hidden">
+                <div className="absolute right-1 top-1 opacity-20"><Wrench className="w-7 h-7 sm:w-9 sm:h-9" /></div>
                 <div className="relative">
-                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">Assets</p>
-                  <p className="text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.assets || 0}</p>
-                  <p className="text-[10px] text-white/70">active equipment</p>
+                  <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide">Assets</p>
+                  <p className="text-xl sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.assets || 0}</p>
+                  <p className="text-[9px] sm:text-[10px] text-white/70">active equipment</p>
                 </div>
               </div>
-              <div className="stat-gradient-rose rounded-2xl p-4 text-white relative overflow-hidden">
-                <div className="absolute right-1 top-1 opacity-20"><AlertTriangle className="w-9 h-9" /></div>
+              <div className="stat-gradient-rose rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white relative overflow-hidden">
+                <div className="absolute right-1 top-1 opacity-20"><AlertTriangle className="w-7 h-7 sm:w-9 sm:h-9" /></div>
                 <div className="relative">
-                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">Attention</p>
-                  <p className="text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.assetsExpiring || 0}</p>
-                  <p className="text-[10px] text-white/70">compliance expiring</p>
+                  <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide">Attention</p>
+                  <p className="text-xl sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.assetsExpiring || 0}</p>
+                  <p className="text-[9px] sm:text-[10px] text-white/70">compliance expiring</p>
                 </div>
               </div>
             </div>
@@ -272,37 +272,36 @@ export default function EnterpriseDashboard() {
 
         {/* Workforce Overview */}
         {widgets.workforceOverview && (
-          <section className="insight-card rounded-2xl p-5">
+          <section className="insight-card rounded-2xl p-4 sm:p-5">
             <SectionTitle icon={Users} title="Workforce Overview" subtitle="Headcount across divisions" gradient="from-violet-500 to-purple-600" />
-            <div className="grid grid-cols-2 gap-2.5 mb-3">
-              <div className="stat-gradient-violet rounded-2xl p-4 text-white relative overflow-hidden">
-                <div className="absolute right-1 top-1 opacity-20"><Users className="w-9 h-9" /></div>
+            <div className="grid grid-cols-2 gap-2 sm:gap-2.5 mb-3">
+              <div className="stat-gradient-violet rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white relative overflow-hidden">
+                <div className="absolute right-1 top-1 opacity-20"><Users className="w-7 h-7 sm:w-9 sm:h-9" /></div>
                 <div className="relative">
-                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">Total Staff</p>
-                  <p className="text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.staff}</p>
-                  <p className="text-[10px] text-white/70">across all divisions</p>
+                  <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide">Total Staff</p>
+                  <p className="text-xl sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.staff}</p>
+                  <p className="text-[9px] sm:text-[10px] text-white/70">across all divisions</p>
                 </div>
               </div>
-              <div className="stat-gradient-emerald rounded-2xl p-4 text-white relative overflow-hidden">
-                <div className="absolute right-1 top-1 opacity-20"><CheckCircle2 className="w-9 h-9" /></div>
+              <div className="stat-gradient-emerald rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white relative overflow-hidden">
+                <div className="absolute right-1 top-1 opacity-20"><CheckCircle2 className="w-7 h-7 sm:w-9 sm:h-9" /></div>
                 <div className="relative">
-                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">Active</p>
-                  <p className="text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.activeStaff || 0}</p>
-                  <p className="text-[10px] text-white/70">currently working</p>
+                  <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide">Active</p>
+                  <p className="text-xl sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.activeStaff || 0}</p>
+                  <p className="text-[9px] sm:text-[10px] text-white/70">currently working</p>
                 </div>
               </div>
             </div>
             <div className="space-y-1.5">
               {divisionStats.map(ds => (
                 <div key={ds.division.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full" style={{ background: ds.division.color || '#2E5A1A' }} />
-                    <span className="text-xs font-semibold text-slate-700">{ds.division.name}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: ds.division.color || '#2E5A1A' }} />
+                    <span className="text-xs font-semibold text-slate-700 truncate">{ds.division.name}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-xs">
-                    <span className="text-slate-500 font-medium">{ds.activeStaff} active</span>
-                    <span className="text-slate-400">·</span>
-                    <span className="font-bold text-slate-700 tabular-nums">{ds.staffCount} total</span>
+                  <div className="flex items-center gap-2 sm:gap-3 text-xs flex-shrink-0">
+                    <span className="text-slate-500 font-medium hidden sm:inline">{ds.activeStaff} active</span>
+                    <span className="font-bold text-slate-700 tabular-nums">{ds.staffCount}</span>
                   </div>
                 </div>
               ))}
@@ -352,13 +351,13 @@ export default function EnterpriseDashboard() {
 
 function SectionTitle({ icon: Icon, title, subtitle, gradient }) {
   return (
-    <div className="flex items-center gap-2.5 mb-4">
-      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-md flex-shrink-0`}>
-        <Icon className="w-5 h-5 text-white" />
+    <div className="flex items-center gap-2.5 mb-3 sm:mb-4">
+      <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-md flex-shrink-0`}>
+        <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
       </div>
-      <div>
-        <h2 className="text-base font-extrabold text-slate-900">{title}</h2>
-        {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
+      <div className="min-w-0">
+        <h2 className="text-sm sm:text-base font-extrabold text-slate-900 truncate">{title}</h2>
+        {subtitle && <p className="text-[11px] sm:text-xs text-slate-500 truncate">{subtitle}</p>}
       </div>
     </div>
   );

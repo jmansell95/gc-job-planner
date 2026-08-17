@@ -86,49 +86,49 @@ export default function BillingReadinessReport({ onSelectJob }) {
     return { byClient: clients, totalUnbilled: total };
   }, [jobs, timesheets, costItems, invoices]);
 
-  if (isLoading) return <Skeleton className="h-64 rounded-xl" />;
+  if (isLoading) return <Skeleton className="h-64 rounded-2xl" />;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
-            <FileText className="w-4.5 h-4.5 text-violet-600" />
+    <div className="insight-card rounded-2xl overflow-hidden">
+      <div className="px-4 sm:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0">
+            <FileText className="w-4 h-4 text-violet-600" />
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-900">Billing Readiness Report</h3>
-            <p className="text-xs text-slate-500">Unbilled chargeable work, grouped by client</p>
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-slate-900 truncate">Billing Readiness Report</h3>
+            <p className="text-[11px] text-slate-500 truncate">Unbilled chargeable work, grouped by client</p>
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-lg font-bold text-slate-900 tabular-nums">{gbp(totalUnbilled)}</p>
-          <p className="text-[11px] text-slate-500">Total unbilled</p>
+        <div className="text-right flex-shrink-0">
+          <p className="text-base sm:text-lg font-bold text-slate-900 tabular-nums">{gbp(totalUnbilled)}</p>
+          <p className="text-[10px] sm:text-[11px] text-slate-500">Total unbilled</p>
         </div>
       </div>
 
       {byClient.length === 0 ? (
-        <div className="px-5 py-8 text-center text-sm text-slate-400">
+        <div className="px-4 sm:px-5 py-8 text-center text-sm text-slate-400">
           <PoundSterling className="w-8 h-8 mx-auto mb-2 text-slate-300" />
           No unbilled work — all chargeable items have been invoiced.
         </div>
       ) : (
         <div className="divide-y divide-slate-50 max-h-[60vh] overflow-y-auto">
           {byClient.map(client => (
-            <div key={client.id} className="px-5 py-3">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-semibold text-slate-700">{client.name}</p>
-                <p className="text-sm font-bold text-slate-900 tabular-nums">{gbp(client.total)}</p>
+            <div key={client.id} className="px-4 sm:px-5 py-3">
+              <div className="flex items-center justify-between mb-2 gap-2">
+                <p className="text-sm font-semibold text-slate-700 truncate">{client.name}</p>
+                <p className="text-sm font-bold text-slate-900 tabular-nums flex-shrink-0">{gbp(client.total)}</p>
               </div>
               <div className="space-y-1">
                 {client.jobs.map(({ job, amount }) => (
                   <button
                     key={job.id}
                     onClick={() => onSelectJob?.(job)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 transition text-left"
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 transition text-left gap-2"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-medium text-slate-900 truncate">{job.name}</p>
-                      <p className="text-[10px] text-slate-400">{job.job_reference || 'No ref'}</p>
+                      <p className="text-[10px] text-slate-400 truncate">{job.job_reference || 'No ref'}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className="text-xs font-semibold text-slate-700 tabular-nums">{gbp(amount)}</span>

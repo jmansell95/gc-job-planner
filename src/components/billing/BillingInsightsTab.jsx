@@ -16,13 +16,13 @@ export default function BillingInsightsTab() {
   const go = (section) => navigate('/admin', { state: { section } });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       <FinancialReconciliationWidget onNavigate={go} />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         <ProjectHealthDashboardWidget onNavigate={go} />
         <BenchmarkComparisonsWidget onNavigate={go} />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         <ClientFeedbackWidget onNavigate={go} />
         <ReportsHubWidget onNavigate={go} />
       </div>
