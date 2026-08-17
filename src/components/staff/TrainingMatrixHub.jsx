@@ -4,26 +4,27 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   GraduationCap, Users, AlertTriangle, CheckCircle2, Clock, Calendar,
   Search, ShieldCheck, BookOpen, Plus, Trash2, X, Settings, GripVertical,
-  IdCard, Car, Award, CreditCard, FileText, Loader2,
+  IdCard, Car, Award, CreditCard, FileText, Loader2, UserPlus,
 } from 'lucide-react';
 import { format, isFuture } from 'date-fns';
 import { complianceDaysUntil } from '@/utils/complianceDate';
 import TrainingManager from '@/components/TrainingManager';
+import QualificationDetailSheet from '@/components/staff/QualificationDetailSheet';
+import AssignTrainingModal from '@/components/staff/AssignTrainingModal';
 import { CardGridSkeleton } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
 
 const ICON_MAP = { IdCard, Car, Award, CreditCard, FileText, ShieldCheck, GraduationCap };
 
 const STATUS = {
-  valid: { label: 'Valid', cls: 'bg-emerald-500 text-white', icon: CheckCircle2 },
-  expiring: { label: 'Expiring', cls: 'bg-amber-500 text-white', icon: Clock },
-  expired: { label: 'Expired', cls: 'bg-red-500 text-white', icon: AlertTriangle },
-  booked: { label: 'Booked', cls: 'bg-blue-500 text-white', icon: Calendar },
-  gap: { label: 'Gap', cls: 'bg-white text-red-500 border-2 border-dashed border-red-400', icon: AlertTriangle },
-  not_required: { label: 'N/A', cls: 'bg-slate-100 text-slate-300', icon: null },
+  valid: { label: 'Valid', cls: 'bg-emerald-500 text-white', icon: CheckCircle2, hover: 'hover:bg-emerald-600' },
+  expiring: { label: 'Expiring', cls: 'bg-amber-500 text-white', icon: Clock, hover: 'hover:bg-amber-600' },
+  expired: { label: 'Expired', cls: 'bg-red-500 text-white', icon: AlertTriangle, hover: 'hover:bg-red-600' },
+  booked: { label: 'Booked', cls: 'bg-blue-500 text-white', icon: Calendar, hover: 'hover:bg-blue-600' },
+  gap: { label: 'Gap', cls: 'bg-white text-red-500 border-2 border-dashed border-red-400', icon: AlertTriangle, hover: 'hover:bg-red-50' },
+  not_required: { label: 'N/A', cls: 'bg-slate-100 text-slate-300', icon: null, hover: '' },
 };
 
-/** Default categories to seed if the TrainingRequirement table is empty. */
 const DEFAULT_CATEGORIES = [
   { label: 'CSCS Card', short_code: 'CSCS', qualification_type: 'cscs_card', requires_front_back: true, is_card: true, icon: 'IdCard', sort_order: 0, is_active: true },
   { label: 'CPCS Card', short_code: 'CPCS', qualification_type: 'cpcs_card', requires_front_back: true, is_card: true, icon: 'IdCard', sort_order: 1, is_active: true },
@@ -38,23 +39,29 @@ export default function TrainingMatrixHub() {
   const [view, setView] = useState('matrix');
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 w-fit">
-        <button onClick={() => setView('matrix')}
-          className={'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ' +
-            (view === 'matrix' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500 hover:text-slate-700')}>
-          <ShieldCheck className="w-3.5 h-3.5" /> Matrix
-        </button>
-        <button onClick={() => setView('courses')}
-          className={'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ' +
-            (view === 'courses' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500 hover:text-slate-700')}>
-          <BookOpen className="w-3.5 h-3.5" /> Courses
-        </button>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 w-fit">
+          <button onClick={() => setView('matrix')}
+            className={'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ' +
+              (view === 'matrix' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500 hover:text-slate-700')}>
+            <ShieldCheck className="w-3.5 h-3.5" /> Matrix
+          </button>
+          <button onClick={() => setView('courses')}
+            className={'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ' +
+              (view === 'courses' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500 hover:text-slate-700')}>
+            <BookOpen className="w-3.5 h-3.5" /> Courses
+          </button>
+        </div>
+        {view === 'matrix' && <MatrixActions />}
       </div>
       {view === 'matrix' ? <MatrixView /> : <TrainingManager />}
     </div>
   );
 }
+
+/** Placeholder for top-level actions — rendered inside MatrixView where data lives. */
+function MatrixActions() { return null; }
 
 function MatrixView() {
   const { toast } = useToast();
@@ -62,6 +69,10 @@ function MatrixView() {
   const [search, setSearch] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
   const [showManage, setShowManage] = useState(false);
+  const [selectedCell, setSelectedCell] = useState(null); // { staff, category }
+  const [selectedStaffIds, setSelectedStaffIds] = useState([]);
+  const [showAssign, setShowAssign] = useState(false);
+  const [assignPreselect, setAssignPreselect] = useState({ ids: [], category: null });
 
   const { data: staff = [], isLoading } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
@@ -70,28 +81,23 @@ function MatrixView() {
   const { data: courses = [] } = useQuery({ queryKey: ['training-courses'], queryFn: () => base44.entities.TrainingCourse.list('-start_date', 200) });
   const { data: requirements = [] } = useQuery({ queryKey: ['training-requirements'], queryFn: () => base44.entities.TrainingRequirement.list('sort_order', 100) });
 
-  // Seed default categories if none exist yet
   useEffect(() => {
     if (requirements.length === 0) {
       (async () => {
         try {
           await base44.entities.TrainingRequirement.bulkCreate(DEFAULT_CATEGORIES);
           queryClient.invalidateQueries({ queryKey: ['training-requirements'] });
-        } catch (e) { /* ignore — might already be seeding */ }
+        } catch (e) { /* ignore */ }
       })();
     }
   }, [requirements.length]);
 
   const categories = useMemo(() => {
-    return requirements
-      .filter(r => r.is_active !== false)
-      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    return requirements.filter(r => r.is_active !== false).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   }, [requirements]);
 
   const courseCategoryMap = useMemo(() => {
-    const m = {};
-    courses.forEach(c => { m[c.id] = c.category; });
-    return m;
+    const m = {}; courses.forEach(c => { m[c.id] = c.category; }); return m;
   }, [courses]);
 
   const teamName = (id) => { const t = teams.find(t => t.id === id); if (!t) return '—'; const p = teams.find(p => p.id === t.parent_team_id); return p ? `${p.name} — ${t.name}` : t.name; };
@@ -100,12 +106,10 @@ function MatrixView() {
     const team = teams.find(t => t.id === staffMember.team_id);
     const required = team?.required_qualifications || [];
     if (!required.includes(qualType)) return 'not_required';
-
     const items = compliance.filter(c =>
       (c.reference_id === staffMember.id || c.reference_name === staffMember.name) &&
       c.qualification_type === qualType
     );
-
     for (const item of items) {
       if (item.status_override === 'not_required') return 'not_required';
       if (item.status_override === 'missing') continue;
@@ -115,13 +119,8 @@ function MatrixView() {
       if (days <= 30) return 'expiring';
       return 'valid';
     }
-
-    const hasBooking = bookings.some(b =>
-      b.staff_id === staffMember.id && b.status === 'booked' &&
-      courseCategoryMap[b.course_id] === qualType
-    );
+    const hasBooking = bookings.some(b => b.staff_id === staffMember.id && b.status === 'booked' && courseCategoryMap[b.course_id] === qualType);
     if (hasBooking) return 'booked';
-
     return 'gap';
   };
 
@@ -149,12 +148,26 @@ function MatrixView() {
     return { total: activeStaff.length, qualified, gaps, expiring, upcoming: upcoming.length };
   }, [staff, teams, compliance, bookings, courses, categories]);
 
+  const allSelected = filtered.length > 0 && filtered.every(m => selectedStaffIds.includes(m.id));
+  const toggleAll = () => {
+    if (allSelected) setSelectedStaffIds([]);
+    else setSelectedStaffIds(filtered.map(m => m.id));
+  };
+  const toggleOne = (id) => {
+    setSelectedStaffIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const openAssign = (ids, category = null) => {
+    setAssignPreselect({ ids, category });
+    setShowAssign(true);
+  };
+
   if (isLoading) return <CardGridSkeleton count={4} />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
         <StatTile icon={Users} label="Total Crew" value={stats.total} gradient="stat-gradient-brand" />
         <StatTile icon={CheckCircle2} label="Fully Qualified" value={stats.qualified} gradient="stat-gradient-emerald" />
         <StatTile icon={AlertTriangle} label="Training Gaps" value={stats.gaps} gradient="stat-gradient-rose" />
@@ -162,7 +175,7 @@ function MatrixView() {
         <StatTile icon={Calendar} label="Upcoming Courses" value={stats.upcoming} gradient="stat-gradient-blue" />
       </div>
 
-      {/* Filters + Manage button */}
+      {/* Filters + actions */}
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -174,18 +187,39 @@ function MatrixView() {
           <option value="all">All Crews</option>
           {teams.map(t => <option key={t.id} value={t.id}>{teamName(t.id)}</option>)}
         </select>
+        <button onClick={() => openAssign([])}
+          className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-[#2E5A1A] text-white text-sm font-semibold hover:bg-[#1c4a12] transition shadow-sm">
+          <UserPlus className="w-4 h-4" /> Assign Training
+        </button>
         <button onClick={() => setShowManage(true)}
           className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition bg-white">
           <Settings className="w-4 h-4" /> Manage
         </button>
       </div>
 
-      {/* Matrix — Desktop table */}
+      {/* Bulk action bar */}
+      {selectedStaffIds.length > 0 && (
+        <div className="sticky top-2 z-30 flex items-center gap-3 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-xl shadow-lg animate-slide-up">
+          <span className="text-xs font-bold">{selectedStaffIds.length} selected</span>
+          <div className="h-4 w-px bg-white/30" />
+          <button onClick={() => openAssign(selectedStaffIds)}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg transition">
+            <UserPlus className="w-3.5 h-3.5" /> Book Selected
+          </button>
+          <button onClick={() => setSelectedStaffIds([])}
+            className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-white/80 hover:text-white px-2 py-1.5 rounded-lg transition">
+            <X className="w-3.5 h-3.5" /> Clear
+          </button>
+        </div>
+      )}
+
+      {/* Matrix */}
       <div className="insight-card rounded-2xl p-4 overflow-hidden">
         <div className="flex items-center gap-2 mb-3">
           <GraduationCap className="w-5 h-5 text-[#2E5A1A]" />
           <h3 className="text-sm font-bold text-slate-900">Training Matrix</h3>
           <span className="text-xs text-slate-400">· {filtered.length} crew · {categories.length} categories</span>
+          <span className="text-[10px] text-slate-400 ml-auto hidden sm:block">Click a cell to update · Tick to bulk-assign</span>
         </div>
 
         {categories.length === 0 ? (
@@ -198,7 +232,15 @@ function MatrixView() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100">
-                  <th className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wide py-2 pr-3 sticky left-0 bg-white">Crew Member</th>
+                  <th className="text-left py-2 pr-2 sticky left-0 bg-white z-10">
+                    <div className="flex items-center gap-2">
+                      <button onClick={toggleAll}
+                        className={'w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition ' + (allSelected ? 'bg-[#2E5A1A] border-[#2E5A1A]' : 'border-slate-300 bg-white hover:border-slate-400')}>
+                        {allSelected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                      </button>
+                    </div>
+                  </th>
+                  <th className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wide py-2 pr-3 sticky left-8 bg-white z-10 min-w-[180px]">Crew Member</th>
                   {categories.map(c => {
                     const Icon = ICON_MAP[c.icon] || Award;
                     return (
@@ -213,33 +255,47 @@ function MatrixView() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(m => (
-                  <tr key={m.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition">
-                    <td className="py-2 pr-3 sticky left-0 bg-white">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#2E5A1A] to-[#8DC63F] flex items-center justify-center flex-shrink-0">
-                          <span className="text-white font-bold text-[10px]">{m.name.charAt(0)}</span>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-slate-800 truncate">{m.name}</p>
-                          <p className="text-[10px] text-slate-400 truncate">{teamName(m.team_id)}</p>
-                        </div>
-                      </div>
-                    </td>
-                    {categories.map(c => {
-                      const st = getQualStatus(m, c.qualification_type);
-                      const cfg = STATUS[st];
-                      const Icon = cfg.icon;
-                      return (
-                        <td key={c.id} className="text-center py-2 px-1">
-                          <div className={'inline-flex items-center justify-center w-7 h-7 rounded-lg ' + cfg.cls} title={`${c.label}: ${cfg.label}`}>
-                            {Icon ? <Icon className="w-3.5 h-3.5" /> : <span className="text-[10px]">—</span>}
+                {filtered.map(m => {
+                  const isChecked = selectedStaffIds.includes(m.id);
+                  return (
+                    <tr key={m.id} className={'border-b border-slate-50 transition ' + (isChecked ? 'bg-[#2E5A1A]/5' : 'hover:bg-slate-50/50')}>
+                      <td className="py-2 pr-2 sticky left-0 bg-white z-10">
+                        <button onClick={() => toggleOne(m.id)}
+                          className={'w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition ' + (isChecked ? 'bg-[#2E5A1A] border-[#2E5A1A]' : 'border-slate-300 bg-white hover:border-slate-400')}>
+                          {isChecked && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                        </button>
+                      </td>
+                      <td className="py-2 pr-3 sticky left-8 bg-white z-10">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#2E5A1A] to-[#8DC63F] flex items-center justify-center flex-shrink-0">
+                            <span className="text-white font-bold text-[10px]">{m.name.charAt(0)}</span>
                           </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-slate-800 truncate">{m.name}</p>
+                            <p className="text-[10px] text-slate-400 truncate">{teamName(m.team_id)}</p>
+                          </div>
+                        </div>
+                      </td>
+                      {categories.map(c => {
+                        const st = getQualStatus(m, c.qualification_type);
+                        const cfg = STATUS[st];
+                        const Icon = cfg.icon;
+                        const isGap = st === 'gap' || st === 'expired';
+                        return (
+                          <td key={c.id} className="text-center py-2 px-1">
+                            <button
+                              onClick={() => setSelectedCell({ staff: m, category: c })}
+                              title={`${c.label}: ${cfg.label} — click to update`}
+                              className={'inline-flex items-center justify-center w-7 h-7 rounded-lg transition ' + cfg.cls + ' ' + (isGap ? 'animate-pulse' : '') + ' hover:scale-110 hover:shadow-md cursor-pointer'}
+                            >
+                              {Icon ? <Icon className="w-3.5 h-3.5" /> : <span className="text-[10px]">—</span>}
+                            </button>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -260,13 +316,34 @@ function MatrixView() {
         </div>
       </div>
 
-      {/* Training Gaps */}
-      <TrainingGapsSection staff={filtered} teams={teams} categories={categories} getQualStatus={getQualStatus} />
+      {/* Side-by-side: Needs Attention + Upcoming Courses */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <TrainingGapsSection staff={filtered} teams={teams} categories={categories} getQualStatus={getQualStatus} onBookTraining={openAssign} />
+        <UpcomingCoursesSection courses={courses} bookings={bookings} onBookTraining={openAssign} />
+      </div>
 
-      {/* Upcoming Courses */}
-      <UpcomingCoursesSection courses={courses} bookings={bookings} />
-
-      {/* Manage Categories Modal */}
+      {/* Modals & Sheets */}
+      {selectedCell && (
+        <QualificationDetailSheet
+          open={!!selectedCell}
+          onOpenChange={(v) => { if (!v) setSelectedCell(null); }}
+          staff={selectedCell.staff}
+          category={selectedCell.category}
+          complianceItems={compliance}
+          bookings={bookings}
+          courses={courses}
+          onBookTraining={(ids, cat) => { setSelectedCell(null); openAssign(ids, cat); }}
+        />
+      )}
+      {showAssign && (
+        <AssignTrainingModal
+          preselectedStaffIds={assignPreselect.ids}
+          preselectedCategory={assignPreselect.category}
+          staff={staff}
+          courses={courses}
+          onClose={() => setShowAssign(false)}
+        />
+      )}
       {showManage && (
         <ManageCategoriesModal requirements={requirements} onClose={() => setShowManage(false)} />
       )}
@@ -348,7 +425,6 @@ function ManageCategoriesModal({ requirements, onClose }) {
           <button onClick={onClose} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition"><X className="w-5 h-5" /></button>
         </div>
 
-        {/* Existing categories */}
         <div className="space-y-2 mb-4">
           {sorted.map(req => {
             const Icon = ICON_MAP[req.icon] || Award;
@@ -377,7 +453,6 @@ function ManageCategoriesModal({ requirements, onClose }) {
           )}
         </div>
 
-        {/* Add new category form */}
         {showForm ? (
           <form onSubmit={handleSave} className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
             <div className="flex items-center justify-between">
@@ -445,7 +520,7 @@ function ManageCategoriesModal({ requirements, onClose }) {
   );
 }
 
-function TrainingGapsSection({ staff, teams, categories, getQualStatus }) {
+function TrainingGapsSection({ staff, teams, categories, getQualStatus, onBookTraining }) {
   const gaps = useMemo(() => {
     return staff.map(m => {
       const missing = categories.filter(c => getQualStatus(m, c.qualification_type) === 'gap');
@@ -472,7 +547,7 @@ function TrainingGapsSection({ staff, teams, categories, getQualStatus }) {
         <h3 className="text-sm font-bold text-slate-900">Needs Attention</h3>
         <span className="text-xs text-slate-400">· {gaps.length} crew members</span>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
         {gaps.map(({ staff: m, missing, expiring, expired }) => (
           <div key={m.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2E5A1A] to-[#8DC63F] flex items-center justify-center flex-shrink-0">
@@ -492,6 +567,10 @@ function TrainingGapsSection({ staff, teams, categories, getQualStatus }) {
                 ))}
               </div>
             </div>
+            <button onClick={() => onBookTraining([m.id])}
+              className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg bg-[#2E5A1A] text-white hover:bg-[#1c4a12] transition flex-shrink-0">
+              <UserPlus className="w-3 h-3" /> Book
+            </button>
           </div>
         ))}
       </div>
@@ -499,23 +578,32 @@ function TrainingGapsSection({ staff, teams, categories, getQualStatus }) {
   );
 }
 
-function UpcomingCoursesSection({ courses, bookings }) {
+function UpcomingCoursesSection({ courses, bookings, onBookTraining }) {
   const upcoming = useMemo(() => {
     return courses
       .filter(c => isFuture(new Date(c.start_date + 'T00:00:00')) || c.start_date === format(new Date(), 'yyyy-MM-dd'))
       .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
-      .slice(0, 5);
+      .slice(0, 6);
   }, [courses]);
 
-  if (upcoming.length === 0) return null;
+  if (upcoming.length === 0) {
+    return (
+      <div className="insight-card rounded-2xl p-5 text-center">
+        <Calendar className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+        <p className="text-sm font-bold text-slate-700">No upcoming courses</p>
+        <p className="text-xs text-slate-400 mt-0.5">Switch to the Courses tab to schedule one.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="insight-card rounded-2xl p-4">
       <div className="flex items-center gap-2 mb-3">
         <Calendar className="w-5 h-5 text-blue-500" />
         <h3 className="text-sm font-bold text-slate-900">Upcoming Courses</h3>
+        <span className="text-xs text-slate-400">· next {upcoming.length}</span>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
         {upcoming.map(c => {
           const count = bookings.filter(b => b.course_id === c.id).length;
           return (
@@ -528,6 +616,10 @@ function UpcomingCoursesSection({ courses, bookings }) {
                 <p className="text-[10px] text-slate-400">{format(new Date(c.start_date + 'T00:00'), 'dd MMM yyyy')}{c.venue ? ` · ${c.venue}` : ''}</p>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 flex-shrink-0">{count} booked</span>
+              <button onClick={() => onBookTraining([], c.category)}
+                className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg bg-white text-[#2E5A1A] border border-[#2E5A1A]/20 hover:bg-[#2E5A1A]/5 transition flex-shrink-0">
+                <UserPlus className="w-3 h-3" /> Assign
+              </button>
             </div>
           );
         })}
