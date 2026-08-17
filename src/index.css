@@ -505,6 +505,12 @@ body:has(.fixed.inset-0.z-50) {
   -webkit-backdrop-filter: blur(8px) saturate(150%) !important;
 }
 
+/* === 3D Flip Card (Compliance Wallet) === */
+.flip-card-perspective { perspective: 1000px; }
+.flip-card-3d { transform-style: preserve-3d; }
+.flip-card-backface { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.flip-card-rotate-180 { transform: rotateY(180deg); }
+
 /* Leaflet map — ensure it renders above dashboard widgets but below modals */
 .leaflet-container { z-index: 1; }
 .hazard-map-marker { background: transparent; border: none; }

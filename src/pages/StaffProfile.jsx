@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { HardHat, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, UserCog, UserCircle, CalendarClock, TrendingUp, Trophy, ClipboardList, GraduationCap, FileText, UserPlus, Loader2 } from 'lucide-react';
+import { HardHat, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, UserCog, UserCircle, CalendarClock, TrendingUp, Trophy, ClipboardList, GraduationCap, FileText, UserPlus, Loader2, IdCard } from 'lucide-react';
 import { format } from 'date-fns';
 import TimesheetHistory from '@/components/staff/TimesheetHistory';
 import StaffBookings from '@/components/staff/StaffBookings';
 import ProfileStats from '@/components/staff/ProfileStats';
 import TrainingHistory from '@/components/staff/TrainingHistory';
 import StaffDocuments from '@/components/staff/StaffDocuments';
+import ComplianceWallet from '@/components/staff/ComplianceWallet';
 import TeamMiniFeed from '@/components/staff/TeamMiniFeed';
 import ManagerTimesheetApprovals from '@/components/ManagerTimesheetApprovals';
 import { useStaffAssistant } from '@/components/StaffAssistantChat';
@@ -204,13 +205,14 @@ export default function StaffProfile() {
 
         {/* Tab Bar — horizontal scroll on mobile, grid on desktop */}
         <div className="sticky top-0 z-20 -mx-4 md:-mx-6 px-4 md:px-6 pt-3 pb-2 bg-slate-50/95 backdrop-blur-md mt-5">
-          <div className="flex md:grid md:grid-cols-7 gap-1.5 sm:gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 md:pb-0">
+          <div className="flex md:grid md:grid-cols-4 gap-1.5 sm:gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 md:pb-0">
             {[
               { key: 'performance', label: 'Performance', icon: TrendingUp },
               { key: 'incentives', label: 'Incentives', icon: Trophy },
               { key: 'timesheets', label: 'Timesheets', icon: ClipboardList },
               { key: 'bookings', label: 'Bookings', icon: Wrench },
               { key: 'training', label: 'Training', icon: GraduationCap },
+              { key: 'wallet', label: 'Wallet', icon: IdCard },
               { key: 'documents', label: 'Documents', icon: FileText },
               { key: 'crew', label: 'My Crew', icon: Users },
             ].map(tab => {
@@ -287,6 +289,9 @@ export default function StaffProfile() {
           {activeTab === 'training' && (staff.id
             ? <TrainingHistory staffId={staff.id} staffName={staff.name} />
             : <NoCrewProfileState tab="training" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
+          {activeTab === 'wallet' && (staff.id
+            ? <ComplianceWallet staffId={staff.id} staffName={staff.name} />
+            : <NoCrewProfileState tab="wallet" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
           {activeTab === 'documents' && (staff.id
             ? <StaffDocuments staffId={staff.id} staffName={staff.name} />
             : <NoCrewProfileState tab="documents" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}

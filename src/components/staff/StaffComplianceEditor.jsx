@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
@@ -6,7 +6,7 @@ import { Plus, Trash2, Edit2, ShieldCheck, X, Upload, FileText, Loader2, CreditC
 import { formatComplianceDate, complianceDaysUntil } from '@/utils/complianceDate';
 import ImageCropper from '@/components/ImageCropper';
 
-const QUALIFICATION_TYPES = [
+const FALLBACK_QUALIFICATION_TYPES = [
   { value: 'cscs_card', label: 'CSCS Card', requiresFrontBack: true },
   { value: 'cpcs_card', label: 'CPCS Card', requiresFrontBack: true },
   { value: 'npors_card', label: 'NPORS Card', requiresFrontBack: true },
@@ -60,6 +60,21 @@ export default function StaffComplianceEditor({ staffId, staffName }) {
     queryFn: () => base44.entities.ComplianceItem.filter({ category: 'staff' }),
     enabled: !!staffId
   });
+  const { data: requirements = [] } = useQuery({
+    queryKey: ['training-requirements'],
+    queryFn: () => base44.entities.TrainingRequirement.list('sort_order', 100),
+  });
+
+  const QUALIFICATION_TYPES = useMemo(() => {
+    if (requirements.length === 0) return FALLBACK_QUALIFICATION_TYPES;
+    const types = requirements.map(r => ({
+      value: r.qualification_type,
+      label: r.label,
+      requiresFrontBack: !!r.requires_front_back,
+    }));
+    types.push({ value: 'other', label: 'Other', requiresFrontBack: false });
+    return types;
+  }, [requirements]);
 
   const items = allItems.filter(i => i.reference_id === staffId || (staffName && i.reference_name === staffName));
 
