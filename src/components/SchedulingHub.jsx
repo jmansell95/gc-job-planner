@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import UnifiedRotaBuilder from '@/components/rota/UnifiedRotaBuilder';
 import CalendarView from '@/components/CalendarView';
 import AvailabilityHeatmap from '@/components/rota/AvailabilityHeatmap';
 import TemplateWeekCopy from '@/components/rota/TemplateWeekCopy';
-import { Calendar, CalendarDays, CalendarClock, Navigation2, Loader2, Grid3x3, Warehouse } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarClock, Navigation2, Loader2, Grid3x3, Warehouse, Users, AlertTriangle, CheckCircle2, Coffee } from 'lucide-react';
 import { useSchedulingAssistant } from '@/components/SchedulingAssistantChat';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import TabBar from '@/components/TabBar';
+import HubStatsBar from '@/components/dashboard/HubStatsBar';
 import YardControlWidget from '@/components/dashboard/YardControlWidget';
 
 // Unified scheduling hub — combines the weekly rota builder and the calendar
@@ -36,6 +38,20 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
     }
   };
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const { data: todayAssignments = [] } = useQuery({
+    queryKey: ['rota-today-scheduling', todayStr],
+    queryFn: () => base44.entities.RotaAssignment.filter({ assigned_date: todayStr }, '-created_date', 500),
+  });
+
+  const schedStats = useMemo(() => {
+    const onJob = todayAssignments.filter(a => a.assignment_type === 'job').length;
+    const onLeave = todayAssignments.filter(a => a.assignment_type === 'annual_leave').length;
+    const sick = todayAssignments.filter(a => a.assignment_type === 'sick').length;
+    const conflicts = todayAssignments.filter(a => a.has_conflict).length;
+    return { total: todayAssignments.length, onJob, onLeave, sick, conflicts };
+  }, [todayAssignments]);
+
   const currentWeekStart = (() => {
     const d = new Date();
     d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
@@ -51,6 +67,16 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
 
   return (
     <div>
+      {/* Scheduling KPI Bar — today's deployment snapshot */}
+      {schedStats.total > 0 && (
+        <HubStatsBar tiles={[
+          { icon: Users, label: 'Assigned Today', value: schedStats.total, sublabel: 'Total shifts', color: 'brand' },
+          { icon: CheckCircle2, label: 'On Jobs', value: schedStats.onJob, sublabel: 'Field deployments', color: 'emerald' },
+          { icon: Coffee, label: 'On Leave', value: schedStats.onLeave, sublabel: 'Annual leave / off', color: 'amber' },
+          { icon: AlertTriangle, label: 'Conflicts', value: schedStats.conflicts, sublabel: 'Double-booked', color: schedStats.conflicts > 0 ? 'rose' : 'slate' },
+        ]} />
+      )}
+
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <TabBar tabs={tabs} activeTab={tab} onChange={setTab} />
         <div className="flex items-center gap-2 flex-wrap">

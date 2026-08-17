@@ -9,6 +9,7 @@ import {
   ShieldCheck, Undo2, Eye, ArrowLeft, ClipboardList, Drill
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
+import HubStatsBar from '@/components/dashboard/HubStatsBar';
 import BulkApproveBar from '@/components/investigation/BulkApproveBar';
 import OpenGroundExportBar from '@/components/investigation/OpenGroundExportBar';
 import { titleCase } from '@/utils/format';

@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Users, CalendarX, Clock, UsersRound, Building2, GraduationCap } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Users, CalendarX, Clock, UsersRound, Building2, GraduationCap, UserCheck, AlertTriangle, HardHat } from 'lucide-react';
 import SettingsPage from '@/components/SettingsPage';
 import PageHeader from '@/components/PageHeader';
 import TabBar from '@/components/TabBar';
+import HubStatsBar from '@/components/dashboard/HubStatsBar';
 import MissingRatesBanner from '@/components/staff/MissingRatesBanner';
 import StaffDirectoryGrid from '@/components/staff/StaffDirectoryGrid';
 import StaffCostAnalytics from '@/components/staff/StaffCostAnalytics';
@@ -68,6 +71,18 @@ export default function StaffPage() {
   const [tab, setTab] = useState(mapped.tab);
   const [subTab, setSubTab] = useState(mapped.subTab || null);
 
+  const { data: allStaff = [] } = useQuery({
+    queryKey: ['staff-page-hub'],
+    queryFn: () => base44.entities.Staff.list('-created_date', 500),
+  });
+
+  const staffStats = useMemo(() => {
+    const active = allStaff.filter(s => s.is_active !== false).length;
+    const subcontractors = allStaff.filter(s => s.worker_type === 'subcontractor').length;
+    const agency = allStaff.filter(s => s.worker_type === 'agency').length;
+    return { total: allStaff.length, active, subcontractors, agency };
+  }, [allStaff]);
+
   const isStandaloneView = STANDALONE_VIEWS.includes(tab);
   const activeTab = TABS.find(t => t.id === tab);
   const hasSubTabs = activeTab?.subTabs?.length > 0;
@@ -87,6 +102,16 @@ export default function StaffPage() {
         subtitle="Manage crew members, timesheets, clients, subcontractors and suppliers"
       />
       <MissingRatesBanner />
+
+      {/* Staff KPI Bar — workforce overview */}
+      {staffStats.total > 0 && (
+        <HubStatsBar tiles={[
+          { icon: Users, label: 'Total People', value: staffStats.total, sublabel: 'All records', color: 'brand' },
+          { icon: UserCheck, label: 'Active', value: staffStats.active, sublabel: 'Currently employed', color: 'emerald' },
+          { icon: HardHat, label: 'Subcontractors', value: staffStats.subcontractors, sublabel: 'External crews', color: 'amber' },
+          { icon: UsersRound, label: 'Agency', value: staffStats.agency, sublabel: 'Temp labour', color: 'blue' },
+        ]} />
+      )}
 
       {tab === 'directory' && (
         <StaffDirectoryGrid onSelect={(s) => navigate('/admin', { state: { section: 'staff-detail', staff: s } })} />
