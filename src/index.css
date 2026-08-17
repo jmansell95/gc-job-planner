@@ -490,6 +490,21 @@ body:has(.fixed.inset-0.z-50) {
   overflow: hidden;
 }
 
+/* === Unified Full-Screen Blurred Backdrop ===
+   Every popup, drawer, and modal across the entire site uses the same
+   full-screen blurred dark background for visual consistency. This rule
+   normalises any custom modal backdrop (bg-black, bg-slate-950, etc.) to
+   the standard set by the shadcn Dialog/Sheet/Drawer overlays. */
+.absolute.inset-0[class*="bg-black"]:not([class*="bg-blue-950"]):not([class*="bg-white"]):not([class*="bg-background"]),
+.absolute.inset-0[class*="bg-slate-9"]:not([class*="bg-blue-950"]):not([class*="bg-white"]):not([class*="bg-background"]),
+.absolute.inset-0[class*="bg-gray-9"]:not([class*="bg-blue-950"]):not([class*="bg-white"]):not([class*="bg-background"]),
+.fixed.inset-0.z-50[class*="bg-black"]:not([class*="bg-blue-950"]):not([class*="bg-background"]),
+.fixed.inset-0.z-50[class*="bg-slate-9"]:not([class*="bg-blue-950"]):not([class*="bg-background"]) {
+  background-color: rgba(8, 23, 48, 0.6) !important;
+  backdrop-filter: blur(8px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(150%) !important;
+}
+
 /* Leaflet map — ensure it renders above dashboard widgets but below modals */
 .leaflet-container { z-index: 1; }
 .hazard-map-marker { background: transparent; border: none; }

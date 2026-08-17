@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Cog, Wrench, Package, Truck, Anchor, Plug,
   Plus, Search, Boxes, ScanLine, X, TrendingUp, TrendingDown, RefreshCw, Lock, ShieldCheck,
-  CheckSquare, Upload, Database, MapPin, QrCode, Trash2, CircleDot,
+  CheckSquare, Upload, Database, MapPin, QrCode, Trash2, CircleDot, Warehouse,
 } from 'lucide-react';
 import ConsumableInventoryManager from '@/components/settings/ConsumableInventoryManager';
 import { rollupCompliance, daysUntil } from '@/utils/rigRollup';
@@ -52,6 +52,7 @@ export default function AssetHub() {
   const [search, setSearch] = useState('');
   const [compFilter, setCompFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
+  const [depotOnly, setDepotOnly] = useState(false);
   const [openRig, setOpenRig] = useState(null);
   const [openEquip, setOpenEquip] = useState(null);
   const [editorAsset, setEditorAsset] = useState(null);
@@ -116,6 +117,7 @@ export default function AssetHub() {
 
   // Bulk cert helpers
   const filteredEquipForBulk = useMemo(() => equipment.filter(a => {
+    if (depotOnly && !(a.storage_location || '').toLowerCase().match(/depot|yard|dartford/)) return false;
     if (sourceFilter === 'panda' && !a.panda_asset_id) return false;
     if (sourceFilter === 'local' && a.panda_asset_id) return false;
     if (category !== 'all' && category !== 'rig' && a.asset_type !== category) return false;
@@ -123,7 +125,7 @@ export default function AssetHub() {
     const q = search.toLowerCase().trim();
     if (!q) return true;
     return (a.name || '').toLowerCase().includes(q) || (a.serial_number || '').toLowerCase().includes(q);
-  }), [equipment, category, compFilter, search, sourceFilter]);
+  }), [equipment, category, compFilter, search, sourceFilter, depotOnly]);
 
   return (
     <div className="space-y-4">
@@ -205,6 +207,9 @@ export default function AssetHub() {
                       );
                     })}
                   </div>
+                  <button onClick={() => setDepotOnly(d => !d)} className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition flex-shrink-0 ${depotOnly ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}>
+                    <Warehouse className="w-4 h-4" /> {depotOnly ? 'Depot Only' : 'Depot'}
+                  </button>
                   {category !== 'rig' && (
                     <button onClick={() => { setSelectionMode(m => !m); setSelected(new Set()); }} className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition flex-shrink-0 ${selectionMode ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}>
                       <CheckSquare className="w-4 h-4" /> {selectionMode ? 'Done' : 'Select'}
@@ -226,6 +231,7 @@ export default function AssetHub() {
               search={search}
               compFilter={compFilter}
               sourceFilter={sourceFilter}
+              depotOnly={depotOnly}
               selectionMode={selectionMode}
               selected={selected}
               setSelected={setSelected}
@@ -286,7 +292,7 @@ export default function AssetHub() {
       {recertAsset && <RecertActionModal asset={recertAsset} onClose={() => setRecertAsset(null)} />}
       {certVaultRig && (
         <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 pt-8 sm:pt-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setCertVaultRig(null)} />
+          <div className="absolute inset-0 bg-blue-950/60 backdrop-blur-md" onClick={() => setCertVaultRig(null)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
             <div className="sticky top-0 bg-white rounded-t-2xl z-10 border-b border-slate-200 px-5 py-4 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0"><div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0"><Lock className="w-4.5 h-4.5 text-white" /></div><div className="min-w-0"><h3 className="font-bold text-slate-900 truncate">{certVaultRig.name} — Certificates</h3><p className="text-[11px] text-slate-400 truncate">Rig & all linked equipment</p></div></div>
@@ -298,7 +304,7 @@ export default function AssetHub() {
       )}
       {bulkCerts && (
         <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 pt-8 sm:pt-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setBulkCerts(null)} />
+          <div className="absolute inset-0 bg-blue-950/60 backdrop-blur-md" onClick={() => setBulkCerts(null)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
             <div className="sticky top-0 bg-white rounded-t-2xl z-10 border-b border-slate-200 px-5 py-4 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0"><div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0"><Lock className="w-4 h-4 text-white" /></div><div className="min-w-0"><h3 className="font-bold text-slate-900 truncate">{bulkCerts.length} Assets — Certificates</h3></div></div>

@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   X, Cog, Wrench, Package, Truck, Anchor, Plug, ShieldCheck, ShieldAlert, ShieldX,
   HelpCircle, Pencil, Link2, Unlink, Plus, Save, ChevronRight, ScanLine, Layers, RefreshCw,
+  Warehouse, MapPin, CalendarClock, Activity, Hash, Settings,
 } from 'lucide-react';
 import { safeFormat } from '@/utils/format';
 import { rollupCompliance, COMPLIANCE_META, ASSET_TYPE_META, daysUntil } from '@/utils/rigRollup';
@@ -20,6 +21,17 @@ function MasterBadge({ master }) {
     <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border ${meta.tone}`}>
       <Icon className="w-4 h-4" /> {meta.label} System
     </span>
+  );
+}
+
+function InfoRow({ icon: Icon, label, value, tone }) {
+  return (
+    <div className="flex items-center justify-between py-1.5">
+      <span className="text-xs text-slate-500 flex items-center gap-1.5">
+        {Icon && <Icon className="w-3 h-3 text-slate-400" />} {label}
+      </span>
+      <span className={`text-xs font-semibold ${tone || 'text-slate-700'}`}>{value}</span>
+    </div>
   );
 }
 
@@ -41,7 +53,6 @@ export default function RigDetailDrawer({ rig, allAssets = [], onClose, onOpenEq
     return m;
   }, [rig, linkedItems]);
 
-  // Equipment that can be linked (not a rig, not already linked, active)
   const linkable = allAssets.filter(a =>
     a.id !== rig.id && a.asset_type !== 'rig' && !(rig.linked_equipment_ids || []).includes(a.id) && a.is_active !== false
   );
@@ -69,21 +80,23 @@ export default function RigDetailDrawer({ rig, allAssets = [], onClose, onOpenEq
     } catch (e) { /* bubble */ }
   };
 
+  const depotTagged = (rig.storage_location || '').toLowerCase().match(/depot|yard|dartford/);
+
   return (
     <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 pt-8 sm:pt-4">
       <div className="absolute inset-0 bg-blue-950/60 backdrop-blur-md" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white rounded-t-2xl z-10 border-b border-slate-200 px-5 py-4">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto animate-pop-in">
+        {/* Hero header with gradient */}
+        <div className="sticky top-0 z-20 hero-gradient text-white rounded-t-2xl px-5 py-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-md">
-                <Cog className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0 border border-white/20">
+                <Cog className="w-7 h-7 text-white" />
               </div>
               <div className="min-w-0">
-                <h3 className="font-bold text-slate-900 truncate text-lg">{rig.name}</h3>
-                <p className="text-xs text-slate-400 truncate">
-                  {rig.rig_type && rig.rig_type !== 'n/a' ? <span className="uppercase font-semibold text-blue-600">{rig.rig_type} · </span> : null}
+                <h3 className="font-bold text-white truncate text-lg">{rig.name}</h3>
+                <p className="text-xs text-white/70 truncate">
+                  {rig.rig_type && rig.rig_type !== 'n/a' ? <span className="uppercase font-semibold text-white/90">{rig.rig_type} · </span> : null}
                   Rig System · {rollup.total} asset{rollup.total !== 1 ? 's' : ''}
                 </p>
               </div>
@@ -91,55 +104,76 @@ export default function RigDetailDrawer({ rig, allAssets = [], onClose, onOpenEq
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <MasterBadge master={rollup.master} />
               {onEdit && (
-                <button onClick={() => onEdit(rig)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition">
+                <button onClick={() => onEdit(rig)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white rounded-lg text-xs font-semibold transition backdrop-blur-sm">
                   <Pencil className="w-3.5 h-3.5" /> Edit
                 </button>
               )}
               {onRecert && (
-                <button onClick={() => onRecert(rig)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg text-xs font-semibold transition">
+                <button onClick={() => onRecert(rig)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-400/80 hover:bg-amber-400 text-amber-950 rounded-lg text-xs font-semibold transition">
                   <RefreshCw className="w-3.5 h-3.5" /> Re-cert
                 </button>
               )}
-              <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition">
-                <X className="w-4 h-4 text-slate-500" />
+              <button onClick={onClose} className="p-1.5 hover:bg-white/15 rounded-lg transition">
+                <X className="w-4 h-4 text-white" />
               </button>
             </div>
           </div>
         </div>
 
         <div className="p-5 space-y-4">
-          {/* Compliance rollup strip */}
-          <div className="grid grid-cols-4 gap-2">
+          {/* Compliance rollup strip — vibrant stat tiles */}
+          <div className="grid grid-cols-4 gap-2.5">
             {[
-              { key: 'compliant', label: 'Compliant', grad: 'stat-gradient-emerald' },
-              { key: 'expiring', label: 'Expiring', grad: 'stat-gradient-amber' },
-              { key: 'expired', label: 'Expired', grad: 'stat-gradient-rose' },
-              { key: 'unknown', label: 'Unknown', grad: 'stat-gradient-slate' },
-            ].map(s => (
-              <div key={s.key} className="rounded-xl border border-slate-200 p-2.5 text-center">
-                <p className={`text-2xl font-bold tabular-nums ${s.key === 'expired' ? 'text-red-600' : s.key === 'expiring' ? 'text-amber-600' : s.key === 'compliant' ? 'text-emerald-600' : 'text-slate-500'}`}>
-                  {rollup.counts[s.key]}
-                </p>
-                <p className="text-[10px] text-slate-500 font-medium mt-0.5">{s.label}</p>
-              </div>
-            ))}
+              { key: 'compliant', label: 'Compliant', grad: 'stat-gradient-emerald', icon: ShieldCheck },
+              { key: 'expiring', label: 'Expiring', grad: 'stat-gradient-amber', icon: ShieldAlert },
+              { key: 'expired', label: 'Expired', grad: 'stat-gradient-rose', icon: ShieldX },
+              { key: 'unknown', label: 'Unknown', grad: 'stat-gradient-slate', icon: HelpCircle },
+            ].map(s => {
+              const SIcon = s.icon;
+              return (
+                <div key={s.key} className={`rounded-xl p-3 text-white ${s.grad} shadow-md relative overflow-hidden`}>
+                  <SIcon className="w-4 h-4 absolute top-2 right-2 opacity-30" />
+                  <p className="text-2xl font-bold tabular-nums leading-none">{rollup.counts[s.key]}</p>
+                  <p className="text-[10px] font-medium mt-1 opacity-90">{s.label}</p>
+                </div>
+              );
+            })}
           </div>
 
-          {/* Rig's own compliance + identity */}
-          <div className="rounded-xl border border-slate-200 p-4">
-            <p className="text-[10px] uppercase font-bold text-slate-400 mb-2 flex items-center gap-1"><ScanLine className="w-3 h-3" /> Rig Passport</p>
-            <div className="flex flex-wrap items-center gap-2 text-xs mb-3">
-              <span className="font-mono bg-slate-100 text-slate-600 px-2 py-1 rounded">{rig.serial_number || 'No serial'}</span>
-              {rig.equipment_type && <span className="text-emerald-700 font-medium bg-emerald-50 px-2 py-1 rounded">{rig.equipment_type}</span>}
-              {!rig.is_active && <span className="text-red-700 font-bold bg-red-50 px-2 py-1 rounded uppercase">Inactive</span>}
+          {/* Rig passport — identity + key dates */}
+          <div className="rounded-xl border border-slate-200 overflow-hidden">
+            <div className="px-4 py-2.5 bg-slate-50/80 border-b border-slate-200 flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center border bg-white border-slate-200">
+                <ScanLine className="w-3.5 h-3.5 text-emerald-600" />
+              </div>
+              <p className="text-xs font-semibold text-slate-800">Rig Passport</p>
+              {depotTagged && (
+                <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                  <Warehouse className="w-3 h-3" /> In Depot
+                </span>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-              <div className="flex justify-between"><span className="text-slate-500">Rig status</span><span className={`font-semibold ${COMPLIANCE_META[rig.compliance_status || 'unknown'].tone.split(' ')[0]}`}>{COMPLIANCE_META[rig.compliance_status || 'unknown'].label}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Expiry</span><span className="font-medium text-slate-700">{rig.compliance_expiry_date ? safeFormat(rig.compliance_expiry_date, 'dd MMM yyyy') : 'Lifetime'}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Last service</span><span className="font-medium text-slate-700">{rig.last_service_date ? safeFormat(rig.last_service_date, 'dd MMM yyyy') : '—'}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Next service</span><span className={`font-semibold ${(daysUntil(rig.next_service_date) ?? 99) < 0 ? 'text-red-600' : (daysUntil(rig.next_service_date) ?? 99) <= 30 ? 'text-amber-600' : 'text-slate-700'}`}>{rig.next_service_date ? safeFormat(rig.next_service_date, 'dd MMM yyyy') : '—'}</span></div>
+            <div className="p-4">
+              <div className="flex flex-wrap items-center gap-2 text-xs mb-3">
+                <span className="font-mono bg-slate-100 text-slate-600 px-2 py-1 rounded flex items-center gap-1"><Hash className="w-3 h-3" /> {rig.serial_number || 'No serial'}</span>
+                {rig.equipment_type && <span className="text-emerald-700 font-medium bg-emerald-50 px-2 py-1 rounded">{rig.equipment_type}</span>}
+                {!rig.is_active && <span className="text-red-700 font-bold bg-red-50 px-2 py-1 rounded uppercase">Inactive</span>}
+                {rig.colour && <span className="text-slate-600 bg-slate-50 px-2 py-1 rounded flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-400" /> {rig.colour}</span>}
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 divide-x divide-slate-100">
+                <div className="pr-2">
+                  <InfoRow icon={ShieldCheck} label="Status" value={COMPLIANCE_META[rig.compliance_status || 'unknown'].label} tone={COMPLIANCE_META[rig.compliance_status || 'unknown'].tone.split(' ')[0]} />
+                  <InfoRow icon={CalendarClock} label="Expiry" value={rig.compliance_expiry_date ? safeFormat(rig.compliance_expiry_date, 'dd MMM yyyy') : 'Lifetime'} />
+                  <InfoRow icon={Activity} label="Last service" value={rig.last_service_date ? safeFormat(rig.last_service_date, 'dd MMM yyyy') : '—'} />
+                </div>
+                <div className="pl-2">
+                  <InfoRow icon={Settings} label="Next service" value={rig.next_service_date ? safeFormat(rig.next_service_date, 'dd MMM yyyy') : '—'} tone={(daysUntil(rig.next_service_date) ?? 99) < 0 ? 'text-red-600' : (daysUntil(rig.next_service_date) ?? 99) <= 30 ? 'text-amber-600' : 'text-slate-700'} />
+                  <InfoRow icon={MapPin} label="Location" value={rig.storage_location || '—'} />
+                  <InfoRow icon={Wrench} label="Responsible" value={rig.responsible_person || '—'} />
+                </div>
+              </div>
+              {rig.tooling_notes && <p className="text-xs text-slate-500 mt-2.5 bg-slate-50 rounded-lg p-2.5"><span className="font-semibold text-slate-600">Tooling:</span> {rig.tooling_notes}</p>}
             </div>
-            {rig.tooling_notes && <p className="text-xs text-slate-500 mt-2.5"><span className="font-semibold text-slate-600">Tooling:</span> {rig.tooling_notes}</p>}
           </div>
 
           {/* Asset Panda inventory source */}
