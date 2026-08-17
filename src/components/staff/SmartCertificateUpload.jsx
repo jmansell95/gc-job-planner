@@ -170,7 +170,7 @@ export default function SmartCertificateUpload({ staffId, staffName, categories 
         </button>
         <input ref={fileRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFile} />
         {stage === 'review' && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4">
             <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 max-h-[calc(100dvh-2rem)] overflow-y-auto">
               <ReviewPanel
                 form={form} setForm={setForm} categories={categories}
@@ -216,7 +216,7 @@ export default function SmartCertificateUpload({ staffId, staffName, categories 
       )}
 
       {stage === 'review' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4">
           <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <ReviewPanel
               form={form} setForm={setForm} categories={categories}

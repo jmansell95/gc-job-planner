@@ -513,7 +513,7 @@ function ManageCategoriesModal({ requirements, onClose }) {
 
         {/* Add/Edit form — popup modal */}
         {showForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4" onClick={() => { setShowForm(false); setEditingId(null); }}>
+          <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4" onClick={() => { setShowForm(false); setEditingId(null); }}>
             <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-5 max-h-[calc(100dvh-2rem)] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm font-bold text-slate-900">{editingId ? 'Edit Training Category' : 'New Training Category'}</p>
