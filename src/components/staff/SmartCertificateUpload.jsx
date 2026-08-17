@@ -170,11 +170,15 @@ export default function SmartCertificateUpload({ staffId, staffName, categories 
         </button>
         <input ref={fileRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFile} />
         {stage === 'review' && (
-          <ReviewPanel
-            form={form} setForm={setForm} categories={categories}
-            detected={detected} fileName={fileName} fileUrl={fileUrl}
-            onSave={handleSave} onReset={reset} saving={stage === 'saving'}
-          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4">
+            <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 max-h-[calc(100dvh-2rem)] overflow-y-auto">
+              <ReviewPanel
+                form={form} setForm={setForm} categories={categories}
+                detected={detected} fileName={fileName} fileUrl={fileUrl}
+                onSave={handleSave} onReset={reset} saving={stage === 'saving'}
+              />
+            </div>
+          </div>
         )}
       </>
     );
@@ -212,11 +216,15 @@ export default function SmartCertificateUpload({ staffId, staffName, categories 
       )}
 
       {stage === 'review' && (
-        <ReviewPanel
-          form={form} setForm={setForm} categories={categories}
-          detected={detected} fileName={fileName} fileUrl={fileUrl}
-          onSave={handleSave} onReset={reset} saving={false}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 max-h-[calc(100dvh-2rem)] overflow-y-auto">
+            <ReviewPanel
+              form={form} setForm={setForm} categories={categories}
+              detected={detected} fileName={fileName} fileUrl={fileUrl}
+              onSave={handleSave} onReset={reset} saving={false}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

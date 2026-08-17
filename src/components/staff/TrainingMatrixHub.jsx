@@ -488,67 +488,72 @@ function ManageCategoriesModal({ requirements, onClose }) {
           )}
         </div>
 
-        {showForm ? (
-          <form onSubmit={handleSave} className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-bold text-slate-900">{editingId ? 'Edit Training Category' : 'New Training Category'}</p>
-              <button type="button" onClick={() => { setShowForm(false); setEditingId(null); }} className="p-1 text-slate-400 hover:bg-slate-200 rounded-lg"><X className="w-4 h-4" /></button>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>Label *</label>
-                <input value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} placeholder="e.g. Confined Space" className={inputClass} />
+        <button onClick={() => { setEditingId(null); setForm({ label: '', short_code: '', qualification_type: '', requires_front_back: false, is_card: false, icon: 'Award', sort_order: requirements.length, is_active: true }); setShowForm(true); }}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-sm font-semibold text-slate-500 hover:border-[#2E5A1A] hover:text-[#2E5A1A] hover:bg-[#2E5A1A]/5 transition">
+          <Plus className="w-4 h-4" /> Add Training Category
+        </button>
+
+        {/* Add/Edit form — popup modal */}
+        {showForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4" onClick={() => { setShowForm(false); setEditingId(null); }}>
+            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-5 max-h-[calc(100dvh-2rem)] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm font-bold text-slate-900">{editingId ? 'Edit Training Category' : 'New Training Category'}</p>
+                <button type="button" onClick={() => { setShowForm(false); setEditingId(null); }} className="p-1 text-slate-400 hover:bg-slate-200 rounded-lg"><X className="w-4 h-4" /></button>
               </div>
-              <div>
-                <label className={labelClass}>Short Code *</label>
-                <input value={form.short_code} onChange={e => setForm({ ...form, short_code: e.target.value.toUpperCase().slice(0, 4) })} placeholder="e.g. CS" className={inputClass} />
-              </div>
+              <form onSubmit={handleSave} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClass}>Label *</label>
+                    <input value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} placeholder="e.g. Confined Space" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Short Code *</label>
+                    <input value={form.short_code} onChange={e => setForm({ ...form, short_code: e.target.value.toUpperCase().slice(0, 4) })} placeholder="e.g. CS" className={inputClass} />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelClass}>Qualification Type Key *</label>
+                  <input value={form.qualification_type} onChange={e => setForm({ ...form, qualification_type: e.target.value.toLowerCase().replace(/\s+/g, '_') })} placeholder="e.g. confined_space" className={inputClass} />
+                  <p className="text-[10px] text-slate-400 mt-1">Must match the key used in compliance items and courses.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClass}>Icon</label>
+                    <select value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })} className={inputClass}>
+                      <option value="Award">Award</option>
+                      <option value="IdCard">ID Card</option>
+                      <option value="Car">Car</option>
+                      <option value="ShieldCheck">Shield</option>
+                      <option value="CreditCard">Credit Card</option>
+                      <option value="FileText">File</option>
+                      <option value="GraduationCap">Graduation Cap</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Sort Order</label>
+                    <input type="number" value={form.sort_order} onChange={e => setForm({ ...form, sort_order: e.target.value })} className={inputClass} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
+                    <input type="checkbox" checked={form.is_card} onChange={e => setForm({ ...form, is_card: e.target.checked, requires_front_back: e.target.checked ? true : form.requires_front_back })} className="w-4 h-4 accent-[#2E5A1A]" />
+                    Card type (shows front/back)
+                  </label>
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
+                    <input type="checkbox" checked={form.requires_front_back} onChange={e => setForm({ ...form, requires_front_back: e.target.checked })} className="w-4 h-4 accent-[#2E5A1A]" />
+                    Requires front/back images
+                  </label>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button type="submit" disabled={saving} className="flex-1 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-xl text-sm font-semibold hover:bg-[#1c4a12] disabled:opacity-50 transition">
+                    {saving ? 'Saving…' : editingId ? 'Update Category' : 'Add Category'}
+                  </button>
+                  <button type="button" onClick={() => { setShowForm(false); setEditingId(null); }} className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-200 transition">Cancel</button>
+                </div>
+              </form>
             </div>
-            <div>
-              <label className={labelClass}>Qualification Type Key *</label>
-              <input value={form.qualification_type} onChange={e => setForm({ ...form, qualification_type: e.target.value.toLowerCase().replace(/\s+/g, '_') })} placeholder="e.g. confined_space" className={inputClass} />
-              <p className="text-[10px] text-slate-400 mt-1">Must match the key used in compliance items and courses.</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>Icon</label>
-                <select value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })} className={inputClass}>
-                  <option value="Award">Award</option>
-                  <option value="IdCard">ID Card</option>
-                  <option value="Car">Car</option>
-                  <option value="ShieldCheck">Shield</option>
-                  <option value="CreditCard">Credit Card</option>
-                  <option value="FileText">File</option>
-                  <option value="GraduationCap">Graduation Cap</option>
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Sort Order</label>
-                <input type="number" value={form.sort_order} onChange={e => setForm({ ...form, sort_order: e.target.value })} className={inputClass} />
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
-                <input type="checkbox" checked={form.is_card} onChange={e => setForm({ ...form, is_card: e.target.checked, requires_front_back: e.target.checked ? true : form.requires_front_back })} className="w-4 h-4 accent-[#2E5A1A]" />
-                Card type (shows front/back)
-              </label>
-              <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
-                <input type="checkbox" checked={form.requires_front_back} onChange={e => setForm({ ...form, requires_front_back: e.target.checked })} className="w-4 h-4 accent-[#2E5A1A]" />
-                Requires front/back images
-              </label>
-            </div>
-            <div className="flex gap-2 pt-1">
-              <button type="submit" disabled={saving} className="flex-1 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-xl text-sm font-semibold hover:bg-[#1c4a12] disabled:opacity-50 transition">
-                {saving ? 'Saving…' : editingId ? 'Update Category' : 'Add Category'}
-              </button>
-              <button type="button" onClick={() => { setShowForm(false); setEditingId(null); }} className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-200 transition">Cancel</button>
-            </div>
-          </form>
-        ) : (
-          <button onClick={() => { setEditingId(null); setForm({ label: '', short_code: '', qualification_type: '', requires_front_back: false, is_card: false, icon: 'Award', sort_order: requirements.length, is_active: true }); setShowForm(true); }}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-sm font-semibold text-slate-500 hover:border-[#2E5A1A] hover:text-[#2E5A1A] hover:bg-[#2E5A1A]/5 transition">
-            <Plus className="w-4 h-4" /> Add Training Category
-          </button>
+          </div>
         )}
       </div>
     </div>

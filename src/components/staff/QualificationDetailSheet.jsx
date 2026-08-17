@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/sheet';
 import {
   CheckCircle2, AlertTriangle, Clock, XCircle, Calendar, FileText,
-  Plus, Trash2, GraduationCap, Loader2, ExternalLink, ScanLine,
+  Plus, Trash2, GraduationCap, Loader2, ExternalLink, ScanLine, X,
 } from 'lucide-react';
 import { formatComplianceDate, complianceDaysUntil } from '@/utils/complianceDate';
 import SmartCertificateUpload from '@/components/staff/SmartCertificateUpload';
@@ -137,43 +137,59 @@ export default function QualificationDetailSheet({
             </button>
           </div>
 
-          {/* Smart scan upload */}
+          {/* Smart scan upload — popup modal */}
           {showScan && (
-            <SmartCertificateUpload
-              staffId={staff.id}
-              staffName={staff.name}
-              categories={allCategories && allCategories.length > 0 ? allCategories : (category ? [category] : [])}
-              preselectedCategory={category}
-              onSaved={() => { setShowScan(false); onOpenChange(false); }}
-            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4" onClick={() => setShowScan(false)}>
+              <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 max-h-[calc(100dvh-2rem)] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-slate-900 text-base">Scan Certificate</h3>
+                  <button onClick={() => setShowScan(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition"><X className="w-5 h-5" /></button>
+                </div>
+                <SmartCertificateUpload
+                  staffId={staff.id}
+                  staffName={staff.name}
+                  categories={allCategories && allCategories.length > 0 ? allCategories : (category ? [category] : [])}
+                  preselectedCategory={category}
+                  onSaved={() => { setShowScan(false); onOpenChange(false); }}
+                />
+              </div>
+            </div>
           )}
 
-          {/* Inline add form */}
+          {/* Add manually — popup modal */}
           {showAdd && (
-            <form onSubmit={handleAdd} className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Title</label>
-                  <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className={inputClass} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4" onClick={() => setShowAdd(false)}>
+              <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-5 max-h-[calc(100dvh-2rem)] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-slate-900 text-base">Add Compliance Item</h3>
+                  <button onClick={() => setShowAdd(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition"><X className="w-5 h-5" /></button>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Card / Ref</label>
-                  <input value={form.card_number} onChange={e => setForm({ ...form, card_number: e.target.value })} className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Issue (YYYY-MM)</label>
-                  <input type="month" value={form.issue_date} onChange={e => setForm({ ...form, issue_date: e.target.value })} className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Expiry (YYYY-MM)</label>
-                  <input type="month" value={form.expiry_date} onChange={e => setForm({ ...form, expiry_date: e.target.value })} className={inputClass} />
-                </div>
+                <form onSubmit={handleAdd} className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Title</label>
+                      <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Card / Ref</label>
+                      <input value={form.card_number} onChange={e => setForm({ ...form, card_number: e.target.value })} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Issue (YYYY-MM)</label>
+                      <input type="month" value={form.issue_date} onChange={e => setForm({ ...form, issue_date: e.target.value })} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Expiry (YYYY-MM)</label>
+                      <input type="month" value={form.expiry_date} onChange={e => setForm({ ...form, expiry_date: e.target.value })} className={inputClass} />
+                    </div>
+                  </div>
+                  <button type="submit" disabled={saving}
+                    className="w-full px-4 py-2 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] disabled:opacity-50 transition">
+                    {saving ? 'Saving…' : 'Save Item'}
+                  </button>
+                </form>
               </div>
-              <button type="submit" disabled={saving}
-                className="w-full px-4 py-2 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] disabled:opacity-50 transition">
-                {saving ? 'Saving…' : 'Save Item'}
-              </button>
-            </form>
+            </div>
           )}
 
           {/* Existing compliance items */}
