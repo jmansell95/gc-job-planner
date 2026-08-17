@@ -1,0 +1,119 @@
+{
+  "name": "DivisionAccessManifest",
+  "type": "object",
+  "properties": {
+    "division_id": {
+      "type": "string",
+      "description": "The division this manifest applies to. Combined with permission_group_id, this forms a unique pair \u2014 one manifest per group per division."
+    },
+    "permission_group_id": {
+      "type": "string",
+      "description": "The permission group this manifest overrides. When a staff member in this group works within this division, these overrides take precedence over the group's base permissions."
+    },
+    "feature_access": {
+      "type": "object",
+      "description": "Per-module access overrides for this division. Keys match PERMISSION_MODULES (overview, jobs, rota, billing, etc.). Values are 'none', 'read', or 'write'. Only include keys that differ from the group's base permissions \u2014 absent keys fall back to the group default.",
+      "additionalProperties": {
+        "type": "string",
+        "enum": [
+          "none",
+          "read",
+          "write"
+        ]
+      }
+    },
+    "hidden_elements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "UI element IDs (feature keys) to hide entirely from this group in this division. e.g. ['job_delete', 'billing_export', 'staff_invite']. Consumed by the LockdownWrapper HOC."
+    },
+    "disabled_elements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "UI element IDs to render but disable (greyed out, non-interactive). e.g. ['rate_card_edit']. Consumed by the LockdownWrapper HOC."
+    },
+    "data_masking": {
+      "type": "object",
+      "description": "Rules for masking sensitive data fields. Keys are field categories (financials, salaries, margins, costs), values are 'hidden', 'blurred', or 'visible'.",
+      "properties": {
+        "financials": {
+          "type": "string",
+          "enum": [
+            "visible",
+            "blurred",
+            "hidden"
+          ],
+          "default": "visible"
+        },
+        "salaries": {
+          "type": "string",
+          "enum": [
+            "visible",
+            "blurred",
+            "hidden"
+          ],
+          "default": "visible"
+        },
+        "margins": {
+          "type": "string",
+          "enum": [
+            "visible",
+            "blurred",
+            "hidden"
+          ],
+          "default": "visible"
+        },
+        "costs": {
+          "type": "string",
+          "enum": [
+            "visible",
+            "blurred",
+            "hidden"
+          ],
+          "default": "visible"
+        }
+      }
+    },
+    "notes": {
+      "type": "string",
+      "description": "Admin notes explaining why this override exists (e.g. 'Geotechnical division restricts billing to finance team only')."
+    },
+    "version": {
+      "type": "number",
+      "default": 1,
+      "description": "Manifest version \u2014 incremented on each save so the audit trail can reconstruct and roll back configuration changes."
+    }
+  },
+  "required": [
+    "division_id",
+    "permission_group_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

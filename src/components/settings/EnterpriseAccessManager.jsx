@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  KeyRound, Plus, Users, Building2, Crown, Globe, Search,
+  KeyRound, Plus, Users, Building2, Crown, Globe, Search, Lock, Layers,
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
@@ -11,15 +11,18 @@ import {
 } from '@/utils/permissions';
 import AccessGroupCard from './access/AccessGroupCard';
 import AccessGroupEditor from './access/AccessGroupEditor';
+import AccessMatrixEditor from './access/AccessMatrixEditor';
 
 export default function EnterpriseAccessManager({ profile }) {
+  const [view, setView] = useState('groups'); // 'groups' | 'lockdown'
+
   return (
     <div className="space-y-4">
       <div className="insight-card rounded-2xl p-4 flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center flex-shrink-0 shadow-md">
           <Crown className="w-5 h-5 text-white" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
             Enterprise-Wide Access Control <Globe className="w-3.5 h-3.5 text-emerald-600" />
           </p>
@@ -28,7 +31,27 @@ export default function EnterpriseAccessManager({ profile }) {
           </p>
         </div>
       </div>
-      <GroupsTab />
+
+      {/* View toggle */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setView('groups')}
+          className={'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 ' +
+            (view === 'groups' ? 'bg-[#2E5A1A] text-white shadow-md' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50')}
+        >
+          <KeyRound className="w-4 h-4" /> Permission Groups
+        </button>
+        <button
+          onClick={() => setView('lockdown')}
+          className={'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 ' +
+            (view === 'lockdown' ? 'bg-[#2E5A1A] text-white shadow-md' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50')}
+        >
+          <Layers className="w-4 h-4" /> Division Lockdown
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">NEW</span>
+        </button>
+      </div>
+
+      {view === 'groups' ? <GroupsTab /> : <AccessMatrixEditor />}
     </div>
   );
 }
