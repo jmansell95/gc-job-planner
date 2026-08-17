@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import SORRateCardManager from '@/components/SORRateCardManager';
 import ProjectRateCardManager from '@/components/ProjectRateCardManager';
+import SupplierRateCardUploader from '@/components/billing/SupplierRateCardUploader';
 
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -313,6 +314,7 @@ export default function RateCardManager() {
   const [cloning, setCloning] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingInternal, setUploadingInternal] = useState(false);
+  const [showSupplierUpload, setShowSupplierUpload] = useState(false);
   const masterFileInputRef = useRef(null);
   const internalFileInputRef = useRef(null);
 
@@ -681,6 +683,11 @@ export default function RateCardManager() {
             </button>
           </>
         )}
+        {/* Upload supplier rate card — available on any supplier tab and the main chargeable tab */}
+        <button onClick={() => setShowSupplierUpload(true)}
+          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition bg-white text-[#2E5A1A] border border-[#2E5A1A]/20 hover:bg-[#2E5A1A]/5 flex-shrink-0">
+          <Building2 className="w-4 h-4" /> Upload Supplier Rate Card
+        </button>
       </div>
 
       {/* Category tabs */}
@@ -777,6 +784,14 @@ export default function RateCardManager() {
         )}
       </div>
       </div>
+      <SupplierRateCardUploader
+        open={showSupplierUpload}
+        onClose={() => setShowSupplierUpload(false)}
+        onIngested={(supplierId) => {
+          setActiveRateCard(supplierId);
+          refresh();
+        }}
+      />
     </div>
   );
 }

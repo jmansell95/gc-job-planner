@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   GraduationCap, Users, AlertTriangle, CheckCircle2, Clock, Calendar,
   Search, ShieldCheck, BookOpen, Plus, Trash2, X, Settings, GripVertical,
-  IdCard, Car, Award, CreditCard, FileText, Loader2, UserPlus,
+  IdCard, Car, Award, CreditCard, FileText, Loader2, UserPlus, Edit2,
 } from 'lucide-react';
 import { format, isFuture } from 'date-fns';
 import { complianceDaysUntil } from '@/utils/complianceDate';
@@ -339,6 +339,7 @@ function MatrixView() {
           onOpenChange={(v) => { if (!v) setSelectedCell(null); }}
           staff={selectedCell.staff}
           category={selectedCell.category}
+          allCategories={categories}
           complianceItems={compliance}
           bookings={bookings}
           courses={courses}
@@ -365,6 +366,7 @@ function ManageCategoriesModal({ requirements, onClose }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     label: '', short_code: '', qualification_type: '', requires_front_back: false,
@@ -381,19 +383,41 @@ function ManageCategoriesModal({ requirements, onClose }) {
     }
     setSaving(true);
     try {
-      await base44.entities.TrainingRequirement.create({
+      const payload = {
         ...form,
         short_code: form.short_code.toUpperCase(),
         sort_order: parseInt(form.sort_order) || 0,
-      });
+      };
+      if (editingId) {
+        await base44.entities.TrainingRequirement.update(editingId, payload);
+        toast({ title: 'Training category updated' });
+      } else {
+        await base44.entities.TrainingRequirement.create(payload);
+        toast({ title: 'Training category added' });
+      }
       queryClient.invalidateQueries({ queryKey: ['training-requirements'] });
-      toast({ title: 'Training category added' });
       setForm({ label: '', short_code: '', qualification_type: '', requires_front_back: false, is_card: false, icon: 'Award', sort_order: requirements.length, is_active: true });
+      setEditingId(null);
       setShowForm(false);
     } catch (err) {
       toast({ title: 'Could not save', description: err.message, variant: 'destructive' });
     }
     setSaving(false);
+  };
+
+  const handleEdit = (req) => {
+    setForm({
+      label: req.label || '',
+      short_code: req.short_code || '',
+      qualification_type: req.qualification_type || '',
+      requires_front_back: !!req.requires_front_back,
+      is_card: !!req.is_card,
+      icon: req.icon || 'Award',
+      sort_order: req.sort_order ?? requirements.length,
+      is_active: req.is_active !== false,
+    });
+    setEditingId(req.id);
+    setShowForm(true);
   };
 
   const handleDelete = async (req) => {
@@ -448,6 +472,7 @@ function ManageCategoriesModal({ requirements, onClose }) {
                   <p className="text-sm font-semibold text-slate-900 truncate">{req.label}</p>
                   <p className="text-[10px] text-slate-400">{req.short_code} · {req.qualification_type}{req.is_card ? ' · Card type' : ''}</p>
                 </div>
+                <button onClick={() => handleEdit(req)} className="p-1.5 text-slate-400 hover:text-[#2E5A1A] hover:bg-[#2E5A1A]/5 rounded-lg transition" title="Edit category"><Edit2 className="w-4 h-4" /></button>
                 <button onClick={() => handleToggle(req)} className={'text-[10px] font-bold px-2 py-1 rounded-lg ' + (req.is_active === false ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-700')}>
                   {req.is_active === false ? 'Hidden' : 'Active'}
                 </button>
@@ -466,8 +491,8 @@ function ManageCategoriesModal({ requirements, onClose }) {
         {showForm ? (
           <form onSubmit={handleSave} className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-bold text-slate-900">New Training Category</p>
-              <button type="button" onClick={() => setShowForm(false)} className="p-1 text-slate-400 hover:bg-slate-200 rounded-lg"><X className="w-4 h-4" /></button>
+              <p className="text-sm font-bold text-slate-900">{editingId ? 'Edit Training Category' : 'New Training Category'}</p>
+              <button type="button" onClick={() => { setShowForm(false); setEditingId(null); }} className="p-1 text-slate-400 hover:bg-slate-200 rounded-lg"><X className="w-4 h-4" /></button>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -514,13 +539,13 @@ function ManageCategoriesModal({ requirements, onClose }) {
             </div>
             <div className="flex gap-2 pt-1">
               <button type="submit" disabled={saving} className="flex-1 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-xl text-sm font-semibold hover:bg-[#1c4a12] disabled:opacity-50 transition">
-                {saving ? 'Saving…' : 'Add Category'}
+                {saving ? 'Saving…' : editingId ? 'Update Category' : 'Add Category'}
               </button>
-              <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-200 transition">Cancel</button>
+              <button type="button" onClick={() => { setShowForm(false); setEditingId(null); }} className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-200 transition">Cancel</button>
             </div>
           </form>
         ) : (
-          <button onClick={() => setShowForm(true)}
+          <button onClick={() => { setEditingId(null); setForm({ label: '', short_code: '', qualification_type: '', requires_front_back: false, is_card: false, icon: 'Award', sort_order: requirements.length, is_active: true }); setShowForm(true); }}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-sm font-semibold text-slate-500 hover:border-[#2E5A1A] hover:text-[#2E5A1A] hover:bg-[#2E5A1A]/5 transition">
             <Plus className="w-4 h-4" /> Add Training Category
           </button>

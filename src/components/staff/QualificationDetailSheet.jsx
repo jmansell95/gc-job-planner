@@ -7,9 +7,10 @@ import {
 } from '@/components/ui/sheet';
 import {
   CheckCircle2, AlertTriangle, Clock, XCircle, Calendar, FileText,
-  Plus, Trash2, GraduationCap, Loader2, ExternalLink,
+  Plus, Trash2, GraduationCap, Loader2, ExternalLink, ScanLine,
 } from 'lucide-react';
 import { formatComplianceDate, complianceDaysUntil } from '@/utils/complianceDate';
+import SmartCertificateUpload from '@/components/staff/SmartCertificateUpload';
 
 function statusInfo(item) {
   if (item.status_override === 'missing') return { label: 'Missing', Icon: XCircle, cls: 'text-red-600 bg-red-50' };
@@ -24,11 +25,12 @@ function statusInfo(item) {
 const inputClass = 'w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10';
 
 export default function QualificationDetailSheet({
-  open, onOpenChange, staff, category, complianceItems, bookings, courses, onBookTraining,
+  open, onOpenChange, staff, category, allCategories = [], complianceItems, bookings, courses, onBookTraining,
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showAdd, setShowAdd] = useState(false);
+  const [showScan, setShowScan] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ title: category?.label || '', card_number: '', issue_date: '', expiry_date: '' });
 
@@ -117,9 +119,13 @@ export default function QualificationDetailSheet({
         <div className="space-y-4 mt-4">
           {/* Quick actions */}
           <div className="flex gap-2 flex-wrap">
-            <button onClick={() => setShowAdd(s => !s)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] transition">
-              <Plus className="w-3.5 h-3.5" /> Add Item
+            <button onClick={() => { setShowScan(s => !s); setShowAdd(false); }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white rounded-lg text-xs font-semibold hover:brightness-110 transition shadow-sm">
+              <ScanLine className="w-3.5 h-3.5" /> Scan & Auto-Fill
+            </button>
+            <button onClick={() => { setShowAdd(s => !s); setShowScan(false); }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white text-[#2E5A1A] border border-[#2E5A1A]/20 rounded-lg text-xs font-semibold hover:bg-[#2E5A1A]/5 transition">
+              <Plus className="w-3.5 h-3.5" /> Add Manually
             </button>
             <button onClick={handleMarkMissing} disabled={saving}
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100 transition border border-red-200">
@@ -130,6 +136,17 @@ export default function QualificationDetailSheet({
               <Calendar className="w-3.5 h-3.5" /> Book Training
             </button>
           </div>
+
+          {/* Smart scan upload */}
+          {showScan && (
+            <SmartCertificateUpload
+              staffId={staff.id}
+              staffName={staff.name}
+              categories={allCategories && allCategories.length > 0 ? allCategories : (category ? [category] : [])}
+              preselectedCategory={category}
+              onSaved={() => { setShowScan(false); onOpenChange(false); }}
+            />
+          )}
 
           {/* Inline add form */}
           {showAdd && (
