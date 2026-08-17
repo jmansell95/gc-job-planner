@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pencil, Trash2, Lock, Users, Building2, ShieldCheck, Eye, Crown } from 'lucide-react';
+import { Pencil, Trash2, Lock, Users, Building2, ShieldCheck, Eye, Crown, Layers } from 'lucide-react';
 import { normalizePermissions } from '@/utils/permissions';
 
 const TIER_BADGES = {
@@ -17,7 +17,7 @@ function getTier(group, p) {
   return 'field';
 }
 
-export default function AccessGroupCard({ group, staffCount, teamCount, divisions, onEdit, onDelete }) {
+export default function AccessGroupCard({ group, staffCount, teamCount, divisions, overrideCount = 0, onEdit, onDelete, onLockdown }) {
   const p = normalizePermissions(group.permissions);
   const tier = getTier(group, p);
   const badge = TIER_BADGES[tier];
@@ -94,6 +94,12 @@ export default function AccessGroupCard({ group, staffCount, teamCount, division
       <div className="flex items-center gap-2 mt-auto pt-2 border-t border-slate-100">
         <button onClick={onEdit} className="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition">
           <Pencil className="w-3 h-3" /> Edit
+        </button>
+        <button onClick={onLockdown} className="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 rounded-lg hover:bg-amber-100 transition relative">
+          <Layers className="w-3 h-3" /> Lockdown
+          {overrideCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500 text-white shadow-sm">{overrideCount}</span>
+          )}
         </button>
         {!group.is_system && (
           <button onClick={onDelete} className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 rounded-lg hover:bg-rose-100 transition">

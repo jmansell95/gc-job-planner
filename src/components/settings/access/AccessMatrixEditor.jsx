@@ -39,12 +39,12 @@ const PREVIEW_NAV_ITEMS = [
   { id: 'settings', label: 'Settings', icon: '⚙️' },
 ];
 
-export default function AccessMatrixEditor() {
+export default function AccessMatrixEditor({ fixedGroup }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { divisions, permittedDivisions } = useDivision();
   const [selectedDivisionId, setSelectedDivisionId] = useState(null);
-  const [selectedGroupId, setSelectedGroupId] = useState(null);
+  const [selectedGroupId, setSelectedGroupId] = useState(fixedGroup?.id || null);
   const [search, setSearch] = useState('');
   const [dirty, setDirty] = useState(false);
 
@@ -74,6 +74,16 @@ export default function AccessMatrixEditor() {
     enabled: !!selectedDivisionId,
   });
 
+  // Fetch ALL staff for this group across ALL divisions (for the total count)
+  const { data: allGroupStaff = [] } = useQuery({
+    queryKey: ['group-staff-all-divisions', selectedGroupId],
+    queryFn: async () => {
+      if (!selectedGroupId) return [];
+      return await base44.entities.Staff.filter({ permission_group_id: selectedGroupId });
+    },
+    enabled: !!selectedGroupId,
+  });
+
   // Auto-select first division + first group
   useEffect(() => {
     if (!selectedDivisionId && permittedDivisions.length > 0) {
@@ -82,13 +92,13 @@ export default function AccessMatrixEditor() {
   }, [permittedDivisions]);
 
   useEffect(() => {
-    if (!selectedGroupId && groups.length > 0) {
+    if (!fixedGroup && !selectedGroupId && groups.length > 0) {
       setSelectedGroupId(groups[0].id);
     }
-  }, [groups]);
+  }, [groups, fixedGroup]);
 
   // Build the working state: merge base group permissions with manifest overrides
-  const selectedGroup = groups.find(g => g.id === selectedGroupId);
+  const selectedGroup = groups.find(g => g.id === selectedGroupId) || (fixedGroup?.id === selectedGroupId ? fixedGroup : null);
   const selectedDivision = divisions.find(d => d.id === selectedDivisionId);
   const existingManifest = manifests.find(m => m.permission_group_id === selectedGroupId);
 
@@ -193,14 +203,19 @@ export default function AccessMatrixEditor() {
 
   return (
     <div className="space-y-4">
-      {/* ─── 3-Pane Layout ─── */}
+      {/* ─── 3-Pane Layout (or 2-pane when fixedGroup is set) ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-        {/* PANE 1: Hierarchy Selector */}
-        <div className="lg:col-span-3 insight-card rounded-2xl p-4 lg:max-h-[calc(100dvh-12rem)] lg:overflow-y-auto">
+        {/* PANE 1: Hierarchy Selector (division list always; group list only when no fixedGroup) */}
+        <div className={'insight-card rounded-2xl p-4 lg:max-h-[calc(100dvh-12rem)] lg:overflow-y-auto ' + (fixedGroup ? 'lg:col-span-4' : 'lg:col-span-3')}>
           <div className="flex items-center gap-2 mb-3">
             <Layers className="w-4 h-4 text-[#2E5A1A]" />
-            <h3 className="text-sm font-bold text-slate-900">Hierarchy</h3>
+            <h3 className="text-sm font-bold text-slate-900">{fixedGroup ? 'Divisions' : 'Hierarchy'}</h3>
+            {fixedGroup && (
+              <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 flex items-center gap-1">
+                <Crown className="w-3 h-3" /> {fixedGroup.name}
+              </span>
+            )}
           </div>
 
           {/* Division list */}
@@ -208,7 +223,8 @@ export default function AccessMatrixEditor() {
             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1.5">Divisions</p>
             {permittedDivisions.map(d => {
               const active = selectedDivisionId === d.id;
-              const manifestCount = manifests.filter(m => m.division_id === d.id).length;
+              const manifestCount = manifests.filter(m => m.division_id === d.id && m.permission_group_id === selectedGroupId).length;
+              const staffCount = divisionStaff.filter(s => s.permission_group_id === selectedGroupId && s.division_id === d.id).length;
               return (
                 <button
                   key={d.id}
@@ -219,57 +235,59 @@ export default function AccessMatrixEditor() {
                   <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: d.color || '#2E5A1A' }} />
                   <div className="min-w-0 flex-1">
                     <p className={'text-xs font-semibold truncate ' + (active ? 'text-[#2E5A1A]' : 'text-slate-700')}>{d.name}</p>
-                    <p className="text-[10px] text-slate-400">{d.code || d.division_type}</p>
+                    <p className="text-[10px] text-slate-400">{d.code || d.division_type}{staffCount > 0 ? ` · ${staffCount} staff` : ''}</p>
                   </div>
                   {manifestCount > 0 && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">{manifestCount}</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700" title="Has lockdown overrides">🔒</span>
                   )}
                 </button>
               );
             })}
           </div>
 
-          {/* Group list */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 mb-1.5">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Permission Groups</p>
+          {/* Group list — only when no fixedGroup */}
+          {!fixedGroup && (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 mb-1.5">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Permission Groups</p>
+              </div>
+              <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search..."
+                  className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+                />
+              </div>
+              {filteredGroups.map(g => {
+                const active = selectedGroupId === g.id;
+                const hasManifest = manifests.some(m => m.permission_group_id === g.id);
+                const staffCount = divisionStaff.filter(s => s.permission_group_id === g.id).length;
+                return (
+                  <button
+                    key={g.id}
+                    onClick={() => setSelectedGroupId(g.id)}
+                    className={'w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition ' +
+                      (active ? 'bg-amber-50 ring-1 ring-amber-300' : 'hover:bg-slate-50')}
+                  >
+                    {g.is_system ? <Crown className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" /> : <Users className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
+                    <div className="min-w-0 flex-1">
+                      <p className={'text-xs font-semibold truncate ' + (active ? 'text-amber-700' : 'text-slate-700')}>{g.name}</p>
+                      {staffCount > 0 && <p className="text-[10px] text-slate-400">{staffCount} staff here</p>}
+                    </div>
+                    {hasManifest && <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" title="Has overrides" />}
+                    <ChevronRight className="w-3 h-3 text-slate-300 flex-shrink-0" />
+                  </button>
+                );
+              })}
             </div>
-            <div className="relative mb-2">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search..."
-                className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
-              />
-            </div>
-            {filteredGroups.map(g => {
-              const active = selectedGroupId === g.id;
-              const hasManifest = manifests.some(m => m.permission_group_id === g.id);
-              const staffCount = divisionStaff.filter(s => s.permission_group_id === g.id).length;
-              return (
-                <button
-                  key={g.id}
-                  onClick={() => setSelectedGroupId(g.id)}
-                  className={'w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition ' +
-                    (active ? 'bg-amber-50 ring-1 ring-amber-300' : 'hover:bg-slate-50')}
-                >
-                  {g.is_system ? <Crown className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" /> : <Users className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
-                  <div className="min-w-0 flex-1">
-                    <p className={'text-xs font-semibold truncate ' + (active ? 'text-amber-700' : 'text-slate-700')}>{g.name}</p>
-                    {staffCount > 0 && <p className="text-[10px] text-slate-400">{staffCount} staff here</p>}
-                  </div>
-                  {hasManifest && <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" title="Has overrides" />}
-                  <ChevronRight className="w-3 h-3 text-slate-300 flex-shrink-0" />
-                </button>
-              );
-            })}
-          </div>
+          )}
         </div>
 
         {/* PANE 2: Matrix Editor */}
-        <div className="lg:col-span-6 insight-card rounded-2xl p-4 lg:max-h-[calc(100dvh-12rem)] lg:overflow-y-auto">
+        <div className={'insight-card rounded-2xl p-4 lg:max-h-[calc(100dvh-12rem)] lg:overflow-y-auto ' + (fixedGroup ? 'lg:col-span-5' : 'lg:col-span-6')}>
           {selectedGroup && selectedDivision ? (
             <>
               {/* Header */}
@@ -443,9 +461,14 @@ export default function AccessMatrixEditor() {
 
           {/* Affected staff */}
           <div className="mt-4">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-2">Affected Staff ({staffInGroup.length})</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Affected Staff</p>
+              <span className="text-[10px] font-bold text-slate-500">
+                {staffInGroup.length} here · {allGroupStaff.length} total
+              </span>
+            </div>
             {staffInGroup.length === 0 ? (
-              <p className="text-xs text-slate-400 italic">No staff in this group within {selectedDivision?.name}.</p>
+              <p className="text-xs text-slate-400 italic">No staff in this group within {selectedDivision?.name}.{allGroupStaff.length > 0 && ` (${allGroupStaff.length} in other divisions)`}</p>
             ) : (
               <div className="space-y-1 max-h-32 overflow-y-auto">
                 {staffInGroup.slice(0, 8).map(s => (

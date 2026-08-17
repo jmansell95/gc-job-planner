@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  KeyRound, Plus, Users, Building2, Crown, Globe, Search, Lock, Layers,
+  KeyRound, Plus, Users, Building2, Crown, Globe, Search, Lock, Layers, X,
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
@@ -14,7 +14,7 @@ import AccessGroupEditor from './access/AccessGroupEditor';
 import AccessMatrixEditor from './access/AccessMatrixEditor';
 
 export default function EnterpriseAccessManager({ profile }) {
-  const [view, setView] = useState('groups'); // 'groups' | 'lockdown'
+  const [lockdownGroup, setLockdownGroup] = useState(null); // group object → opens drawer
 
   return (
     <div className="space-y-4">
@@ -27,64 +27,58 @@ export default function EnterpriseAccessManager({ profile }) {
             Enterprise-Wide Access Control <Globe className="w-3.5 h-3.5 text-emerald-600" />
           </p>
           <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-            One central place to manage access across <strong>all divisions</strong>. Each group controls what its members can see and do — assign groups from Staff Command or Team settings.
+            One central place to manage access across <strong>all divisions</strong>. Edit a group's base permissions, then use <strong>Division Lockdown</strong> on any group to override what it can do inside a specific division.
           </p>
         </div>
       </div>
 
-      {/* View toggle */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setView('groups')}
-          className={'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 ' +
-            (view === 'groups' ? 'bg-[#2E5A1A] text-white shadow-md' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50')}
-        >
-          <KeyRound className="w-4 h-4" /> Permission Groups
-        </button>
-        <button
-          onClick={() => setView('lockdown')}
-          className={'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 ' +
-            (view === 'lockdown' ? 'bg-[#2E5A1A] text-white shadow-md' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50')}
-        >
-          <Layers className="w-4 h-4" /> Division Lockdown
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">NEW</span>
-        </button>
-      </div>
+      <GroupsTab onLockdown={setLockdownGroup} />
 
-      {view === 'groups' ? <GroupsTab /> : <AccessMatrixEditor />}
+      {lockdownGroup && (
+        <AccessLockdownDrawer group={lockdownGroup} onClose={() => setLockdownGroup(null)} />
+      )}
     </div>
   );
 }
 
-function GroupsTab() {
+function GroupsTab({ onLockdown }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { divisions = [] } = useDivision();
-  const [editing, setEditing] = useState(null);
   const [search, setSearch] = useState('');
+  const [editing, setEditing] = useState(null);
 
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ['permission-groups'],
     queryFn: async () => (await base44.entities.PermissionGroup.list('-created_date', 100)),
   });
+  // Fetch ALL staff across ALL divisions — no division filter, high limit
   const { data: staff = [] } = useQuery({
-    queryKey: ['staff-all'],
-    queryFn: async () => (await base44.entities.Staff.list()),
+    queryKey: ['staff-all-access'],
+    queryFn: async () => (await base44.entities.Staff.list('-created_date', 5000)),
   });
   const { data: teams = [] } = useQuery({
     queryKey: ['teams-all'],
     queryFn: async () => (await base44.entities.Team.list()),
   });
+  // Fetch all manifests so we can show override counts per group
+  const { data: manifests = [] } = useQuery({
+    queryKey: ['all-access-manifests'],
+    queryFn: async () => (await base44.entities.DivisionAccessManifest.list('-created_date', 5000)),
+  });
 
-  // Build assignment + division coverage maps
+  // Build assignment + division coverage maps — counts across ALL divisions
   const staffByGroup = {};
   const divisionsByGroup = {};
+  const staffByGroupDivision = {}; // { groupId: { divisionId: count } }
   staff.forEach(s => {
     if (s.permission_group_id) {
       staffByGroup[s.permission_group_id] = (staffByGroup[s.permission_group_id] || 0) + 1;
       if (s.division_id) {
         if (!divisionsByGroup[s.permission_group_id]) divisionsByGroup[s.permission_group_id] = new Set();
         divisionsByGroup[s.permission_group_id].add(s.division_id);
+        if (!staffByGroupDivision[s.permission_group_id]) staffByGroupDivision[s.permission_group_id] = {};
+        staffByGroupDivision[s.permission_group_id][s.division_id] = (staffByGroupDivision[s.permission_group_id][s.division_id] || 0) + 1;
       }
     }
   });
@@ -92,6 +86,13 @@ function GroupsTab() {
   teams.forEach(t => {
     if (t.permission_group_id) {
       teamCountByGroup[t.permission_group_id] = (teamCountByGroup[t.permission_group_id] || 0) + 1;
+    }
+  });
+  // Manifest (override) counts per group
+  const manifestCountByGroup = {};
+  manifests.forEach(m => {
+    if (m.permission_group_id) {
+      manifestCountByGroup[m.permission_group_id] = (manifestCountByGroup[m.permission_group_id] || 0) + 1;
     }
   });
 
@@ -141,7 +142,7 @@ function GroupsTab() {
     mutationFn: async (id) => { await base44.entities.PermissionGroup.delete(id); },
     onSuccess: () => {
       qc.invalidateQueries(['permission-groups']);
-      qc.invalidateQueries(['staff-all']);
+      qc.invalidateQueries(['staff-all-access']);
       qc.invalidateQueries(['teams-all']);
       toast({ title: 'Group deleted' });
     },
@@ -163,14 +164,11 @@ function GroupsTab() {
     return divisions.filter(d => divIds.has(d.id));
   };
 
-  if (editing) {
-    return <AccessGroupEditor group={editing} onCancel={() => setEditing(null)} onSave={(g) => saveMutation.mutate(g)} saving={saveMutation.isPending} />;
-  }
-
   const systemGroups = groups.filter(g => g.is_system);
   const customGroups = groups.filter(g => !g.is_system);
   const totalAssigned = Object.values(staffByGroup).reduce((a, b) => a + b, 0);
   const totalDivisionsCovered = new Set(Object.values(divisionsByGroup).flatMap(s => [...s])).size;
+  const totalManifests = manifests.length;
 
   const filteredSystem = systemGroups.filter(g => g.name?.toLowerCase().includes(search.toLowerCase()));
   const filteredCustom = customGroups.filter(g => g.name?.toLowerCase().includes(search.toLowerCase()));
@@ -182,7 +180,7 @@ function GroupsTab() {
         <StatTile icon={KeyRound} label="Total Groups" value={groups.length} tone="emerald" />
         <StatTile icon={Users} label="Staff Assigned" value={totalAssigned} tone="blue" />
         <StatTile icon={Building2} label="Divisions Covered" value={totalDivisionsCovered} tone="amber" />
-        <StatTile icon={Crown} label="Custom Groups" value={customGroups.length} tone="violet" />
+        <StatTile icon={Layers} label="Division Overrides" value={totalManifests} tone="violet" />
       </div>
 
       {/* Search + New */}
@@ -214,7 +212,17 @@ function GroupsTab() {
           <SectionHeader icon={Crown} title="System Groups" subtitle="Built-in access levels — can edit but not delete" />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filteredSystem.map(g => (
-              <AccessGroupCard key={g.id} group={g} staffCount={staffByGroup[g.id] || 0} teamCount={teamCountByGroup[g.id] || 0} divisions={getDivisionsForGroup(g.id)} onEdit={() => setEditing(g)} onDelete={() => handleDelete(g)} />
+              <AccessGroupCard
+                key={g.id}
+                group={g}
+                staffCount={staffByGroup[g.id] || 0}
+                teamCount={teamCountByGroup[g.id] || 0}
+                divisions={getDivisionsForGroup(g.id)}
+                overrideCount={manifestCountByGroup[g.id] || 0}
+                onEdit={() => setEditing(g)}
+                onDelete={() => handleDelete(g)}
+                onLockdown={() => onLockdown(g)}
+              />
             ))}
           </div>
         </div>
@@ -226,7 +234,17 @@ function GroupsTab() {
           <SectionHeader icon={Building2} title="Custom Groups" subtitle="Your own access levels — edit or delete anytime" />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filteredCustom.map(g => (
-              <AccessGroupCard key={g.id} group={g} staffCount={staffByGroup[g.id] || 0} teamCount={teamCountByGroup[g.id] || 0} divisions={getDivisionsForGroup(g.id)} onEdit={() => setEditing(g)} onDelete={() => handleDelete(g)} />
+              <AccessGroupCard
+                key={g.id}
+                group={g}
+                staffCount={staffByGroup[g.id] || 0}
+                teamCount={teamCountByGroup[g.id] || 0}
+                divisions={getDivisionsForGroup(g.id)}
+                overrideCount={manifestCountByGroup[g.id] || 0}
+                onEdit={() => setEditing(g)}
+                onDelete={() => handleDelete(g)}
+                onLockdown={() => onLockdown(g)}
+              />
             ))}
           </div>
         </div>
@@ -239,6 +257,41 @@ function GroupsTab() {
           <p className="text-xs text-slate-400 mt-1">Click "New Group" to create your own access level — e.g. "Office Staff", "Junior Manager", "Read-Only Accounts".</p>
         </div>
       )}
+
+      {/* Inline editor */}
+      {editing && (
+        <AccessGroupEditor group={editing} onCancel={() => setEditing(null)} onSave={(g) => saveMutation.mutate(g)} saving={saveMutation.isPending} />
+      )}
+    </div>
+  );
+}
+
+// The drawer that hosts the AccessMatrixEditor for a specific group
+function AccessLockdownDrawer({ group, onClose }) {
+  return (
+    <div className="fixed inset-0 z-[60] bg-blue-950/60 backdrop-blur-md flex items-stretch sm:items-center justify-center sm:p-4" onClick={onClose}>
+      <div className="bg-white sm:rounded-3xl shadow-2xl w-full max-w-7xl h-full sm:h-auto sm:max-h-[calc(100dvh-2rem)] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        {/* Drawer header */}
+        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-md">
+              <Layers className="w-4.5 h-4.5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-extrabold text-slate-900">Division Lockdown</h2>
+              <p className="text-[11px] text-slate-500">Override <strong>{group.name}</strong> permissions per division</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Matrix editor with the group pre-selected */}
+        <div className="p-4 sm:p-5">
+          <AccessMatrixEditor fixedGroup={group} />
+        </div>
+      </div>
     </div>
   );
 }
