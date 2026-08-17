@@ -9,50 +9,21 @@ import { useDivision } from '@/contexts/DivisionContext';
 import {
   PERMISSION_MODULES, SYSTEM_GROUPS, defaultPermissions, normalizePermissions,
 } from '@/utils/permissions';
-import AccessGroupCard from './access/AccessGroupCard';
 import AccessGroupEditor from './access/AccessGroupEditor';
-import AccessMatrixEditor from './access/AccessMatrixEditor';
+import AccessGroupDetail from './access/AccessGroupDetail';
 
 export default function EnterpriseAccessManager({ profile }) {
-  const [lockdownGroup, setLockdownGroup] = useState(null); // group object → opens drawer
-
-  return (
-    <div className="space-y-4">
-      <div className="insight-card rounded-2xl p-4 flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center flex-shrink-0 shadow-md">
-          <Crown className="w-5 h-5 text-white" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-            Enterprise-Wide Access Control <Globe className="w-3.5 h-3.5 text-emerald-600" />
-          </p>
-          <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-            One central place to manage access across <strong>all divisions</strong>. Edit a group's base permissions, then use <strong>Division Lockdown</strong> on any group to override what it can do inside a specific division.
-          </p>
-        </div>
-      </div>
-
-      <GroupsTab onLockdown={setLockdownGroup} />
-
-      {lockdownGroup && (
-        <AccessLockdownDrawer group={lockdownGroup} onClose={() => setLockdownGroup(null)} />
-      )}
-    </div>
-  );
-}
-
-function GroupsTab({ onLockdown }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { divisions = [] } = useDivision();
   const [search, setSearch] = useState('');
+  const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [editing, setEditing] = useState(null);
 
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ['permission-groups'],
     queryFn: async () => (await base44.entities.PermissionGroup.list('-created_date', 100)),
   });
-  // Fetch ALL staff across ALL divisions — no division filter, high limit
   const { data: staff = [] } = useQuery({
     queryKey: ['staff-all-access'],
     queryFn: async () => (await base44.entities.Staff.list('-created_date', 5000)),
@@ -61,24 +32,20 @@ function GroupsTab({ onLockdown }) {
     queryKey: ['teams-all'],
     queryFn: async () => (await base44.entities.Team.list()),
   });
-  // Fetch all manifests so we can show override counts per group
   const { data: manifests = [] } = useQuery({
     queryKey: ['all-access-manifests'],
     queryFn: async () => (await base44.entities.DivisionAccessManifest.list('-created_date', 5000)),
   });
 
-  // Build assignment + division coverage maps — counts across ALL divisions
+  // Build assignment + division coverage maps
   const staffByGroup = {};
   const divisionsByGroup = {};
-  const staffByGroupDivision = {}; // { groupId: { divisionId: count } }
   staff.forEach(s => {
     if (s.permission_group_id) {
       staffByGroup[s.permission_group_id] = (staffByGroup[s.permission_group_id] || 0) + 1;
       if (s.division_id) {
         if (!divisionsByGroup[s.permission_group_id]) divisionsByGroup[s.permission_group_id] = new Set();
         divisionsByGroup[s.permission_group_id].add(s.division_id);
-        if (!staffByGroupDivision[s.permission_group_id]) staffByGroupDivision[s.permission_group_id] = {};
-        staffByGroupDivision[s.permission_group_id][s.division_id] = (staffByGroupDivision[s.permission_group_id][s.division_id] || 0) + 1;
       }
     }
   });
@@ -88,7 +55,6 @@ function GroupsTab({ onLockdown }) {
       teamCountByGroup[t.permission_group_id] = (teamCountByGroup[t.permission_group_id] || 0) + 1;
     }
   });
-  // Manifest (override) counts per group
   const manifestCountByGroup = {};
   manifests.forEach(m => {
     if (m.permission_group_id) {
@@ -124,6 +90,11 @@ function GroupsTab({ onLockdown }) {
     if (groups.length === 0 && !isLoading) ensureSystemGroups.mutate();
   }, [groups.length, isLoading]);
 
+  // Auto-select first group
+  useEffect(() => {
+    if (!selectedGroupId && groups.length > 0) setSelectedGroupId(groups[0].id);
+  }, [groups]);
+
   const saveMutation = useMutation({
     mutationFn: async (group) => {
       const payload = { ...group, permissions: normalizePermissions(group.permissions) };
@@ -145,6 +116,7 @@ function GroupsTab({ onLockdown }) {
       qc.invalidateQueries(['staff-all-access']);
       qc.invalidateQueries(['teams-all']);
       toast({ title: 'Group deleted' });
+      setSelectedGroupId(null);
     },
     onError: (e) => toast({ title: 'Could not delete', description: e.message, variant: 'destructive' }),
   });
@@ -173,8 +145,25 @@ function GroupsTab({ onLockdown }) {
   const filteredSystem = systemGroups.filter(g => g.name?.toLowerCase().includes(search.toLowerCase()));
   const filteredCustom = customGroups.filter(g => g.name?.toLowerCase().includes(search.toLowerCase()));
 
+  const selectedGroup = groups.find(g => g.id === selectedGroupId);
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      {/* Intro */}
+      <div className="insight-card rounded-2xl p-4 flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center flex-shrink-0 shadow-md">
+          <Crown className="w-5 h-5 text-white" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+            Enterprise-Wide Access Control <Globe className="w-3.5 h-3.5 text-emerald-600" />
+          </p>
+          <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+            Select a group on the left to edit its base permissions and division-specific lockdowns. Staff are assigned to groups via the <strong>Staff Hub</strong>.
+          </p>
+        </div>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <StatTile icon={KeyRound} label="Total Groups" value={groups.length} tone="emerald" />
@@ -183,80 +172,103 @@ function GroupsTab({ onLockdown }) {
         <StatTile icon={Layers} label="Division Overrides" value={totalManifests} tone="violet" />
       </div>
 
-      {/* Search + New */}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search groups..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
-          />
+      {/* Two-pane layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* ─── LEFT: Group Explorer ─── */}
+        <div className="lg:col-span-4 insight-card rounded-2xl p-4 lg:max-h-[calc(100dvh-14rem)] lg:overflow-y-auto">
+          {/* Search + New */}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search groups..."
+                className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+              />
+            </div>
+            <button onClick={() => setEditing({ name: '', description: '', is_read_only: false, permissions: defaultPermissions() })} className="inline-flex items-center gap-1 px-2.5 py-2 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] transition shadow-sm flex-shrink-0">
+              <Plus className="w-3.5 h-3.5" /> New
+            </button>
+          </div>
+
+          {isLoading && (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-5 h-5 border-2 border-slate-200 border-t-[#2E5A1A] rounded-full animate-spin" />
+            </div>
+          )}
+
+          {/* System Groups */}
+          {filteredSystem.length > 0 && (
+            <div className="mb-3">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1.5 flex items-center gap-1">
+                <Crown className="w-3 h-3 text-amber-500" /> System Groups
+              </p>
+              <div className="space-y-1">
+                {filteredSystem.map(g => (
+                  <GroupListItem
+                    key={g.id}
+                    group={g}
+                    active={selectedGroupId === g.id}
+                    staffCount={staffByGroup[g.id] || 0}
+                    overrideCount={manifestCountByGroup[g.id] || 0}
+                    onClick={() => setSelectedGroupId(g.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Custom Groups */}
+          {filteredCustom.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1.5 flex items-center gap-1">
+                <Building2 className="w-3 h-3 text-slate-400" /> Custom Groups
+              </p>
+              <div className="space-y-1">
+                {filteredCustom.map(g => (
+                  <GroupListItem
+                    key={g.id}
+                    group={g}
+                    active={selectedGroupId === g.id}
+                    staffCount={staffByGroup[g.id] || 0}
+                    overrideCount={manifestCountByGroup[g.id] || 0}
+                    onClick={() => setSelectedGroupId(g.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!isLoading && customGroups.length === 0 && systemGroups.length > 0 && !search && (
+            <div className="mt-3 p-3 rounded-xl bg-slate-50 text-center">
+              <p className="text-xs font-semibold text-slate-500">No custom groups yet</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Click "New" to create one</p>
+            </div>
+          )}
         </div>
-        <button onClick={() => setEditing({ name: '', description: '', is_read_only: false, permissions: defaultPermissions() })} className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-[#2E5A1A] text-white rounded-xl text-sm font-semibold hover:bg-[#1c4a12] transition shadow-sm flex-shrink-0">
-          <Plus className="w-4 h-4" /> New Group
-        </button>
+
+        {/* ─── RIGHT: Group Detail ─── */}
+        <div className="lg:col-span-8">
+          {selectedGroup ? (
+            <AccessGroupDetail
+              group={selectedGroup}
+              staffCount={staffByGroup[selectedGroup.id] || 0}
+              divisions={getDivisionsForGroup(selectedGroup.id)}
+              overrideCount={manifestCountByGroup[selectedGroup.id] || 0}
+              onEdit={() => setEditing(selectedGroup)}
+              onDelete={() => handleDelete(selectedGroup)}
+            />
+          ) : (
+            <div className="insight-card rounded-2xl p-12 text-center">
+              <KeyRound className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+              <p className="text-sm font-semibold text-slate-600">Select a group to manage its access</p>
+              <p className="text-xs text-slate-400 mt-1">Choose a permission group from the list on the left</p>
+            </div>
+          )}
+        </div>
       </div>
-
-      {isLoading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="w-6 h-6 border-3 border-slate-200 border-t-[#2E5A1A] rounded-full animate-spin" />
-        </div>
-      )}
-
-      {/* System Groups */}
-      {filteredSystem.length > 0 && (
-        <div>
-          <SectionHeader icon={Crown} title="System Groups" subtitle="Built-in access levels — can edit but not delete" />
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredSystem.map(g => (
-              <AccessGroupCard
-                key={g.id}
-                group={g}
-                staffCount={staffByGroup[g.id] || 0}
-                teamCount={teamCountByGroup[g.id] || 0}
-                divisions={getDivisionsForGroup(g.id)}
-                overrideCount={manifestCountByGroup[g.id] || 0}
-                onEdit={() => setEditing(g)}
-                onDelete={() => handleDelete(g)}
-                onLockdown={() => onLockdown(g)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Custom Groups */}
-      {filteredCustom.length > 0 && (
-        <div>
-          <SectionHeader icon={Building2} title="Custom Groups" subtitle="Your own access levels — edit or delete anytime" />
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredCustom.map(g => (
-              <AccessGroupCard
-                key={g.id}
-                group={g}
-                staffCount={staffByGroup[g.id] || 0}
-                teamCount={teamCountByGroup[g.id] || 0}
-                divisions={getDivisionsForGroup(g.id)}
-                overrideCount={manifestCountByGroup[g.id] || 0}
-                onEdit={() => setEditing(g)}
-                onDelete={() => handleDelete(g)}
-                onLockdown={() => onLockdown(g)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {!isLoading && customGroups.length === 0 && systemGroups.length > 0 && !search && (
-        <div className="insight-card rounded-2xl p-6 text-center">
-          <Building2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-          <p className="text-sm font-semibold text-slate-700">No custom groups yet</p>
-          <p className="text-xs text-slate-400 mt-1">Click "New Group" to create your own access level — e.g. "Office Staff", "Junior Manager", "Read-Only Accounts".</p>
-        </div>
-      )}
 
       {/* Inline editor */}
       {editing && (
@@ -266,33 +278,22 @@ function GroupsTab({ onLockdown }) {
   );
 }
 
-// The drawer that hosts the AccessMatrixEditor for a specific group
-function AccessLockdownDrawer({ group, onClose }) {
+function GroupListItem({ group, active, staffCount, overrideCount, onClick }) {
   return (
-    <div className="fixed inset-0 z-[60] bg-blue-950/60 backdrop-blur-md flex items-stretch sm:items-center justify-center sm:p-4" onClick={onClose}>
-      <div className="bg-white sm:rounded-3xl shadow-2xl w-full max-w-7xl h-full sm:h-auto sm:max-h-[calc(100dvh-2rem)] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        {/* Drawer header */}
-        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-md">
-              <Layers className="w-4.5 h-4.5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-base font-extrabold text-slate-900">Division Lockdown</h2>
-              <p className="text-[11px] text-slate-500">Override <strong>{group.name}</strong> permissions per division</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Matrix editor with the group pre-selected */}
-        <div className="p-4 sm:p-5">
-          <AccessMatrixEditor fixedGroup={group} />
+    <button
+      onClick={onClick}
+      className={'w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition ' +
+        (active ? 'bg-[#2E5A1A]/10 ring-1 ring-[#2E5A1A]/30' : 'hover:bg-slate-50')}
+    >
+      {group.is_system ? <Crown className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" /> : <Users className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
+      <div className="min-w-0 flex-1">
+        <p className={'text-xs font-semibold truncate ' + (active ? 'text-[#2E5A1A]' : 'text-slate-700')}>{group.name}</p>
+        <div className="flex items-center gap-2 text-[10px] text-slate-400">
+          {staffCount > 0 && <span className="flex items-center gap-0.5"><Users className="w-2.5 h-2.5" />{staffCount}</span>}
+          {overrideCount > 0 && <span className="flex items-center gap-0.5 text-amber-600"><Lock className="w-2.5 h-2.5" />{overrideCount}</span>}
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -309,18 +310,6 @@ function StatTile({ icon: Icon, label, value, tone }) {
       <div className="relative">
         <p className="text-[10px] font-bold uppercase tracking-wide text-white/80">{label}</p>
         <p className="text-2xl font-extrabold tabular-nums mt-1">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function SectionHeader({ icon: Icon, title, subtitle }) {
-  return (
-    <div className="flex items-center gap-2 mb-3">
-      <Icon className="w-4 h-4 text-slate-500" />
-      <div>
-        <h3 className="text-sm font-bold text-slate-900">{title}</h3>
-        <p className="text-xs text-slate-500">{subtitle}</p>
       </div>
     </div>
   );
