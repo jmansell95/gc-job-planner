@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Users, CalendarX, CalendarDays, Star, UserCheck, UsersRound, Building2, HardHat, Package, Clock, Contact } from 'lucide-react';
+import { Users, CalendarX, Clock, UsersRound, Building2 } from 'lucide-react';
 import SettingsPage from '@/components/SettingsPage';
 import PageHeader from '@/components/PageHeader';
 import TabBar from '@/components/TabBar';
@@ -9,27 +9,72 @@ import StaffDirectoryGrid from '@/components/staff/StaffDirectoryGrid';
 import StaffCostAnalytics from '@/components/staff/StaffCostAnalytics';
 import StaffUtilizationWidget from '@/components/dashboard/StaffUtilizationWidget';
 
+// Map legacy tab IDs to the new grouped structure so existing navigation doesn't break
+const TAB_MAP = {
+  'staff': { tab: 'staff', subTab: 'staff' },
+  'staff-reviews': { tab: 'staff', subTab: 'staff-reviews' },
+  'teams': { tab: 'teams' },
+  'timesheets': { tab: 'timesheets', subTab: 'timesheets' },
+  'timesheet-delegation': { tab: 'timesheets', subTab: 'timesheet-delegation' },
+  'holiday-accrual': { tab: 'timesheets', subTab: 'holiday-accrual' },
+  'absences': { tab: 'absences' },
+  'clients': { tab: 'contacts', subTab: 'clients' },
+  'contractors': { tab: 'contacts', subTab: 'contractors' },
+  'suppliers': { tab: 'contacts', subTab: 'suppliers' },
+  'access-levels': { tab: 'staff', subTab: 'staff' },
+  'directory': { tab: 'directory' },
+  'cost-analytics': { tab: 'cost-analytics' },
+  'utilization': { tab: 'utilization' },
+};
+
+const TABS = [
+  {
+    id: 'staff', label: 'Crew Members', icon: Users,
+    subTabs: [
+      { id: 'staff', label: 'Crew Members' },
+      { id: 'staff-reviews', label: 'Performance Reviews' },
+    ],
+  },
+  { id: 'teams', label: 'Crew Types', icon: UsersRound },
+  {
+    id: 'timesheets', label: 'Timesheets', icon: Clock,
+    subTabs: [
+      { id: 'timesheets', label: 'Timesheets' },
+      { id: 'timesheet-delegation', label: 'Approval Delegation' },
+      { id: 'holiday-accrual', label: 'Holiday Accrual' },
+    ],
+  },
+  { id: 'absences', label: 'Absences', icon: CalendarX },
+  {
+    id: 'contacts', label: 'Contacts', icon: Building2,
+    subTabs: [
+      { id: 'clients', label: 'Clients' },
+      { id: 'contractors', label: 'Sub-contractors' },
+      { id: 'suppliers', label: 'Suppliers' },
+    ],
+  },
+];
+
+const STANDALONE_VIEWS = ['directory', 'cost-analytics', 'utilization'];
+
 export default function StaffPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [tab, setTab] = useState(location.state?.initialTab || 'staff');
+  const initial = location.state?.initialTab || 'staff';
+  const mapped = TAB_MAP[initial] || { tab: 'staff', subTab: 'staff' };
+  const [tab, setTab] = useState(mapped.tab);
+  const [subTab, setSubTab] = useState(mapped.subTab || null);
 
-  const tabs = [
-    { id: 'staff', label: 'Crew Members', icon: Users },
-    { id: 'directory', label: 'Directory', icon: Users },
-    { id: 'cost-analytics', label: 'Cost Analytics', icon: Clock },
-    { id: 'utilization', label: 'Utilization', icon: Users },
-    { id: 'teams', label: 'Crew Types', icon: UsersRound },
-    { id: 'timesheets', label: 'Timesheets', icon: Clock },
-    { id: 'clients', label: 'Clients', icon: Building2 },
-    { id: 'contractors', label: 'Sub-contractors', icon: HardHat },
-    { id: 'suppliers', label: 'Suppliers', icon: Package },
-    { id: 'absences', label: 'Absences', icon: CalendarX },
-    { id: 'holiday-accrual', label: 'Holiday Accrual', icon: CalendarDays },
-    { id: 'staff-reviews', label: 'Performance Reviews', icon: Star },
-    { id: 'timesheet-delegation', label: 'Approval Delegation', icon: UserCheck },
-    { id: 'access-levels', label: 'Permission Groups', icon: UserCheck },
-  ];
+  const isStandaloneView = STANDALONE_VIEWS.includes(tab);
+  const activeTab = TABS.find(t => t.id === tab);
+  const hasSubTabs = activeTab?.subTabs?.length > 0;
+  const renderTab = hasSubTabs ? (subTab || activeTab.subTabs[0].id) : tab;
+
+  const handleTabChange = (t) => {
+    setTab(t);
+    const at = TABS.find(x => x.id === t);
+    setSubTab(at?.subTabs?.[0]?.id || null);
+  };
 
   return (
     <div className="space-y-4">
@@ -39,22 +84,44 @@ export default function StaffPage() {
         subtitle="Manage crew members, timesheets, clients, subcontractors and suppliers"
       />
       <MissingRatesBanner />
-      {tab === 'directory' && <StaffDirectoryGrid onSelect={(s) => navigate('/admin', { state: { section: 'staff-detail', staff: s } })} />}
+
+      {tab === 'directory' && (
+        <StaffDirectoryGrid onSelect={(s) => navigate('/admin', { state: { section: 'staff-detail', staff: s } })} />
+      )}
       {tab === 'cost-analytics' && <StaffCostAnalytics />}
       {tab === 'utilization' && (
         <StaffUtilizationWidget onNavigate={(section) => navigate('/admin', { state: { section } })} />
       )}
-      {tab !== 'directory' && tab !== 'cost-analytics' && tab !== 'utilization' && (
-      <TabBar tabs={tabs} activeTab={tab} onChange={setTab} />
+
+      {!isStandaloneView && (
+        <>
+          <TabBar tabs={TABS} activeTab={tab} onChange={handleTabChange} />
+
+          {hasSubTabs && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {activeTab.subTabs.map(st => (
+                <button
+                  key={st.id}
+                  onClick={() => setSubTab(st.id)}
+                  className={'px-3 py-1.5 rounded-lg text-xs font-semibold transition ' +
+                    (renderTab === st.id
+                      ? 'bg-[#2E5A1A] text-white shadow-sm'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50')}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <SettingsPage
+            key={renderTab}
+            initialTab={renderTab}
+            standalone
+            onSelectJob={(job) => navigate('/admin', { state: { section: 'job-detail', job } })}
+          />
+        </>
       )}
-      {tab !== 'directory' && tab !== 'cost-analytics' && tab !== 'utilization' && tabs.map(t => tab === t.id && (
-        <SettingsPage
-          key={t.id}
-          initialTab={t.id}
-          standalone
-          onSelectJob={(job) => navigate('/admin', { state: { section: 'job-detail', job } })}
-        />
-      ))}
     </div>
   );
 }

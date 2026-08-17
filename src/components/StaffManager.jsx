@@ -535,18 +535,11 @@ export default function StaffManager() {
                   })}
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Access Level</label>
-                <select value={formData.system_role || 'field'} onChange={e => setFormData({ ...formData, system_role: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                  <option value="field">Field (schedule & profile only)</option>
-                  <option value="read_only">Read Only (read-only dashboard)</option>
-                  <option value="user">User (basic office access)</option>
-                  <option value="management">Management (operations access)</option>
-                  <option value="admin">Admin (full dashboard access)</option>
-                  <option value="super_admin">Super Admin (unrestricted + manage users)</option>
-                </select>
-                <p className="text-[11px] text-slate-400 mt-1">Admin & Super Admin are also granted platform-admin rights automatically when linked to a login.</p>
+              <div className="sm:col-span-2">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                  <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                  <p className="text-xs text-blue-700 font-medium">Access permissions are managed at the enterprise level via Settings → Access Levels.</p>
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Default Vehicle</label>
