@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import {
-  Building2, Plus, Pencil, Trash2, Users, Database, Zap, Check, X, Loader2,
+  Building2, Plus, Pencil, Trash2, Users, Check, X, Loader2, UserCheck,
   AlertTriangle, ChevronDown, Search, ArrowRight, Layers, ShieldCheck, Navigation,
 } from 'lucide-react';
 import DivisionEditor from '@/components/settings/DivisionEditor';
@@ -24,9 +24,10 @@ export default function DivisionManager() {
   const [editing, setEditing] = useState(null);
   const [showWizard, setShowWizard] = useState(false);
   const [deleting, setDeleting] = useState(null);
-  const [migrating, setMigrating] = useState(false);
-  const [migrationResult, setMigrationResult] = useState(null);
   const [staffSearch, setStaffSearch] = useState('');
+  const [selectedStaff, setSelectedStaff] = useState([]);
+  const [bulkDivision, setBulkDivision] = useState('');
+  const [bulkAssigning, setBulkAssigning] = useState(false);
 
   const { data: divisions = [], isLoading } = useQuery({
     queryKey: ['divisions'],
@@ -43,18 +44,56 @@ export default function DivisionManager() {
     queryClient.invalidateQueries({ queryKey: ['staff'] });
   };
 
-  const runMigration = async () => {
-    setMigrating(true);
-    setMigrationResult(null);
+  const reassignSingle = async (staffId, newDivisionId) => {
+    const s = staff.find(x => x.id === staffId);
+    if (!s) return;
+    // Pre-flight backup before structural change
+    if (s.division_id) {
+      try {
+        await base44.functions.invoke('backupDivision', {
+          division_id: s.division_id,
+          snapshot_type: 'pre_flight',
+          trigger_reason: `Staff reassignment: ${s.name}`,
+        });
+      } catch {}
+    }
     try {
-      const res = await base44.functions.invoke('migrateToDivisions', {});
-      setMigrationResult(res.data);
-      toast({ title: 'Migration complete', description: 'All existing data tagged to the Geotechnical division.' });
+      await base44.entities.Staff.update(staffId, { division_id: newDivisionId || null });
+      if (s.user_id) { try { await base44.entities.User.update(s.user_id, { division_id: newDivisionId || null }); } catch {} }
+      toast({ title: 'Division updated' });
+      invalidate();
+    } catch (e) { toast({ title: 'Update failed', description: e.message, variant: 'destructive' }); }
+  };
+
+  const bulkReassign = async () => {
+    if (!bulkDivision || selectedStaff.length === 0) return;
+    setBulkAssigning(true);
+    // Pre-flight backup before bulk structural change
+    const firstStaff = staff.find(s => selectedStaff.includes(s.id));
+    if (firstStaff?.division_id) {
+      try {
+        await base44.functions.invoke('backupDivision', {
+          division_id: firstStaff.division_id,
+          snapshot_type: 'pre_flight',
+          trigger_reason: `Bulk reassignment of ${selectedStaff.length} staff`,
+        });
+      } catch {}
+    }
+    try {
+      const updates = selectedStaff.map(id => ({ id, division_id: bulkDivision }));
+      await base44.entities.Staff.bulkUpdate(updates);
+      for (const id of selectedStaff) {
+        const s = staff.find(x => x.id === id);
+        if (s?.user_id) { try { await base44.entities.User.update(s.user_id, { division_id: bulkDivision }); } catch {} }
+      }
+      toast({ title: 'Staff reassigned', description: `${selectedStaff.length} staff moved successfully.` });
+      setSelectedStaff([]);
+      setBulkDivision('');
       invalidate();
     } catch (e) {
-      toast({ title: 'Migration failed', description: e.message, variant: 'destructive' });
+      toast({ title: 'Bulk reassign failed', description: e.message, variant: 'destructive' });
     } finally {
-      setMigrating(false);
+      setBulkAssigning(false);
     }
   };
 
@@ -76,7 +115,6 @@ export default function DivisionManager() {
   const tabs = [
     { id: 'divisions', label: 'Divisions', icon: Building2 },
     { id: 'staff', label: 'Staff Assignment', icon: Users },
-    { id: 'migration', label: 'Migration', icon: Database },
   ];
 
   return (
@@ -205,105 +243,111 @@ export default function DivisionManager() {
 
       {/* ═══ Staff Assignment tab ═══ */}
       {tab === 'staff' && (
-        <div className="insight-card rounded-2xl p-4">
-          {/* Division summary chips */}
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {divisions.map(d => (
-              <span key={d.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-600">
-                <span className="w-2 h-2 rounded-full" style={{ background: d.color || '#2E5A1A' }} />
-                {d.name}
-                <span className="text-slate-400 tabular-nums">{divisionStaffCounts[d.id] || 0}</span>
-              </span>
-            ))}
-          </div>
-
-          {/* Search */}
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              value={staffSearch}
-              onChange={e => setStaffSearch(e.target.value)}
-              placeholder="Search staff by name, title or email..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10"
-            />
-          </div>
-
-          <p className="text-xs text-slate-500 mb-2">Assign each staff member to a division. This controls which division's data they see across the platform.</p>
-          <div className="space-y-1.5 max-h-[55vh] overflow-y-auto">
-            {filteredStaff.length === 0 ? (
-              <div className="text-center py-8 text-sm text-slate-400">No staff match "{staffSearch}"</div>
-            ) : filteredStaff.map(s => {
-              const div = divisions.find(d => d.id === s.division_id);
-              return (
-                <div key={s.id} className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50/50 transition">
-                  <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 flex-shrink-0">
-                    {(s.name || '?').charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800 truncate">{s.name}</p>
-                    <p className="text-xs text-slate-400 truncate">{s.job_title || s.email || 'No title'}</p>
-                  </div>
-                  <DivisionSelect
-                    divisions={divisions}
-                    value={s.division_id || ''}
-                    onChange={async (newId) => {
-                      try {
-                        await base44.entities.Staff.update(s.id, { division_id: newId || null });
-                        if (s.user_id) { try { await base44.entities.User.update(s.user_id, { division_id: newId || null }); } catch {} }
-                        toast({ title: 'Division updated' });
-                        invalidate();
-                      } catch (e) { toast({ title: 'Update failed', description: e.message, variant: 'destructive' }); }
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ═══ Migration tab ═══ */}
-      {tab === 'migration' && (
-        <div className="insight-card rounded-2xl p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center flex-shrink-0 shadow-md">
-              <Zap className="w-6 h-6 text-white" />
+        <div className="space-y-3">
+          {/* Division distribution summary */}
+          <div className="insight-card rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Division Distribution</p>
+              {selectedStaff.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#2E5A1A]/10 text-[#2E5A1A] text-xs font-bold">
+                  <UserCheck className="w-3.5 h-3.5" /> {selectedStaff.length} selected
+                </span>
+              )}
             </div>
-            <div className="flex-1">
-              <h3 className="text-base font-extrabold text-slate-900">Tag Existing Data</h3>
-              <p className="text-sm text-slate-500 mt-1">
-                This one-time migration creates the default <strong>Geotechnical</strong> division (if it doesn't exist) and tags every existing Staff, Job, Vehicle, Rota and Timesheet record to it — so all your current data is correctly scoped to the Geotechnical division. It also syncs each linked user's division so RLS isolation works correctly.
-              </p>
-              <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-700">Run this once after adding the <code>division_id</code> fields. It only affects records that don't already have a division assigned — safe to re-run.</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+              {/* Unassigned */}
+              <div className="rounded-xl border border-slate-200 p-2.5 flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                  <Users className="w-4 h-4 text-slate-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-slate-700 truncate">Unassigned</p>
+                  <p className="text-sm font-extrabold text-slate-900 tabular-nums">{staff.filter(s => !s.division_id).length}</p>
+                </div>
+              </div>
+              {/* Per division */}
+              {divisions.map(d => {
+                const count = divisionStaffCounts[d.id] || 0;
+                const pct = staff.length > 0 ? Math.round((count / staff.length) * 100) : 0;
+                return (
+                  <div key={d.id} className="rounded-xl border border-slate-200 p-2.5 flex items-center gap-2 relative overflow-hidden">
+                    <div className="absolute bottom-0 left-0 h-1 transition-all" style={{ width: `${pct}%`, background: d.color || '#2E5A1A' }} />
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${d.color || '#2E5A1A'}, ${d.color || '#2E5A1A'}cc)` }}>
+                      <Building2 className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-700 truncate">{d.name}</p>
+                      <p className="text-sm font-extrabold text-slate-900 tabular-nums">{count}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Bulk action bar */}
+          {selectedStaff.length > 0 && (
+            <div className="insight-card rounded-2xl p-3 flex items-center gap-2 flex-wrap animate-slide-up">
+              <span className="text-sm font-bold text-slate-700">{selectedStaff.length} selected</span>
+              <div className="flex-1 min-w-[180px]">
+                <DivisionSelect divisions={divisions} value={bulkDivision} onChange={setBulkDivision} />
               </div>
               <button
-                onClick={runMigration}
-                disabled={migrating}
-                className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl command-gradient text-white text-sm font-bold shadow-md hover:shadow-lg disabled:opacity-60 transition">
-                {migrating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                {migrating ? 'Running Migration…' : 'Run Migration'}
+                onClick={bulkReassign}
+                disabled={!bulkDivision || bulkAssigning}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl command-gradient text-white text-sm font-bold shadow-md disabled:opacity-50 transition"
+              >
+                {bulkAssigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                Reassign All
               </button>
-              {migrationResult && (
-                <div className="mt-4 p-4 rounded-xl bg-emerald-50 border border-emerald-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Check className="w-4 h-4 text-emerald-600" />
-                    <p className="text-sm font-bold text-emerald-800">Migration Complete</p>
+              <button onClick={() => { setSelectedStaff([]); setBulkDivision(''); }} className="p-2 rounded-lg text-slate-400 hover:bg-slate-50 transition">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Search + staff list */}
+          <div className="insight-card rounded-2xl p-4">
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                value={staffSearch}
+                onChange={e => setStaffSearch(e.target.value)}
+                placeholder="Search staff by name, title or email..."
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10"
+              />
+            </div>
+
+            <p className="text-xs text-slate-500 mb-2">Tap the checkbox to select for bulk reassignment, or change a person's division directly. A safety backup is created automatically before each change.</p>
+            <div className="space-y-1.5 max-h-[55vh] overflow-y-auto">
+              {filteredStaff.length === 0 ? (
+                <div className="text-center py-8 text-sm text-slate-400">No staff match "{staffSearch}"</div>
+              ) : filteredStaff.map(s => {
+                const div = divisions.find(d => d.id === s.division_id);
+                const isSelected = selectedStaff.includes(s.id);
+                return (
+                  <div key={s.id} className={'flex items-center gap-3 p-2.5 rounded-xl border transition ' + (isSelected ? 'border-[#2E5A1A] bg-emerald-50/50' : 'border-slate-100 hover:bg-slate-50/50')}>
+                    <button
+                      onClick={() => setSelectedStaff(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
+                      className={'w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition ' + (isSelected ? 'bg-[#2E5A1A] border-[#2E5A1A]' : 'border-slate-300 hover:border-slate-400')}
+                    >
+                      {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                    </button>
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: div ? `linear-gradient(135deg, ${div.color || '#2E5A1A'}, ${div.color || '#2E5A1A'}cc)` : '#e2e8f0', color: div ? 'white' : '#64748b' }}>
+                      {(s.name || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 truncate">{s.name}</p>
+                      <p className="text-xs text-slate-400 truncate">{s.job_title || s.email || 'No title'}</p>
+                    </div>
+                    <DivisionSelect
+                      divisions={divisions}
+                      value={s.division_id || ''}
+                      onChange={(newId) => reassignSingle(s.id, newId)}
+                    />
                   </div>
-                  <p className="text-xs text-emerald-700 mb-2">
-                    {migrationResult.divisionCreated ? 'Created' : 'Using'} division: <strong>{migrationResult.divisionName}</strong>
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {Object.entries(migrationResult.counts || {}).map(([k, v]) => (
-                      <div key={k} className="bg-white rounded-lg p-2 border border-emerald-100">
-                        <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">{k}</p>
-                        <p className="text-sm font-bold text-slate-800 tabular-nums">{v.tagged !== undefined ? `${v.tagged} / ${v.total} tagged` : `${v.synced} synced`}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                );
+              })}
             </div>
           </div>
         </div>

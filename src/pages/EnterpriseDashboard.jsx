@@ -7,14 +7,12 @@ import { useAuth } from '@/lib/AuthContext';
 import {
   Building2, Users, Briefcase, Truck, ClipboardCheck, ShieldCheck, PoundSterling,
   ArrowRight, Settings, Sparkles, AlertTriangle, CheckCircle2,
-  LayoutGrid, X, Activity, Zap, Link2, Crown,
+  LayoutGrid, X, Activity, Crown,
   User, HelpCircle, LogOut,
 } from 'lucide-react';
 import EnterpriseHeader from '@/components/EnterpriseHeader';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 import DivisionWizard from '@/components/wizard/DivisionWizard';
-import EnterpriseIntegrationsOverview from '@/components/enterprise/EnterpriseIntegrationsOverview';
-import EnterpriseReadinessOverview from '@/components/enterprise/EnterpriseReadinessOverview';
 import DivisionCard from '@/components/enterprise/DivisionCard';
 
 import { STATUS_STYLES, WIDGET_STORAGE_KEY, DEFAULT_WIDGETS } from '@/components/enterprise/enterpriseConstants';
@@ -26,10 +24,6 @@ export default function EnterpriseDashboard() {
   const [customising, setCustomising] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
-  const integrationsRef = React.useRef(null);
-  const readinessRef = React.useRef(null);
-
-  const scrollTo = (ref) => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const { data: myProfile } = useQuery({ queryKey: ['ent-my-profile'], queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; } });
 
@@ -116,12 +110,12 @@ export default function EnterpriseDashboard() {
   const quickActions = isSuperAdmin ? [
     { label: 'Settings', icon: Settings, action: () => goToSettings('divisions'), gradient: 'from-slate-600 to-slate-800' },
     { label: 'Divisions', icon: Building2, action: () => goToSettings('divisions'), gradient: 'from-emerald-600 to-teal-700' },
-    { label: 'Readiness', icon: Zap, action: () => scrollTo(readinessRef), gradient: 'from-amber-500 to-orange-600' },
-    { label: 'Integrations', icon: Link2, action: () => scrollTo(integrationsRef), gradient: 'from-blue-600 to-indigo-700' },
+    { label: 'Access', icon: ShieldCheck, action: () => goToSettings('access'), gradient: 'from-amber-500 to-orange-600' },
+    { label: 'Help', icon: HelpCircle, action: () => navigate('/enterprise/help'), gradient: 'from-rose-500 to-pink-600' },
   ] : [
-    { label: 'Settings', icon: Settings, action: () => goToSettings('hub'), gradient: 'from-slate-600 to-slate-800' },
-    { label: 'Readiness', icon: Zap, action: () => scrollTo(readinessRef), gradient: 'from-amber-500 to-orange-600' },
-    { label: 'Integrations', icon: Link2, action: () => scrollTo(integrationsRef), gradient: 'from-blue-600 to-indigo-700' },
+    { label: 'Settings', icon: Settings, action: () => goToSettings('divisions'), gradient: 'from-slate-600 to-slate-800' },
+    { label: 'Access', icon: ShieldCheck, action: () => goToSettings('access'), gradient: 'from-amber-500 to-orange-600' },
+    { label: 'Profile', icon: User, action: () => navigate('/enterprise-profile'), gradient: 'from-blue-600 to-indigo-700' },
     { label: 'Help', icon: HelpCircle, action: () => navigate('/enterprise/help'), gradient: 'from-rose-500 to-pink-600' },
   ];
 
@@ -130,8 +124,8 @@ export default function EnterpriseDashboard() {
       <EnterpriseHeader />
 
       {/* ─── Hero Section ─── */}
-      <div className="relative overflow-hidden">
-        <div className="hero-vibrant absolute inset-0" />
+      <div className="relative">
+        <div className="hero-vibrant absolute inset-0 overflow-hidden" />
         <div className="relative px-4 xl:px-6 pt-[calc(3.5rem+env(safe-area-inset-top)+0.5rem)] xl:pt-8 pb-6">
           <div className="max-w-7xl mx-auto">
             {/* Top row: title + profile */}
@@ -290,17 +284,11 @@ export default function EnterpriseDashboard() {
                   </div>
                 </div>
               </div>
-              <button onClick={() => goToSettings('readiness')} className="w-full mt-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-sm font-semibold text-slate-600 transition">
+              <button onClick={() => goToSettings('access')} className="w-full mt-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-sm font-semibold text-slate-600 transition">
                 Manage in Settings <ArrowRight className="w-4 h-4" />
               </button>
             </section>
           )}
-        </div>
-
-        {/* Integrations + Readiness */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {widgets.integrationsOverview && <div ref={integrationsRef}><EnterpriseIntegrationsOverview /></div>}
-          {widgets.readinessOverview && <div ref={readinessRef}><EnterpriseReadinessOverview /></div>}
         </div>
 
         {/* System Status */}
@@ -337,8 +325,6 @@ export default function EnterpriseDashboard() {
                 { key: 'divisionHealth', label: 'Divisions', desc: 'Division cards grid' },
                 { key: 'financialRollup', label: 'Financial Roll-up', desc: 'Outstanding invoices per division' },
                 { key: 'complianceSnapshot', label: 'Compliance Snapshot', desc: 'Expired items & timesheet queue' },
-                { key: 'integrationsOverview', label: 'Integrations Overview', desc: 'Cross-division integration status' },
-                { key: 'readinessOverview', label: 'Readiness Overview', desc: 'Hub readiness across divisions' },
               ].map(w => (
                 <label key={w.key} className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
                   <div>

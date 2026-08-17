@@ -11,6 +11,4 @@ export const DEFAULT_WIDGETS = {
   divisionHealth: true,
   financialRollup: true,
   complianceSnapshot: true,
-  integrationsOverview: true,
-  readinessOverview: true,
 };

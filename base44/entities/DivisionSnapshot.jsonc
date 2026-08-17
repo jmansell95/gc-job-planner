@@ -1,0 +1,103 @@
+{
+  "name": "DivisionSnapshot",
+  "type": "object",
+  "properties": {
+    "division_id": {
+      "type": "string",
+      "description": "The division this snapshot was taken of."
+    },
+    "division_name": {
+      "type": "string",
+      "description": "Division name (denormalised for display)."
+    },
+    "snapshot_type": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "automatic",
+        "pre_flight"
+      ],
+      "default": "manual",
+      "description": "How the snapshot was triggered. 'manual' = admin clicked Create Snapshot; 'automatic' = scheduled/nightly; 'pre_flight' = auto-created before a structural change (staff reassignment, division config edit)."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "creating",
+        "completed",
+        "failed",
+        "restored"
+      ],
+      "default": "creating",
+      "description": "Snapshot lifecycle. 'creating' = backup in progress; 'completed' = backup file stored and ready; 'failed' = backup errored; 'restored' = this snapshot was used to restore the division."
+    },
+    "entity_counts": {
+      "type": "string",
+      "description": "JSON string of { EntityName: recordCount } \u2014 how many records of each type were captured in this snapshot."
+    },
+    "total_records": {
+      "type": "number",
+      "default": 0,
+      "description": "Total records captured across all entity types."
+    },
+    "file_uri": {
+      "type": "string",
+      "description": "Private storage URI of the backup JSON file. Use CreateFileSignedUrl to generate a time-limited download link."
+    },
+    "file_size_bytes": {
+      "type": "number",
+      "description": "Size of the backup JSON file in bytes."
+    },
+    "division_config": {
+      "type": "string",
+      "description": "JSON string of the division's configuration at snapshot time (settings, enabled_hubs, nav_items, landing_page). Used by restore to roll back configuration changes."
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Name of the admin who triggered the snapshot. 'system' for automatic snapshots."
+    },
+    "trigger_reason": {
+      "type": "string",
+      "description": "Why this snapshot was created (e.g. 'Pre-flight: staff reassignment for John Smith'). Blank for manual snapshots."
+    },
+    "restored_at": {
+      "type": "string",
+      "description": "ISO timestamp when this snapshot was used to restore the division."
+    },
+    "restored_by_name": {
+      "type": "string",
+      "description": "Name of the admin who performed the restore."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Error details (on failed snapshots) or admin notes."
+    }
+  },
+  "required": [
+    "division_id",
+    "division_name",
+    "snapshot_type"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

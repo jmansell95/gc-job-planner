@@ -2,15 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDivision } from '@/contexts/DivisionContext';
 import {
-  ArrowLeft, Building2, Link2, KeyRound, Settings,
+  ArrowLeft, Building2, Link2, KeyRound, Settings, Database,
 } from 'lucide-react';
 import EnterpriseHeader from '@/components/EnterpriseHeader';
 import DivisionManager from '@/components/settings/DivisionManager';
 import IntegrationsHub from '@/components/settings/IntegrationsHub';
 import EnterpriseAccessManager from '@/components/settings/EnterpriseAccessManager';
+import BackupRestoreHub from '@/components/settings/BackupRestoreHub';
 
 const TABS = [
   { id: 'divisions', label: 'Divisions', icon: Building2, gradient: 'from-emerald-600 to-teal-700' },
+  { id: 'backup', label: 'Backup & Restore', icon: Database, gradient: 'from-indigo-600 to-blue-700' },
   { id: 'integrations', label: 'Integrations', icon: Link2, gradient: 'from-blue-600 to-indigo-700' },
   { id: 'access', label: 'Access Levels', icon: KeyRound, gradient: 'from-amber-500 to-orange-600' },
 ];
@@ -27,6 +29,7 @@ export default function EnterpriseSettings() {
   const renderTab = () => {
     switch (activeTab) {
       case 'divisions': return <DivisionManager />;
+      case 'backup': return <BackupRestoreHub />;
       case 'integrations': return <IntegrationsHub />;
       case 'access': return <EnterpriseAccessManager />;
       default: return null;
