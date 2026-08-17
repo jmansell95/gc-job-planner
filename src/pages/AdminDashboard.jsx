@@ -63,7 +63,7 @@ export default function AdminDashboard() {
   const [pageLoading, setPageLoading] = useState(false);
   const prevSection = useRef(activeSection);
   const { isComingSoon, isLocked } = useReadiness();
-  const goToSettings = () => { setSettingsTab('readiness'); setActiveSection('settings'); };
+  const goToSettings = () => { setSettingsTab('hub'); setActiveSection('settings'); };
 
   // Read navigation state passed from other pages (e.g. Vehicles → Manage Records).
   // Standalone sections are redirected immediately so the dashboard never

@@ -69,25 +69,6 @@ export default function SettingsHubOverview({ onNavigate }) {
   }, [allSettings]);
 
   const groups = [
-    { group: 'Integrations', icon: Link2, accent: 'from-blue-500 to-cyan-600', items: [
-      { id: 'geotab-sync', icon: Satellite, label: 'Geotab GPS', value: '—', sub: 'Live fleet tracking', color: 'blue' },
-      { id: 'holman-sync', icon: Radio, label: 'Holman Fleet', value: '—', sub: 'MOT, service & mileage', color: 'cyan' },
-      { id: 'asset-panda', icon: Database, label: 'Asset Panda', value: '—', sub: 'Inventory & stock sync', color: 'violet' },
-      { id: 'bob-hr', icon: Users, label: 'Bob HR', value: '—', sub: 'Time-off bridge', color: 'emerald' },
-      { id: 'concur-sync', icon: Landmark, label: 'SAP Concur', value: '—', sub: 'Expenses & GL codes', color: 'indigo' },
-      { id: 'safety-culture', icon: ShieldAlert, label: 'SafetyCulture', value: '—', sub: 'Audit & inspection sync', color: 'rose' },
-      { id: 'ags-import', icon: FileUp, label: 'KeyLogBook / AGS', value: '—', sub: 'Borehole data sync', color: 'amber' },
-      { id: 'openground-sync', icon: Database, label: 'OpenGround', value: '—', sub: 'Bentley cloud push', color: 'cyan' },
-      { id: 'cis-verification', icon: ShieldCheck, label: 'CIS Verification', value: '—', sub: 'HMRC subcontractor check', color: 'slate' },
-      { id: 'met-office', icon: Cloud, label: 'Met Office', value: '—', sub: 'Weather forecasts', color: 'blue' },
-      { id: 'google-maps', icon: MapPin, label: 'Google Maps', value: '—', sub: 'Geocoding & routing', color: 'rose' },
-      { id: 'whatsapp', icon: MessageCircle, label: 'WhatsApp', value: '—', sub: 'Crew alerts', color: 'emerald' },
-      { id: 'accounting-sync', icon: FileSpreadsheet, label: 'Xero / Sage', value: '—', sub: 'Accounting sync', color: 'blue' },
-      { id: 'payment-gateway', icon: CreditCard, label: 'Stripe Payments', value: '—', sub: 'Client portal payments', color: 'violet' },
-      { id: 'microsoft-365', icon: Building2, label: 'Microsoft 365', value: '—', sub: 'Azure AD SSO & Teams', color: 'indigo' },
-      { id: 'zapier-webhooks', icon: Webhook, label: 'Zapier / Make', value: '—', sub: 'Outbound webhooks', color: 'amber' },
-      { id: 'push-notifications', icon: Bell, label: 'Push Notifications', value: '—', sub: 'Browser push alerts', color: 'blue' },
-    ]},
     { group: 'System Configuration', icon: Sparkles, accent: 'from-slate-500 to-slate-700', items: [
       { id: 'dropdowns', icon: ListChecks, label: 'Dropdown Manager', value: '—', sub: 'Edit every dropdown', color: 'violet' },
       { id: 'global-branding', icon: Palette, label: 'Global Branding', value: '—', sub: 'Email colours & banners', color: 'violet' },
@@ -99,7 +80,6 @@ export default function SettingsHubOverview({ onNavigate }) {
       { id: 'planner-import', icon: FileSpreadsheet, label: 'Planner Import', value: '—', sub: 'Upload weekly rota spreadsheet', color: 'blue' },
       { id: 'incremental-import', icon: Layers, label: 'Incremental Import', value: '—', sub: 'Non-destructive smart imports', color: 'violet' },
       { id: 'system-guide', icon: BookOpen, label: 'System Logic Guide', value: 'PDF', sub: 'Every stat & rule explained', color: 'emerald' },
-      { id: 'backup-restore', icon: Database, label: 'Backup & Restore', value: '—', sub: 'Snapshot & reset', color: 'rose' },
     ]},
   ];
 
@@ -125,7 +105,6 @@ export default function SettingsHubOverview({ onNavigate }) {
     { label: 'Planning', value: planningJobs, icon: Activity, gradient: 'from-amber-400 to-orange-500' },
     { label: 'Vehicles', value: vehicles.length, icon: Truck, gradient: 'from-violet-400 to-purple-500' },
     { label: 'Clients', value: clients.length, icon: Building2, gradient: 'from-indigo-400 to-blue-500' },
-    { label: 'Integrations', value: integrationConnectedCount, icon: Link2, gradient: 'from-rose-400 to-pink-500' },
   ];
 
   const q = search.toLowerCase().trim();
@@ -177,70 +156,31 @@ export default function SettingsHubOverview({ onNavigate }) {
         />
       </div>
 
-      {/* ── Integrations Hub — big banner ── */}
+      {/* ── Enterprise Settings redirect — Divisions, Integrations, Backup & Restore
+           are now managed centrally from the Enterprise Dashboard ── */}
       {!q && (
-        <button
-          onClick={() => onNavigate('integrations')}
-          className="w-full insight-card relative rounded-3xl p-6 text-left group overflow-hidden"
-        >
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-xl icon-tile-glow">
-              <Link2 className="w-8 h-8 text-white" />
+        <div className="insight-card relative rounded-3xl p-5 overflow-hidden">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-lg">
+              <Building2 className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2.5">
-                <h3 className="text-lg font-extrabold text-slate-900">Integrations Hub</h3>
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">{integrationConnectedCount} connected</span>
-              </div>
-              <p className="text-sm text-slate-500 mt-1">All external system connections — Geotab, Holman, Asset Panda, Bob HR, SAP Concur, Xero/Sage, Stripe, WhatsApp, Met Office & more</p>
+              <h3 className="text-base font-extrabold text-slate-900">Enterprise-Level Settings</h3>
+              <p className="text-sm text-slate-500 mt-1 leading-relaxed">
+                Divisions, Integrations, Backup &amp; Restore, and Access Levels are now managed centrally from
+                the <span className="font-semibold text-[#2E5A1A]">Enterprise Dashboard → Settings</span>.
+                This ensures every division shares the same configuration.
+              </p>
+              <a
+                href="/enterprise/settings"
+                className="inline-flex items-center gap-1.5 mt-2.5 px-3.5 py-2 rounded-xl command-gradient text-white text-xs font-bold shadow-md hover:shadow-lg transition"
+              >
+                Go to Enterprise Settings
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
             </div>
-            <ChevronRight className="w-6 h-6 text-slate-300 group-hover:text-[#2E5A1A] group-hover:translate-x-1 transition flex-shrink-0" />
           </div>
-        </button>
-      )}
-
-      {/* ── Divisions banner ── */}
-      {!q && (
-        <button
-          onClick={() => onNavigate('divisions')}
-          className="w-full insight-card relative rounded-3xl p-6 text-left group overflow-hidden"
-        >
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-xl icon-tile-glow">
-              <Building2 className="w-8 h-8 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2.5">
-                <h3 className="text-lg font-extrabold text-slate-900">Divisions</h3>
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">Multi-division</span>
-              </div>
-              <p className="text-sm text-slate-500 mt-1">Create divisions, link staff to their division, and tag existing data — each division is an isolated workspace sharing the same core platform</p>
-            </div>
-            <ChevronRight className="w-6 h-6 text-slate-300 group-hover:text-[#2E5A1A] group-hover:translate-x-1 transition flex-shrink-0" />
-          </div>
-        </button>
-      )}
-
-      {/* ── Readiness Manager banner ── */}
-      {!q && (
-        <button
-          onClick={() => onNavigate('readiness')}
-          className="w-full insight-card relative rounded-3xl p-6 text-left group overflow-hidden"
-        >
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center flex-shrink-0 shadow-xl icon-tile-glow">
-              <Zap className="w-8 h-8 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2.5">
-                <h3 className="text-lg font-extrabold text-slate-900">Readiness Manager</h3>
-                <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full">Feature toggles</span>
-              </div>
-              <p className="text-sm text-slate-500 mt-1">Control which hubs, tabs & integration features are Active, Coming Soon, or Locked across the entire platform</p>
-            </div>
-            <ChevronRight className="w-6 h-6 text-slate-300 group-hover:text-amber-600 group-hover:translate-x-1 transition flex-shrink-0" />
-          </div>
-        </button>
+        </div>
       )}
 
       {/* ── Needs Attention — big, bold, colorful ── */}

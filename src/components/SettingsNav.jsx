@@ -25,33 +25,11 @@ export const settingsGroups = [
     label: 'Overview',
     items: [
       { id: 'hub', label: 'Command Hub', icon: LayoutGrid, desc: 'At-a-glance overview of every settings area with live counts' },
-      { id: 'divisions', label: 'Divisions', icon: Building2, desc: 'Create divisions, link staff to their division, and tag existing data to the Geotechnical division', roles: ['admin'] },
-      { id: 'readiness', label: 'Readiness Manager', icon: Zap, desc: 'Control which hubs, tabs & integration features are Active, Coming Soon, or Locked across the platform', roles: ['admin'] },
-      { id: 'integrations', label: 'Integrations Hub', icon: Link2, desc: 'All external system connections in one place — API keys, webhooks & sync status for every integration', roles: ['admin'] },
     ],
   },
-  {
-    label: 'Integrations',
-    items: [
-      { id: 'geotab-sync', label: 'Geotab GPS Sync', icon: Satellite, desc: 'Connect Geotab GPS tracking — live locations, vehicle specs (make, model, year, fuel type) & fleet reports', roles: ['admin'] },
-      { id: 'holman-sync', label: 'Holman Fleet Sync', icon: Radio, desc: 'Connect Holman fleet management — auto-sync MOT, service dates & mileage via API and webhooks', roles: ['admin'] },
-      { id: 'asset-panda', label: 'Asset Panda Sync', icon: Database, desc: 'Connect Asset Panda & sync live inventory, stock levels and billing rates', roles: ['admin'] },
-      { id: 'bob-hr', label: 'Bob HR Sync', icon: Users, desc: 'Bidirectional time-off bridge with Bob HR (Hibob) — pull & push leave, webhook receiver for real-time events', roles: ['admin'] },
-      { id: 'concur-sync', label: 'SAP Concur Sync', icon: Landmark, desc: 'API bridge to SAP Concur — pull GL codes, push approved expenses & timesheets in batch, lock synced records', roles: ['admin'] },
-      { id: 'safety-culture', label: 'Safety Culture Sync', icon: ShieldAlert, desc: 'Sync site safety audits & inspection forms from SafetyCulture (iAuditor) — webhook & API integration', roles: ['admin', 'manager'] },
-      { id: 'ags-import', label: 'KeyLogBook Settings', icon: FileUp, desc: 'Automated AGS file sync from KeyLogBook (every 30 min) & manual AGS imports — borehole data, strata & driller remarks', roles: ['admin', 'manager'] },
-      { id: 'openground-sync', label: 'OpenGround Sync', icon: Database, desc: 'Push approved borehole logs directly to Bentley OpenGround cloud database via API — no manual AGS file downloads', roles: ['admin', 'manager'] },
-      { id: 'cis-verification', label: 'CIS Verification', icon: ShieldCheck, desc: 'Verify subcontractors against HMRC CIS — deduction rates & verification numbers', roles: ['admin'] },
-      { id: 'met-office', label: 'Met Office Weather', icon: Cloud, desc: 'Daily weather forecasts per site postcode — flag weather-impacted days on the rota', roles: ['admin'] },
-      { id: 'google-maps', label: 'Google Maps', icon: MapPin, desc: 'Geocoding for job sites & delivery route optimisation', roles: ['admin'] },
-      { id: 'whatsapp', label: 'WhatsApp Business', icon: MessageCircle, desc: 'Push critical alerts to crew via WhatsApp Business API — job cancellations, rig breakdowns, new rotas', roles: ['admin'] },
-      { id: 'accounting-sync', label: 'Xero / Sage Sync', icon: FileSpreadsheet, desc: 'Push invoices & purchase costs directly to Xero or Sage accounting — eliminates double-entry', roles: ['admin'] },
-      { id: 'payment-gateway', label: 'Stripe Payments', icon: CreditCard, desc: 'Accept client invoice payments in the client portal via Stripe — auto-marks invoices as paid', roles: ['admin'] },
-      { id: 'microsoft-365', label: 'Microsoft 365 Hub', icon: Building2, desc: 'Unified Microsoft 365 hub — Azure AD SSO, Outlook & Teams integration', roles: ['admin'] },
-      { id: 'zapier-webhooks', label: 'Zapier / Make Webhooks', icon: Webhook, desc: 'Register outbound webhook URLs to receive system events for no-code automation', roles: ['admin'] },
-      { id: 'push-notifications', label: 'Push Notifications', icon: Bell, desc: 'Enable browser push notifications for new assignments, schedule changes & compliance alerts', roles: ['admin', 'manager', 'viewer'] },
-    ],
-  },
+  // Enterprise-level items (Divisions, Integrations, Readiness, Backup & Restore) have
+  // been moved to Enterprise Settings (/enterprise/settings). They are no longer shown
+  // in the division-level settings sidebar to avoid split-brain configuration.
   {
     label: 'System Configuration',
     items: [
@@ -65,7 +43,6 @@ export const settingsGroups = [
       { id: 'planner-import', label: 'Planner Import', icon: FileSpreadsheet, desc: 'Upload weekly rota spreadsheet' },
       { id: 'incremental-import', label: 'Incremental Import', icon: Layers, desc: 'Non-destructive smart imports' },
       { id: 'system-guide', label: 'System Logic Guide', icon: BookOpen, desc: 'Download a PDF explaining every stat, rule and automation in the system', roles: ['admin', 'manager', 'viewer'] },
-      { id: 'backup-restore', label: 'Backup & Restore', icon: Database, desc: 'Export a full data snapshot, restore from a previous backup, seed demo data or reset the database', roles: ['admin'] },
     ],
   },
   // Hidden groups — items remain here for access control / lockdown but are
