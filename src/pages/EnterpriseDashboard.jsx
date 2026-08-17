@@ -27,6 +27,16 @@ export default function EnterpriseDashboard() {
 
   const { data: myProfile } = useQuery({ queryKey: ['ent-my-profile'], queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; } });
 
+  // Single server-side aggregation — replaces 6 separate list() calls that were
+  // capped at 500–5000 records and went stale when mutations didn't invalidate.
+  // Refetches on mount and window focus so changes inside divisions pull through.
+  const { data: statsData } = useQuery({
+    queryKey: ['ent-stats'],
+    queryFn: async () => { const res = await base44.functions.invoke('getEnterpriseStats'); return res.data; },
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
+
   useEffect(() => { setActiveDivision(null); }, []);
   useEffect(() => {
     if (!profileMenuOpen) return;
@@ -42,52 +52,33 @@ export default function EnterpriseDashboard() {
     catch { return DEFAULT_WIDGETS; }
   });
 
-  const { data: staff = [] } = useQuery({ queryKey: ['ent-staff'], queryFn: () => base44.entities.Staff.list('-created_date', 5000) });
-  const { data: jobs = [] } = useQuery({ queryKey: ['ent-jobs'], queryFn: () => base44.entities.Job.list('-created_date', 5000) });
-  const { data: vehicles = [] } = useQuery({ queryKey: ['ent-vehicles'], queryFn: () => base44.entities.Vehicle.list('-created_date', 5000) });
-  const { data: timesheets = [] } = useQuery({ queryKey: ['ent-timesheets'], queryFn: () => base44.entities.Timesheet.list('-created_date', 500) });
-  const { data: invoices = [] } = useQuery({ queryKey: ['ent-invoices'], queryFn: () => base44.entities.Invoice.list('-created_date', 500) });
-  const { data: compliance = [] } = useQuery({ queryKey: ['ent-compliance'], queryFn: () => base44.entities.ComplianceItem.list('-created_date', 1000) });
-
   const toggleWidget = (key) => {
     const next = { ...widgets, [key]: !widgets[key] };
     setWidgets(next);
     try { localStorage.setItem(WIDGET_STORAGE_KEY, JSON.stringify(next)); } catch {}
   };
 
+  // Filter server-side division stats by the user's permitted divisions.
   const divisionStats = useMemo(() => {
+    const all = statsData?.divisionStats || [];
+    const permittedIds = new Set(permittedDivisions.map(d => d.id));
+    // Merge: use the full division object from context (for landing_page etc.),
+    // but pull the computed counts from the server response.
     return permittedDivisions.map(d => {
-      const dStaff = staff.filter(s => s.division_id === d.id);
-      const dJobs = jobs.filter(j => j.division_id === d.id);
-      const dVehicles = vehicles.filter(v => v.division_id === d.id);
-      const dInvoices = invoices.filter(i => i.division_id === d.id);
-      return {
-        division: d,
-        staffCount: dStaff.length,
-        activeStaff: dStaff.filter(s => s.is_active !== false).length,
-        jobsCount: dJobs.length,
-        activeJobs: dJobs.filter(j => (j.status || 'planning') === 'in_progress').length,
-        vehiclesCount: dVehicles.length,
-        outstanding: dInvoices.filter(i => i.status && i.status !== 'paid' && i.status !== 'void').reduce((sum, i) => sum + (i.gross_total || 0), 0),
-      };
+      const s = all.find(x => x.division.id === d.id);
+      return s ? { division: d, staffCount: s.staffCount, activeStaff: s.activeStaff, jobsCount: s.jobsCount, activeJobs: s.activeJobs, vehiclesCount: s.vehiclesCount, outstanding: s.outstanding } : { division: d, staffCount: 0, activeStaff: 0, jobsCount: 0, activeJobs: 0, vehiclesCount: 0, outstanding: 0 };
     });
-  }, [permittedDivisions, staff, jobs, vehicles, invoices]);
+  }, [permittedDivisions, statsData]);
 
+  // Global stats from the server, scoped to permitted divisions.
   const globalStats = useMemo(() => {
-    const permittedJobIds = new Set(jobs.filter(j => permittedDivisions.some(d => d.id === j.division_id)).map(j => j.id));
-    const permittedStaffIds = new Set(staff.filter(s => permittedDivisions.some(d => d.id === s.division_id)).map(s => s.id));
-    const permittedVehicleIds = new Set(vehicles.filter(v => permittedDivisions.some(d => d.id === v.division_id)).map(v => v.id));
+    const base = statsData?.globalStats || { divisions: 0, activeDivisions: 0, staff: 0, activeJobs: 0, vehicles: 0, pendingTs: 0, openCompliance: 0, totalOutstanding: 0 };
     return {
+      ...base,
       divisions: permittedDivisions.length,
       activeDivisions: permittedDivisions.filter(d => d.status === 'active').length,
-      staff: staff.filter(s => permittedStaffIds.has(s.id)).length,
-      activeJobs: jobs.filter(j => permittedJobIds.has(j.id) && (j.status || 'planning') === 'in_progress').length,
-      vehicles: vehicles.filter(v => permittedVehicleIds.has(v.id)).length,
-      pendingTs: timesheets.filter(t => permittedStaffIds.has(t.staff_id) && t.status === 'submitted').length,
-      openCompliance: compliance.filter(c => c.expiry_date && new Date(c.expiry_date) < new Date()).length,
-      totalOutstanding: invoices.filter(i => i.status && i.status !== 'paid' && i.status !== 'void').reduce((sum, i) => sum + (i.gross_total || 0), 0),
     };
-  }, [permittedDivisions, staff, jobs, vehicles, timesheets, compliance, invoices]);
+  }, [permittedDivisions, statsData]);
 
   const gbp = (n) => n ? '\u00A3' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '\u00A30';
 
