@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/AuthContext';
 import {
   Building2, Users, Briefcase, Truck, ClipboardCheck, ShieldCheck, PoundSterling,
   ArrowRight, Settings, Sparkles, AlertTriangle, CheckCircle2,
-  LayoutGrid, X, Activity, Crown,
+  LayoutGrid, X, Activity, Crown, Wrench, TrendingUp, Clock,
   User, HelpCircle, LogOut,
 } from 'lucide-react';
 import EnterpriseHeader from '@/components/EnterpriseHeader';
@@ -225,62 +225,149 @@ export default function EnterpriseDashboard() {
           </section>
         )}
 
-        {/* Financial + Compliance */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {widgets.financialRollup && (
-            <section className="insight-card rounded-2xl p-5">
-              <SectionTitle icon={PoundSterling} title="Financial Roll-up" gradient="from-indigo-500 to-blue-600" />
-              <div className="space-y-2">
-                {divisionStats.filter(s => s.outstanding > 0).map(ds => (
-                  <div key={ds.division.id} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: ds.division.color || '#2E5A1A' }} />
-                      <span className="text-sm font-semibold text-slate-700">{ds.division.name}</span>
-                    </div>
-                    <span className="text-sm font-bold text-amber-600 tabular-nums">{gbp(ds.outstanding)}</span>
+        {/* Financial Roll-up */}
+        {widgets.financialRollup && (
+          <section className="insight-card rounded-2xl p-5">
+            <SectionTitle icon={PoundSterling} title="Financial Roll-up" subtitle="Outstanding invoices per division" gradient="from-indigo-500 to-blue-600" />
+            <div className="space-y-2">
+              {divisionStats.filter(s => s.outstanding > 0).map(ds => (
+                <div key={ds.division.id} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: ds.division.color || '#2E5A1A' }} />
+                    <span className="text-sm font-semibold text-slate-700">{ds.division.name}</span>
                   </div>
-                ))}
-                {divisionStats.filter(s => s.outstanding > 0).length === 0 && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 text-emerald-700">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span className="text-sm font-semibold">All invoices settled across all divisions</span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between p-3 rounded-xl stat-gradient-indigo text-white mt-2">
-                  <span className="text-sm font-bold">Total Outstanding</span>
-                  <span className="text-lg font-extrabold tabular-nums">{gbp(globalStats.totalOutstanding)}</span>
+                  <span className="text-sm font-bold text-amber-600 tabular-nums">{gbp(ds.outstanding)}</span>
                 </div>
+              ))}
+              {divisionStats.filter(s => s.outstanding > 0).length === 0 && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 text-emerald-700">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span className="text-sm font-semibold">All invoices settled across all divisions</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between p-3 rounded-xl stat-gradient-indigo text-white mt-2">
+                <span className="text-sm font-bold">Total Outstanding</span>
+                <span className="text-lg font-extrabold tabular-nums">{gbp(globalStats.totalOutstanding)}</span>
               </div>
-            </section>
-          )}
+            </div>
+          </section>
+        )}
 
-          {widgets.complianceSnapshot && (
-            <section className="insight-card rounded-2xl p-5">
-              <SectionTitle icon={ShieldCheck} title="Compliance Snapshot" gradient="from-rose-500 to-pink-600" />
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="stat-gradient-rose rounded-2xl p-4 text-white relative overflow-hidden">
-                  <div className="absolute right-1 top-1 opacity-20"><AlertTriangle className="w-10 h-10" /></div>
-                  <div className="relative">
-                    <p className="text-xs font-bold text-white/80 uppercase tracking-wide">Expired</p>
-                    <p className="text-3xl font-extrabold tabular-nums mt-1">{globalStats.openCompliance}</p>
-                    <p className="text-[10px] text-white/70">items past expiry</p>
-                  </div>
-                </div>
-                <div className="stat-gradient-amber rounded-2xl p-4 text-white relative overflow-hidden">
-                  <div className="absolute right-1 top-1 opacity-20"><ClipboardCheck className="w-10 h-10" /></div>
-                  <div className="relative">
-                    <p className="text-xs font-bold text-white/80 uppercase tracking-wide">Ts Queue</p>
-                    <p className="text-3xl font-extrabold tabular-nums mt-1">{globalStats.pendingTs}</p>
-                    <p className="text-[10px] text-white/70">awaiting approval</p>
-                  </div>
+        {/* Operational Pipeline — replaces the old Compliance Snapshot */}
+        {widgets.pipelineOverview && (
+          <section className="insight-card rounded-2xl p-5">
+            <SectionTitle icon={TrendingUp} title="Operational Pipeline" subtitle="Job flow & timesheet queue across divisions" gradient="from-emerald-500 to-teal-600" />
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="stat-gradient-amber rounded-2xl p-4 text-white relative overflow-hidden">
+                <div className="absolute right-1 top-1 opacity-20"><Briefcase className="w-9 h-9" /></div>
+                <div className="relative">
+                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">Active</p>
+                  <p className="text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.activeJobs}</p>
+                  <p className="text-[10px] text-white/70">jobs in progress</p>
                 </div>
               </div>
-              <button onClick={() => goToSettings('access')} className="w-full mt-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-sm font-semibold text-slate-600 transition">
-                Manage in Settings <ArrowRight className="w-4 h-4" />
-              </button>
-            </section>
-          )}
-        </div>
+              <div className="stat-gradient-blue rounded-2xl p-4 text-white relative overflow-hidden">
+                <div className="absolute right-1 top-1 opacity-20"><Clock className="w-9 h-9" /></div>
+                <div className="relative">
+                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">Planning</p>
+                  <p className="text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.planningJobs || 0}</p>
+                  <p className="text-[10px] text-white/70">upcoming jobs</p>
+                </div>
+              </div>
+              <div className="stat-gradient-violet rounded-2xl p-4 text-white relative overflow-hidden">
+                <div className="absolute right-1 top-1 opacity-20"><ClipboardCheck className="w-9 h-9" /></div>
+                <div className="relative">
+                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">Ts Queue</p>
+                  <p className="text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.pendingTs}</p>
+                  <p className="text-[10px] text-white/70">awaiting approval</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-3 p-2.5 rounded-xl bg-slate-50">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+              <span className="text-xs text-slate-600 font-medium">{globalStats.completedJobs || 0} jobs completed to date</span>
+            </div>
+          </section>
+        )}
+
+        {/* Fleet & Assets */}
+        {widgets.fleetAssets && (
+          <section className="insight-card rounded-2xl p-5">
+            <SectionTitle icon={Truck} title="Fleet & Assets" subtitle="Vehicles and equipment across divisions" gradient="from-cyan-500 to-blue-600" />
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="stat-gradient-teal rounded-2xl p-4 text-white relative overflow-hidden">
+                <div className="absolute right-1 top-1 opacity-20"><Truck className="w-9 h-9" /></div>
+                <div className="relative">
+                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">Vehicles</p>
+                  <p className="text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.vehicles}</p>
+                  <p className="text-[10px] text-white/70">in fleet</p>
+                </div>
+              </div>
+              <div className="stat-gradient-slate rounded-2xl p-4 text-white relative overflow-hidden">
+                <div className="absolute right-1 top-1 opacity-20"><Wrench className="w-9 h-9" /></div>
+                <div className="relative">
+                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">Assets</p>
+                  <p className="text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.assets || 0}</p>
+                  <p className="text-[10px] text-white/70">active equipment</p>
+                </div>
+              </div>
+              <div className="stat-gradient-rose rounded-2xl p-4 text-white relative overflow-hidden">
+                <div className="absolute right-1 top-1 opacity-20"><AlertTriangle className="w-9 h-9" /></div>
+                <div className="relative">
+                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">Attention</p>
+                  <p className="text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.assetsExpiring || 0}</p>
+                  <p className="text-[10px] text-white/70">compliance expiring</p>
+                </div>
+              </div>
+            </div>
+            <button onClick={() => navigate('/fleet')} className="w-full mt-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-sm font-semibold text-slate-600 transition">
+              Go to Fleet Hub <ArrowRight className="w-4 h-4" />
+            </button>
+          </section>
+        )}
+
+        {/* Workforce Overview */}
+        {widgets.workforceOverview && (
+          <section className="insight-card rounded-2xl p-5">
+            <SectionTitle icon={Users} title="Workforce Overview" subtitle="Headcount across divisions" gradient="from-violet-500 to-purple-600" />
+            <div className="grid grid-cols-2 gap-2.5 mb-3">
+              <div className="stat-gradient-violet rounded-2xl p-4 text-white relative overflow-hidden">
+                <div className="absolute right-1 top-1 opacity-20"><Users className="w-9 h-9" /></div>
+                <div className="relative">
+                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">Total Staff</p>
+                  <p className="text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.staff}</p>
+                  <p className="text-[10px] text-white/70">across all divisions</p>
+                </div>
+              </div>
+              <div className="stat-gradient-emerald rounded-2xl p-4 text-white relative overflow-hidden">
+                <div className="absolute right-1 top-1 opacity-20"><CheckCircle2 className="w-9 h-9" /></div>
+                <div className="relative">
+                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide">Active</p>
+                  <p className="text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.activeStaff || 0}</p>
+                  <p className="text-[10px] text-white/70">currently working</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              {divisionStats.map(ds => (
+                <div key={ds.division.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full" style={{ background: ds.division.color || '#2E5A1A' }} />
+                    <span className="text-xs font-semibold text-slate-700">{ds.division.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className="text-slate-500 font-medium">{ds.activeStaff} active</span>
+                    <span className="text-slate-400">·</span>
+                    <span className="font-bold text-slate-700 tabular-nums">{ds.staffCount} total</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => navigate('/staff')} className="w-full mt-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-sm font-semibold text-slate-600 transition">
+              Go to Staff Hub <ArrowRight className="w-4 h-4" />
+            </button>
+          </section>
+        )}
 
         {/* System Status */}
         <section className="insight-card rounded-2xl p-4 flex items-center gap-3 flex-wrap">
@@ -315,7 +402,9 @@ export default function EnterpriseDashboard() {
               {[
                 { key: 'divisionHealth', label: 'Divisions', desc: 'Division cards grid' },
                 { key: 'financialRollup', label: 'Financial Roll-up', desc: 'Outstanding invoices per division' },
-                { key: 'complianceSnapshot', label: 'Compliance Snapshot', desc: 'Expired items & timesheet queue' },
+                { key: 'pipelineOverview', label: 'Operational Pipeline', desc: 'Job flow & timesheet queue' },
+                { key: 'fleetAssets', label: 'Fleet & Assets', desc: 'Vehicles, equipment & compliance' },
+                { key: 'workforceOverview', label: 'Workforce Overview', desc: 'Headcount across divisions' },
               ].map(w => (
                 <label key={w.key} className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
                   <div>

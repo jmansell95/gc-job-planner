@@ -25,6 +25,7 @@ import NoCrewProfileState from '@/components/staff/NoCrewProfileState';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 import FieldPageShell from '@/components/field/FieldPageShell';
 import RedAlertBanner from '@/components/safety/RedAlertBanner';
+import DivisionIdentityBar from '@/components/DivisionIdentityBar';
 
 const ABSENCE_REASONS = [
   { value: 'holiday', label: 'Holiday' },
@@ -162,6 +163,7 @@ export default function StaffProfile() {
         </button>
       }
     >
+      <DivisionIdentityBar />
       <RedAlertBanner />
       <div className="max-w-4xl mx-auto px-4 pt-3">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">

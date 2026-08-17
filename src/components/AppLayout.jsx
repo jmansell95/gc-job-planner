@@ -4,6 +4,7 @@ import AdminNav from '@/components/AdminNav';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import RedAlertBanner from '@/components/safety/RedAlertBanner';
+import DivisionIdentityBar from '@/components/DivisionIdentityBar';
 import { STANDALONE_ROUTES, ROUTE_TO_SECTION } from '@/utils/standaloneRoutes';
 
 // Maps standalone routes to the closest AdminNav section so the
@@ -56,6 +57,7 @@ export default function AppLayout() {
           className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] xl:pt-0"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
+          <DivisionIdentityBar />
           <div className="px-4 pb-24 md:px-6 xl:pb-6 xl:pt-6 w-full">
             <Breadcrumbs />
             <Outlet />

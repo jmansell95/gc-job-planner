@@ -35,7 +35,7 @@ export default async function(req: Request): Promise<Response> {
       return out;
     };
 
-    const [divisions, staff, jobs, vehicles, invoices, timesheets, compliance] = await Promise.all([
+    const [divisions, staff, jobs, vehicles, invoices, timesheets, compliance, assets] = await Promise.all([
       sr.entities.Division.list('-sort_order', 500),
       fetchAll('Staff'),
       fetchAll('Job'),
@@ -43,6 +43,7 @@ export default async function(req: Request): Promise<Response> {
       fetchAll('Invoice'),
       fetchAll('Timesheet'),
       fetchAll('ComplianceItem'),
+      fetchAll('SiteAsset'),
     ]);
 
     // Per-division stats
@@ -66,6 +67,8 @@ export default async function(req: Request): Promise<Response> {
         jobsCount: dJobs.length,
         activeJobs: dJobs.filter(j => (j.status || 'planning') === 'in_progress').length,
         vehiclesCount: dVehicles.length,
+        assetsCount: assets.filter(a => a.division_id === d.id || (!a.division_id && dJobs.some(j => j.division_id === d.id))).length,
+        planningJobs: dJobs.filter(j => (j.status || 'planning') === 'planning').length,
         outstanding: dInvoices
           .filter(i => i.status && i.status !== 'paid' && i.status !== 'void')
           .reduce((sum, i) => sum + (i.gross_total || 0), 0),
@@ -82,6 +85,11 @@ export default async function(req: Request): Promise<Response> {
       vehicles: vehicles.length,
       pendingTs: timesheets.filter(t => t.status === 'submitted').length,
       openCompliance: compliance.filter(c => c.expiry_date && new Date(c.expiry_date) < now).length,
+      planningJobs: jobs.filter(j => (j.status || 'planning') === 'planning').length,
+      completedJobs: jobs.filter(j => j.status === 'completed').length,
+      assets: assets.filter(a => a.is_active !== false).length,
+      assetsExpiring: assets.filter(a => a.compliance_status === 'expiring' || a.compliance_status === 'expired').length,
+      activeStaff: staff.filter(s => s.is_active !== false).length,
       totalOutstanding: invoices
         .filter(i => i.status && i.status !== 'paid' && i.status !== 'void')
         .reduce((sum, i) => sum + (i.gross_total || 0), 0),

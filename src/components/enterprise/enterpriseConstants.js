@@ -10,5 +10,7 @@ export const WIDGET_STORAGE_KEY = 'gc-enterprise-widgets';
 export const DEFAULT_WIDGETS = {
   divisionHealth: true,
   financialRollup: true,
-  complianceSnapshot: true,
+  pipelineOverview: true,
+  fleetAssets: true,
+  workforceOverview: true,
 };

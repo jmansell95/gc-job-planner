@@ -19,6 +19,7 @@ import { saveOfflineDelivery, hasOfflineDelivery } from '@/utils/offlineSync';
 import FieldPageShell from '@/components/field/FieldPageShell';
 import StaffHeaderActions from '@/components/field/StaffHeaderActions';
 import RedAlertBanner from '@/components/safety/RedAlertBanner';
+import DivisionIdentityBar from '@/components/DivisionIdentityBar';
 import SyncHUD from '@/components/staff/SyncHUD';
 import StaffAlerts from '@/components/staff/StaffAlerts';
 import StatCard from '@/components/dashboard/StatCard';
@@ -367,6 +368,7 @@ export default function DeliveryDashboard() {
       actions={<StaffHeaderActions staff={staff} />}
       contentClassName="pb-20"
     >
+      <DivisionIdentityBar />
       <RedAlertBanner />
 
       {/* Main Content */}
