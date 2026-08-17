@@ -4,13 +4,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   GraduationCap, Users, AlertTriangle, CheckCircle2, Clock, Calendar,
   Search, ShieldCheck, BookOpen, Plus, Trash2, X, Settings, GripVertical,
-  IdCard, Car, Award, CreditCard, FileText, Loader2, UserPlus, Edit2,
+  IdCard, Car, Award, CreditCard, FileText, Loader2, UserPlus, Edit2, Sparkles,
 } from 'lucide-react';
 import { format, isFuture } from 'date-fns';
 import { complianceDaysUntil } from '@/utils/complianceDate';
 import TrainingManager from '@/components/TrainingManager';
 import QualificationDetailSheet from '@/components/staff/QualificationDetailSheet';
 import AssignTrainingModal from '@/components/staff/AssignTrainingModal';
+import AutoBookerModal from '@/components/staff/AutoBookerModal';
 import { CardGridSkeleton } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -73,6 +74,7 @@ function MatrixView() {
   const [selectedStaffIds, setSelectedStaffIds] = useState([]);
   const [showAssign, setShowAssign] = useState(false);
   const [assignPreselect, setAssignPreselect] = useState({ ids: [], category: null });
+  const [showAutoBooker, setShowAutoBooker] = useState(false);
 
   const { data: staff = [], isLoading } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
@@ -200,6 +202,10 @@ function MatrixView() {
         <button onClick={() => openAssign([])}
           className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-[#2E5A1A] text-white text-sm font-semibold hover:bg-[#1c4a12] transition shadow-sm">
           <UserPlus className="w-4 h-4" /> Assign Training
+        </button>
+        <button onClick={() => setShowAutoBooker(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm font-semibold hover:brightness-110 transition shadow-sm">
+          <Sparkles className="w-4 h-4" /> Auto-Booker
         </button>
         <button onClick={() => setShowManage(true)}
           className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition bg-white">
@@ -352,11 +358,23 @@ function MatrixView() {
           preselectedCategory={assignPreselect.category}
           staff={staff}
           courses={courses}
+          bookings={bookings}
           onClose={() => setShowAssign(false)}
         />
       )}
       {showManage && (
         <ManageCategoriesModal requirements={requirements} onClose={() => setShowManage(false)} />
+      )}
+      {showAutoBooker && (
+        <AutoBookerModal
+          staff={staff}
+          teams={teams}
+          compliance={compliance}
+          bookings={bookings}
+          courses={courses}
+          categories={categories}
+          onClose={() => setShowAutoBooker(false)}
+        />
       )}
     </div>
   );

@@ -5,15 +5,16 @@ import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import {
   X, Search, Calendar, Users, Loader2, GraduationCap, CheckCircle2,
+  MapPin, Clock, Plus, AlertCircle,
 } from 'lucide-react';
 import { format, isFuture } from 'date-fns';
 
-export default function AssignTrainingModal({ preselectedStaffIds = [], preselectedCategory = null, staff, courses, onClose }) {
+export default function AssignTrainingModal({ preselectedStaffIds = [], preselectedCategory = null, staff, courses, bookings = [], onClose }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [selectedCourseIds, setSelectedCourseIds] = useState([]);
   const [selectedStaffIds, setSelectedStaffIds] = useState(preselectedStaffIds);
   const [saving, setSaving] = useState(false);
 
@@ -22,6 +23,10 @@ export default function AssignTrainingModal({ preselectedStaffIds = [], preselec
     if (preselectedCategory) list = list.filter(c => c.category === preselectedCategory);
     return list.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
   }, [courses, preselectedCategory]);
+
+  const selectedCourses = useMemo(() =>
+    availableCourses.filter(c => selectedCourseIds.includes(c.id)),
+  [availableCourses, selectedCourseIds]);
 
   const filteredStaff = useMemo(() => staff.filter(s =>
     s.is_active !== false && (
@@ -33,23 +38,54 @@ export default function AssignTrainingModal({ preselectedStaffIds = [], preselec
     setSelectedStaffIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
+  const toggleCourse = (courseId) => {
+    setSelectedCourseIds(prev =>
+      prev.includes(courseId) ? prev.filter(x => x !== courseId) : [...prev, courseId]
+    );
+  };
+
+  const removeCourse = (courseId) => {
+    setSelectedCourseIds(prev => prev.filter(x => x !== courseId));
+  };
+
+  // Check which staff are already booked on each selected course
+  const getAlreadyBooked = (courseId, staffId) => {
+    return bookings.some(b => b.course_id === courseId && b.staff_id === staffId);
+  };
+
   const handleAssign = async () => {
-    if (!selectedCourse) { toast({ title: 'Select a course', variant: 'destructive' }); return; }
+    if (selectedCourseIds.length === 0) { toast({ title: 'Select at least one course', variant: 'destructive' }); return; }
     if (selectedStaffIds.length === 0) { toast({ title: 'Select at least one crew member', variant: 'destructive' }); return; }
     setSaving(true);
     try {
-      const bookings = selectedStaffIds.map(staffId => {
-        const s = staff.find(x => x.id === staffId);
-        return {
-          course_id: selectedCourse.id,
-          staff_id: staffId,
-          staff_name: s?.name || '',
-          status: 'booked',
-        };
-      });
-      await base44.entities.TrainingBooking.bulkCreate(bookings);
+      const newBookings = [];
+      for (const courseId of selectedCourseIds) {
+        for (const staffId of selectedStaffIds) {
+          if (!getAlreadyBooked(courseId, staffId)) {
+            const s = staff.find(x => x.id === staffId);
+            newBookings.push({
+              course_id: courseId,
+              staff_id: staffId,
+              staff_name: s?.name || '',
+              status: 'booked',
+            });
+          }
+        }
+      }
+      if (newBookings.length === 0) {
+        toast({ title: 'All selected crew are already booked on these courses' });
+        onClose();
+        return;
+      }
+      const created = await base44.entities.TrainingBooking.bulkCreate(newBookings);
+      // Notify each newly booked staff member
+      const createdArray = Array.isArray(created) ? created : [created];
+      for (const b of createdArray) {
+        try { await base44.functions.invoke('notifyTrainingBooking', { booking_id: b.id }); } catch (_) {}
+      }
       queryClient.invalidateQueries({ queryKey: ['training-bookings'] });
-      toast({ title: `${bookings.length} crew booked onto ${selectedCourse.title}` });
+      const courseNames = selectedCourses.map(c => c.title).join(', ');
+      toast({ title: `${newBookings.length} booking${newBookings.length === 1 ? '' : 's'} created`, description: courseNames });
       onClose();
     } catch (err) {
       toast({ title: 'Could not assign', description: err.message, variant: 'destructive' });
@@ -57,9 +93,22 @@ export default function AssignTrainingModal({ preselectedStaffIds = [], preselec
     setSaving(false);
   };
 
+  const totalPotentialBookings = selectedCourseIds.length * selectedStaffIds.length;
+  const alreadyBookedCount = useMemo(() => {
+    let count = 0;
+    selectedCourseIds.forEach(cid => {
+      selectedStaffIds.forEach(sid => {
+        if (getAlreadyBooked(cid, sid)) count++;
+      });
+    });
+    return count;
+  }, [selectedCourseIds, selectedStaffIds, bookings]);
+  const newBookingsCount = totalPotentialBookings - alreadyBookedCount;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-5 max-h-[calc(100dvh-2rem)] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-[#2E5A1A] flex items-center justify-center">
@@ -67,15 +116,36 @@ export default function AssignTrainingModal({ preselectedStaffIds = [], preselec
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-base">Assign Training</h3>
-              <p className="text-xs text-slate-500">Book crew onto a training course</p>
+              <p className="text-xs text-slate-500">Select courses and crew — book multiple at once</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition"><X className="w-5 h-5" /></button>
         </div>
 
+        {/* Selected courses chips */}
+        {selectedCourses.length > 0 && (
+          <div className="mb-4 p-3 bg-[#2E5A1A]/5 rounded-xl border border-[#2E5A1A]/15">
+            <p className="text-[10px] font-bold text-[#2E5A1A] uppercase tracking-wide mb-2">Selected Courses ({selectedCourses.length})</p>
+            <div className="flex flex-wrap gap-1.5">
+              {selectedCourses.map(c => (
+                <div key={c.id} className="inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 bg-white border border-[#2E5A1A]/20 rounded-full text-xs font-medium text-slate-700 shadow-sm">
+                  <Calendar className="w-3 h-3 text-[#2E5A1A]" />
+                  <span className="truncate max-w-[140px]">{c.title}</span>
+                  <button onClick={() => removeCourse(c.id)} className="w-4 h-4 rounded-full bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 flex items-center justify-center transition flex-shrink-0">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Course selection */}
         <div className="mb-4">
-          <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">1. Select Course{preselectedCategory && ' (filtered)'}</label>
+          <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">
+            {selectedCourses.length > 0 ? 'Add More Courses' : '1. Select Courses'}
+            {preselectedCategory && ' (filtered)'}
+          </label>
           {availableCourses.length === 0 ? (
             <div className="text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
               <p className="text-xs text-slate-400">No upcoming courses{preselectedCategory ? ' for this category' : ''}.</p>
@@ -86,19 +156,28 @@ export default function AssignTrainingModal({ preselectedStaffIds = [], preselec
             </div>
           ) : (
             <div className="space-y-1.5 max-h-48 overflow-y-auto">
-              {availableCourses.map(c => (
-                <button key={c.id} onClick={() => setSelectedCourse(c)}
-                  className={'w-full flex items-center gap-3 p-3 rounded-xl border transition text-left ' +
-                    (selectedCourse?.id === c.id ? 'border-[#2E5A1A] bg-[#2E5A1A]/5 ring-1 ring-[#2E5A1A]/20' : 'border-slate-200 bg-white hover:bg-slate-50')}>
-                  <div className={'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ' + (selectedCourse?.id === c.id ? 'bg-[#2E5A1A]' : 'bg-blue-100')}>
-                    {selectedCourse?.id === c.id ? <CheckCircle2 className="w-4 h-4 text-white" /> : <Calendar className="w-4 h-4 text-blue-600" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-slate-800 truncate">{c.title}</p>
-                    <p className="text-[10px] text-slate-400">{format(new Date(c.start_date + 'T00:00'), 'dd MMM yyyy')}{c.venue ? ` · ${c.venue}` : ''}{c.provider ? ` · ${c.provider}` : ''}</p>
-                  </div>
-                </button>
-              ))}
+              {availableCourses.map(c => {
+                const isSelected = selectedCourseIds.includes(c.id);
+                return (
+                  <button key={c.id} onClick={() => toggleCourse(c.id)}
+                    className={'w-full flex items-center gap-3 p-3 rounded-xl border transition text-left ' +
+                      (isSelected ? 'border-[#2E5A1A] bg-[#2E5A1A]/5 ring-1 ring-[#2E5A1A]/20' : 'border-slate-200 bg-white hover:bg-slate-50')}>
+                    <div className={'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ' + (isSelected ? 'bg-[#2E5A1A]' : 'bg-blue-100')}>
+                      {isSelected ? <CheckCircle2 className="w-4 h-4 text-white" /> : <Calendar className="w-4 h-4 text-blue-600" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-slate-800 truncate">{c.title}</p>
+                      <p className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                        <span>{format(new Date(c.start_date + 'T00:00'), 'dd MMM yyyy')}</span>
+                        {c.venue && <><span>·</span><span className="flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5" />{c.venue}</span></>}
+                      </p>
+                    </div>
+                    {isSelected && (
+                      <span className="text-[10px] font-bold text-[#2E5A1A] bg-[#2E5A1A]/10 px-2 py-0.5 rounded-full flex-shrink-0">Added</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -130,13 +209,26 @@ export default function AssignTrainingModal({ preselectedStaffIds = [], preselec
           </div>
         </div>
 
+        {/* Summary bar */}
+        {selectedCourseIds.length > 0 && selectedStaffIds.length > 0 && (
+          <div className="mb-3 flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-xl border border-blue-100">
+            <AlertCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />
+            <p className="text-xs text-blue-700 font-medium">
+              {newBookingsCount > 0
+                ? `${newBookingsCount} new booking${newBookingsCount === 1 ? '' : 's'} will be created`
+                : 'All selected crew are already booked on these courses'}
+              {alreadyBookedCount > 0 && ` · ${alreadyBookedCount} already booked`}
+            </p>
+          </div>
+        )}
+
         {/* Footer */}
         <div className="flex gap-2 pt-2 border-t border-slate-100">
           <button onClick={onClose} className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-200 transition">Cancel</button>
-          <button onClick={handleAssign} disabled={saving || !selectedCourse || selectedStaffIds.length === 0}
+          <button onClick={handleAssign} disabled={saving || selectedCourseIds.length === 0 || selectedStaffIds.length === 0}
             className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-xl text-sm font-semibold hover:bg-[#1c4a12] disabled:opacity-50 transition">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
-            {saving ? 'Booking…' : `Book ${selectedStaffIds.length} ${selectedStaffIds.length === 1 ? 'person' : 'crew'}`}
+            {saving ? 'Booking…' : `Book ${selectedStaffIds.length} ${selectedStaffIds.length === 1 ? 'person' : 'crew'} on ${selectedCourseIds.length} ${selectedCourseIds.length === 1 ? 'course' : 'courses'}`}
           </button>
         </div>
       </div>
