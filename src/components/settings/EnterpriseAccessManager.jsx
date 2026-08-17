@@ -11,6 +11,7 @@ import {
 } from '@/utils/permissions';
 import AccessGroupEditor from './access/AccessGroupEditor';
 import AccessGroupDetail from './access/AccessGroupDetail';
+import CrewAccessManager from './access/CrewAccessManager';
 
 export default function EnterpriseAccessManager({ profile }) {
   const qc = useQueryClient();
@@ -19,6 +20,7 @@ export default function EnterpriseAccessManager({ profile }) {
   const [search, setSearch] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [viewMode, setViewMode] = useState('groups');
 
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ['permission-groups'],
@@ -159,11 +161,23 @@ export default function EnterpriseAccessManager({ profile }) {
             Enterprise-Wide Access Control <Globe className="w-3.5 h-3.5 text-emerald-600" />
           </p>
           <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-            Select a group on the left to edit its base permissions and division-specific lockdowns. Staff are assigned to groups via the <strong>Staff Hub</strong>.
+            Use <strong>Access Groups</strong> to edit base permissions and division-specific lockdowns, or switch to <strong>Crews</strong> to apply a permission group to an entire team at once — every crew member inherits the same access instantly.
           </p>
         </div>
       </div>
 
+      {/* View toggle */}
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 w-fit">
+        <button onClick={() => setViewMode('groups')} className={'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ' + (viewMode === 'groups' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500 hover:text-slate-700')}>
+          <KeyRound className="w-3.5 h-3.5" /> Access Groups
+        </button>
+        <button onClick={() => setViewMode('crews')} className={'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ' + (viewMode === 'crews' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500 hover:text-slate-700')}>
+          <Users className="w-3.5 h-3.5" /> Crews
+        </button>
+      </div>
+
+      {viewMode === 'groups' && (
+      <>
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <StatTile icon={KeyRound} label="Total Groups" value={groups.length} tone="emerald" />
@@ -270,6 +284,12 @@ export default function EnterpriseAccessManager({ profile }) {
           )}
         </div>
       </div>
+      </>
+      )}
+
+      {viewMode === 'crews' && (
+        <CrewAccessManager />
+      )}
 
       {/* Inline editor */}
       {editing && (
