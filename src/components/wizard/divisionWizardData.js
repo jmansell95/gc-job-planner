@@ -36,11 +36,6 @@ const BASE_SETTINGS = {
   default_markup_percentage: 0,
   require_briefing_signature: true,
   allow_timesheet_edit: true,
-  enable_geotab_tracking: false,
-  enable_safetyculture: false,
-  enable_asset_panda: false,
-  enable_open_ground: false,
-  enable_keylogbook: false,
 };
 
 // Master registry — single source of truth for all division types.
@@ -55,7 +50,7 @@ export const DIVISION_TYPES = [
     tagline: 'Ground Investigation Specialists',
     enabled_hubs: [...ALL_HUBS],
     nav_items: ['home', 'schedule', 'scan', 'ai_hub', 'profile'],
-    settings: { ...BASE_SETTINGS, enable_geotab_tracking: true, enable_open_ground: true, enable_keylogbook: true },
+    settings: { ...BASE_SETTINGS },
   },
   {
     value: 'land_water',
@@ -66,7 +61,7 @@ export const DIVISION_TYPES = [
     tagline: 'Marine & Waterway Specialists',
     enabled_hubs: [...ALL_HUBS.filter(h => h !== 'investigation')],
     nav_items: ['home', 'schedule', 'scan', 'ai_hub', 'profile'],
-    settings: { ...BASE_SETTINGS, enable_geotab_tracking: true },
+    settings: { ...BASE_SETTINGS },
   },
   {
     value: 'infrastructure',
@@ -77,7 +72,7 @@ export const DIVISION_TYPES = [
     tagline: 'Civil Infrastructure Solutions',
     enabled_hubs: [...ALL_HUBS.filter(h => h !== 'investigation')],
     nav_items: ['home', 'schedule', 'scan', 'ai_hub', 'profile'],
-    settings: { ...BASE_SETTINGS, enable_geotab_tracking: true },
+    settings: { ...BASE_SETTINGS },
   },
   {
     value: 'lde',
@@ -99,7 +94,7 @@ export const DIVISION_TYPES = [
     tagline: 'Environmental Specialists',
     enabled_hubs: [...ALL_HUBS.filter(h => h !== 'investigation')],
     nav_items: ['home', 'schedule', 'scan', 'ai_hub', 'profile'],
-    settings: { ...BASE_SETTINGS, enable_geotab_tracking: true },
+    settings: { ...BASE_SETTINGS },
   },
   {
     value: 'surveys',
@@ -110,7 +105,7 @@ export const DIVISION_TYPES = [
     tagline: 'Survey Specialists',
     enabled_hubs: [...ALL_HUBS.filter(h => h !== 'investigation')],
     nav_items: ['home', 'schedule', 'deliveries', 'ai_hub', 'profile'],
-    settings: { ...BASE_SETTINGS, enable_geotab_tracking: true },
+    settings: { ...BASE_SETTINGS },
   },
   {
     value: 'structural',
@@ -132,7 +127,7 @@ export const DIVISION_TYPES = [
     tagline: 'Renewables Specialists',
     enabled_hubs: [...ALL_HUBS.filter(h => h !== 'investigation')],
     nav_items: ['home', 'schedule', 'scan', 'ai_hub', 'profile'],
-    settings: { ...BASE_SETTINGS, enable_geotab_tracking: true },
+    settings: { ...BASE_SETTINGS },
   },
   {
     value: 'general',
@@ -152,13 +147,9 @@ export const DIVISION_TYPE_LABELS = Object.fromEntries(
   DIVISION_TYPES.map(t => [t.value, t.label])
 );
 
-export const INTEGRATIONS = [
-  { key: 'enable_geotab_tracking', label: 'Geotab GPS', desc: 'Vehicle tracking & geofencing', restrictedTypes: null },
-  { key: 'enable_safetyculture', label: 'SafetyCulture', desc: 'iAuditor audit sync', restrictedTypes: null },
-  { key: 'enable_asset_panda', label: 'Asset Panda', desc: 'Inventory stock sync', restrictedTypes: null },
-  { key: 'enable_open_ground', label: 'OpenGround', desc: 'Borehole data sync', restrictedTypes: ['geotechnical'] },
-  { key: 'enable_keylogbook', label: 'KeyLogBook', desc: 'AGS webhook import', restrictedTypes: ['geotechnical'] },
-];
+// Integrations are now managed centrally from Enterprise Settings → Integrations.
+// No division-level integration toggles — the hub is the single source of truth.
+export const INTEGRATIONS = [];
 
 export const COLOR_SWATCHES = ['#2E5A1A', '#0d9488', '#2563eb', '#7c3aed', '#d97706', '#475569', '#dc2626', '#0891b2'];
 

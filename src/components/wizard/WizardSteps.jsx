@@ -95,37 +95,27 @@ export function StepHubs({ form, setForm }) {
   );
 }
 
-/* ───────────────────────── Step 3: Integrations ───────────────────────── */
+/* ───────────────────────── Step 3: Integrations (info-only) ───────────────────────── */
 export function StepIntegrations({ form, setForm }) {
-  const toggle = (key) => setForm(f => ({ ...f, settings: { ...f.settings, [key]: !f.settings[key] } }));
   return (
     <div className="space-y-3">
-      <label className={labelCls + ' flex items-center gap-1.5'}><Plug className="w-3.5 h-3.5" /> Connect Integrations</label>
-      <p className="text-[11px] text-slate-400">Toggle the services this division uses. You can connect credentials later in Settings.</p>
-      <div className="space-y-2">
-        {INTEGRATIONS.map(i => {
-          const locked = i.restrictedTypes && !i.restrictedTypes.includes(form.division_type);
-          const value = locked ? false : !!form.settings[i.key];
-          return (
-            <div key={i.key} className={'flex items-center justify-between gap-3 p-3 rounded-xl border transition ' + (locked ? 'border-slate-100 bg-slate-50 opacity-60' : 'border-slate-200 bg-white')}>
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                  {i.label}
-                  {i.restrictedTypes && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 uppercase">
-                      {i.restrictedTypes.map(t => DIVISION_TYPE_LABELS[t] || t).join(', ')}
-                    </span>
-                  )}
-                </p>
-                <p className="text-[11px] text-slate-400">{i.desc}</p>
-              </div>
-              <button type="button" disabled={locked} onClick={() => toggle(i.key)}
-                className={'relative w-11 h-6 rounded-full transition flex-shrink-0 ' + (value ? 'bg-[#2E5A1A]' : 'bg-slate-300')}>
-                <span className={'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition ' + (value ? 'translate-x-5' : '')} />
-              </button>
-            </div>
-          );
-        })}
+      <label className={labelCls + ' flex items-center gap-1.5'}><Plug className="w-3.5 h-3.5" /> Integrations</label>
+      <div className="insight-card rounded-2xl p-5 text-center space-y-3">
+        <div className="w-14 h-14 rounded-2xl command-gradient flex items-center justify-center shadow-md mx-auto">
+          <Plug className="w-7 h-7 text-white" />
+        </div>
+        <div>
+          <p className="text-sm font-extrabold text-slate-900">Managed Centrally</p>
+          <p className="text-[12px] text-slate-500 mt-1.5 leading-relaxed">
+            All integrations (Geotab, SafetyCulture, Asset Panda, OpenGround, KeyLogBook, and more) are configured
+            once at the enterprise level and apply to every division automatically.
+          </p>
+        </div>
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+          <p className="text-[11px] font-semibold text-emerald-700">
+            After launching this division, go to Enterprise Settings → Integrations to connect your services.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -134,7 +124,6 @@ export function StepIntegrations({ form, setForm }) {
 /* ───────────────────────── Step 4: Review ───────────────────────── */
 export function StepReview({ form }) {
   const typeLabel = DIVISION_TYPE_LABELS[form.division_type] || form.division_type;
-  const activeIntegrations = INTEGRATIONS.filter(i => form.settings[i.key]).map(i => i.label);
   return (
     <div className="space-y-3">
       <label className={labelCls + ' flex items-center gap-1.5'}><Sparkles className="w-3.5 h-3.5" /> Ready to Launch</label>
@@ -147,7 +136,7 @@ export function StepReview({ form }) {
           <span className="inline-flex items-center gap-1.5"><span className="w-4 h-4 rounded" style={{ background: form.color }} /> {form.color}</span>
         </ReviewRow>
         <ReviewRow label="Hubs" value={(form.enabled_hubs || []).length + ' enabled'} />
-        <ReviewRow label="Integrations" value={activeIntegrations.length ? activeIntegrations.join(', ') : 'None'} />
+        <ReviewRow label="Integrations" value="Managed centrally" />
       </div>
     </div>
   );

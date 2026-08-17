@@ -9,6 +9,7 @@ import DivisionManager from '@/components/settings/DivisionManager';
 import IntegrationsHub from '@/components/settings/IntegrationsHub';
 import EnterpriseAccessManager from '@/components/settings/EnterpriseAccessManager';
 import BackupRestoreHub from '@/components/settings/BackupRestoreHub';
+import IntegrationConfigDrawer from '@/components/settings/IntegrationConfigDrawer';
 
 const TABS = [
   { id: 'divisions', label: 'Divisions', icon: Building2, gradient: 'from-emerald-600 to-teal-700' },
@@ -22,6 +23,7 @@ export default function EnterpriseSettings() {
   const location = useLocation();
   const { setActiveDivision } = useDivision();
   const [activeTab, setActiveTab] = useState(location.state?.tab || 'divisions');
+  const [selectedIntegration, setSelectedIntegration] = useState(null);
 
   // Clear division context — this is an enterprise-level page.
   useEffect(() => { setActiveDivision(null); }, [setActiveDivision]);
@@ -30,7 +32,7 @@ export default function EnterpriseSettings() {
     switch (activeTab) {
       case 'divisions': return <DivisionManager />;
       case 'backup': return <BackupRestoreHub />;
-      case 'integrations': return <IntegrationsHub />;
+      case 'integrations': return <IntegrationsHub onNavigate={setSelectedIntegration} />;
       case 'access': return <EnterpriseAccessManager />;
       default: return null;
     }
@@ -86,6 +88,14 @@ export default function EnterpriseSettings() {
           {renderTab()}
         </div>
       </div>
+
+      {/* Integration config drawer — enterprise-level, admin-only */}
+      {selectedIntegration && (
+        <IntegrationConfigDrawer
+          integrationId={selectedIntegration}
+          onClose={() => setSelectedIntegration(null)}
+        />
+      )}
     </div>
   );
 }

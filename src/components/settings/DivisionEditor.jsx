@@ -49,11 +49,6 @@ export default function DivisionEditor({ division, onClose, onSaved }) {
       default_markup_percentage: 0,
       require_briefing_signature: true,
       allow_timesheet_edit: true,
-      enable_geotab_tracking: false,
-      enable_safetyculture: false,
-      enable_asset_panda: false,
-      enable_open_ground: false,
-      enable_keylogbook: false,
     },
   }));
   const [saving, setSaving] = useState(false);
@@ -353,39 +348,15 @@ export default function DivisionEditor({ division, onClose, onSaved }) {
                 />
               </div>
 
-              {/* Integrations */}
-              <div className="insight-card rounded-xl p-3 space-y-2">
-                <p className="text-xs font-bold text-slate-700 uppercase tracking-wide">Integrations</p>
-                <SettingToggle
-                  label="Geotab GPS Tracking"
-                  desc="Vehicle tracking and geofence detection"
-                  value={form.settings.enable_geotab_tracking}
-                  onChange={v => updateSetting('enable_geotab_tracking', v)}
-                />
-                <SettingToggle
-                  label="SafetyCulture"
-                  desc="iAuditor audit and inspection sync"
-                  value={form.settings.enable_safetyculture}
-                  onChange={v => updateSetting('enable_safetyculture', v)}
-                />
-                <SettingToggle
-                  label="Asset Panda"
-                  desc="Inventory and stock level sync"
-                  value={form.settings.enable_asset_panda}
-                  onChange={v => updateSetting('enable_asset_panda', v)}
-                />
-                <SettingToggle
-                  label="OpenGround"
-                  desc="Borehole data sync (geotechnical only)"
-                  value={form.settings.enable_open_ground}
-                  onChange={v => updateSetting('enable_open_ground', v)}
-                />
-                <SettingToggle
-                  label="KeyLogBook"
-                  desc="AGS webhook import (geotechnical only)"
-                  value={form.settings.enable_keylogbook}
-                  onChange={v => updateSetting('enable_keylogbook', v)}
-                />
+              {/* Integrations are managed centrally from Enterprise Settings → Integrations.
+                  Division-level toggles have been removed to ensure a single source of truth. */}
+              <div className="insight-card rounded-xl p-3">
+                <p className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Integrations</p>
+                <p className="text-[11px] text-slate-400">
+                  All integrations (Geotab, SafetyCulture, Asset Panda, OpenGround, KeyLogBook, etc.) are now managed
+                  centrally from <span className="font-semibold text-[#2E5A1A]">Enterprise Settings → Integrations</span>.
+                  This ensures every division uses the same configuration.
+                </p>
               </div>
             </div>
           )}

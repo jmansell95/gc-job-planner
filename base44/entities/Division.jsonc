@@ -69,7 +69,7 @@
     },
     "settings": {
       "type": "object",
-      "description": "Division-specific operational settings that override platform defaults for this division's users. Configured in Settings \u2192 Divisions \u2192 Edit \u2192 Settings.",
+      "description": "Division-specific operational settings that override platform defaults for this division's users. Configured in Settings \u2192 Divisions \u2192 Edit \u2192 Settings. Integrations are no longer managed here \u2014 they are managed centrally from Enterprise Settings \u2192 Integrations.",
       "properties": {
         "vat_rate": {
           "type": "number",
@@ -90,31 +90,6 @@
           "type": "boolean",
           "default": true,
           "description": "Whether field staff can edit their own timesheets in this division."
-        },
-        "enable_geotab_tracking": {
-          "type": "boolean",
-          "default": false,
-          "description": "Whether Geotab GPS vehicle tracking is active for this division."
-        },
-        "enable_safetyculture": {
-          "type": "boolean",
-          "default": false,
-          "description": "Whether SafetyCulture (iAuditor) integration is active for this division."
-        },
-        "enable_asset_panda": {
-          "type": "boolean",
-          "default": false,
-          "description": "Whether Asset Panda inventory sync is active for this division."
-        },
-        "enable_open_ground": {
-          "type": "boolean",
-          "default": false,
-          "description": "Whether OpenGround borehole data sync is active for this division (geotechnical only)."
-        },
-        "enable_keylogbook": {
-          "type": "boolean",
-          "default": false,
-          "description": "Whether KeyLogBook AGS webhook import is active for this division (geotechnical only)."
         }
       }
     },
