@@ -92,37 +92,50 @@ export default function AssetScannerPage() {
     return { total: active.length, compliant, issues, rigs };
   }, [assets]);
 
-  const handleScan = useCallback((val) => {
-    const q = val.trim().toLowerCase();
+  const [resolving, setResolving] = useState(false);
+
+  const handleScan = useCallback(async (val) => {
+    const q = val.trim();
     if (!q) return;
-    const found = assets.find((a) => {
-      const sn = (a.serial_number || '').toLowerCase().trim();
-      const pid = (a.panda_asset_id || '').toLowerCase().trim();
-      const nm = (a.name || '').toLowerCase().trim();
-      const equip = (a.equipment_type || '').toLowerCase().trim();
-      return sn === q || pid === q || nm === q ||
-        (sn && sn.includes(q)) || (pid && pid.includes(q)) ||
-        (nm && nm.includes(q)) || (equip && equip.includes(q));
-    });
-    if (!found) {
+    setResolving(true);
+    setScanError('');
+    try {
+      // Hit the backend resolver — tries Asset Panda first (live), falls back to local.
+      const res = await base44.functions.invoke('resolveAssetByQR', { scan: q });
+      const data = res.data || res;
+      const found = data.asset;
+      if (!found) {
+        setResolving(false);
+        setScanError(val);
+        setLastScan('');
+        setScanResult(null);
+        return;
+      }
+      setScanError('');
+      setLastScan(found.name);
+      setScanResult(found);
+      setSearchQuery('');
+      setShowSearch(false);
+      // Refresh the local cache so the live Panda data is reflected
+      queryClient.invalidateQueries({ queryKey: ['site-assets'] });
+      setBasket((prev) => {
+        if (prev.find((a) => a.id === found.id)) {
+          toast({ title: 'Already in basket', description: found.name });
+          return prev;
+        }
+        return [...prev, found];
+      });
+      // Subtle source indicator — Panda (live) vs local cache
+      if (data.source === 'panda' && data.created) {
+        toast({ title: 'New from Asset Panda', description: `${found.name} added to local inventory` });
+      }
+    } catch (e) {
       setScanError(val);
       setLastScan('');
       setScanResult(null);
-      return;
     }
-    setScanError('');
-    setLastScan(found.name);
-    setScanResult(found);
-    setSearchQuery('');
-    setShowSearch(false);
-    setBasket((prev) => {
-      if (prev.find((a) => a.id === found.id)) {
-        toast({ title: 'Already in basket', description: found.name });
-        return prev;
-      }
-      return [...prev, found];
-    });
-  }, [assets, toast]);
+    setResolving(false);
+  }, [toast, queryClient]);
 
   // Tap a search result to add it
   const handleSelectResult = (asset) => {
@@ -307,6 +320,12 @@ export default function AssetScannerPage() {
               placeholder="Scan barcode or type to search (e.g. shackle)…"
               autoFocus={false}
             />
+            {resolving && (
+              <div className="absolute inset-0 bg-white/70 backdrop-blur-sm rounded-2xl flex items-center justify-center gap-2.5">
+                <div className="w-5 h-5 border-2 border-[#2E5A1A] border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm font-medium text-[#2E5A1A]">Checking Asset Panda…</p>
+              </div>
+            )}
 
             {/* Live search results dropdown */}
             {showSearch && searchQuery.trim().length >= 2 && (

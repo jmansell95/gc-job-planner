@@ -76,6 +76,20 @@ export default function EquipmentSignOutModal({ open, onClose, assets = [], staf
       await base44.entities.JobAssetAssignment.bulkCreate(records);
       queryClient.invalidateQueries({ queryKey: ['job-asset-assignments'] });
       queryClient.invalidateQueries({ queryKey: ['job-asset-assignments-staff'] });
+
+      // Push the sign-out to Asset Panda so the yard's Panda dashboard
+      // shows the gear as 'Out on Job'. Non-blocking — local records are
+      // already saved, so a Panda outage doesn't break the sign-out flow.
+      const pandaIds = assets.map(a => a.panda_asset_id).filter(Boolean);
+      if (pandaIds.length > 0) {
+        try {
+          await base44.functions.invoke('pushSignOutToPanda', {
+            panda_ids: pandaIds,
+            job_name: selectedJob?.name || '',
+          });
+        } catch (_) { /* non-fatal — local records are already saved */ }
+      }
+
       setConfirmed(true);
       setTimeout(() => {
         onClose();

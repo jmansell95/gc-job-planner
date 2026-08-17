@@ -26,40 +26,35 @@ export default function RigSignInScanner({ open, onClose, staffId, assignments =
 
   const rigMap = useMemo(() => Object.fromEntries(rigs.map(r => [r.id, r])), [rigs]);
 
-  const handleScan = useCallback((val) => {
-    const q = val.trim().toLowerCase();
+  const handleScan = useCallback(async (val) => {
+    const q = val.trim();
     if (!q) return;
     setSearching(true);
     setError('');
 
-    // Find the rig by serial, name, or panda ID
-    const found = rigs.find(r => {
-      const sn = (r.serial_number || '').toLowerCase().trim();
-      const nm = (r.name || '').toLowerCase().trim();
-      const pid = (r.panda_asset_id || '').toLowerCase().trim();
-      const equip = (r.equipment_type || '').toLowerCase().trim();
-      return sn === q || nm === q || pid === q ||
-        (sn && sn.includes(q)) || (nm && nm.includes(q)) || (equip && equip.includes(q));
-    });
+    try {
+      // Resolve via backend — Asset Panda first (live), local fallback.
+      const res = await base44.functions.invoke('resolveAssetByQR', { scan: q });
+      const data = res.data || res;
+      const found = data.asset;
 
-    if (!found) {
-      setSearching(false);
-      setError(`No rig found for "${val}"`);
-      setScanResult(null);
-      return;
-    }
+      if (!found || !found.is_rig) {
+        setSearching(false);
+        setError(found ? `${found.name} is not a rig` : `No rig found for "${val}"`);
+        setScanResult(null);
+        return;
+      }
 
-    setScanResult(found);
+      setScanResult(found);
 
-    // Find today's assignment for this staff with this rig
-    const todayAssignment = assignments.find(a =>
-      a.staff_id === staffId &&
-      a.assigned_date === todayStr &&
-      a.rig_asset_id === found.id &&
-      (a.status || 'assigned') !== 'completed'
-    );
+      // Find today's assignment for this staff with this rig
+      const todayAssignment = assignments.find(a =>
+        a.staff_id === staffId &&
+        a.assigned_date === todayStr &&
+        a.rig_asset_id === found.id &&
+        (a.status || 'assigned') !== 'completed'
+      );
 
-    setTimeout(() => {
       setSearching(false);
       if (!todayAssignment) {
         setError(`You're not assigned to ${found.name} today. Check with your manager.`);
@@ -75,8 +70,12 @@ export default function RigSignInScanner({ open, onClose, staffId, assignments =
         if (onSignIn) onSignIn(todayAssignment.id);
         onClose();
       }, 800);
-    }, 400);
-  }, [rigs, assignments, staffId, todayStr, jobs, toast, onSignIn, onClose]);
+    } catch (e) {
+      setSearching(false);
+      setError(`Could not resolve scan — ${e.message || 'try again'}`);
+      setScanResult(null);
+    }
+  }, [assignments, staffId, todayStr, jobs, toast, onSignIn, onClose]);
 
   // Show rig + crew details after a successful scan
   const scannedRig = scanResult;
