@@ -99,7 +99,7 @@ export default function HelpGuide() {
 
   return (
     <>
-      <HelpGuideDesktop {...sharedProps} />
+      <HelpGuideDesktop {...sharedProps} onBack={() => navigate(-1)} />
       <HelpGuideMobile {...sharedProps} onBack={() => navigate(-1)} />
     </>
   );

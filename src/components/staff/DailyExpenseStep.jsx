@@ -204,6 +204,14 @@ export default function DailyExpenseStep({ job, staffId, assignment, expenses, s
           {expenses.map((e) => {
             const meta = CATEGORY_META[e.category] || CATEGORY_META.misc;
             const Icon = meta.icon;
+            const updateAmount = (val) => {
+              const amount = parseFloat(val) || 0;
+              const vatRate = Number(e.vat_rate) || 0;
+              const vat = Math.round(amount * (vatRate / 100) * 100) / 100;
+              setExpenses(expenses.map(x => x._temp_id === e._temp_id ? {
+                ...x, amount_net: Math.round(amount * 100) / 100, amount_vat: vat, amount_gross: Math.round((amount + vat) * 100) / 100,
+              } : x));
+            };
             return (
               <div key={e._temp_id} className={`rounded-xl border p-3 ${meta.bg}`}>
                 <div className="flex items-center gap-2.5">
@@ -218,13 +226,17 @@ export default function DailyExpenseStep({ job, staffId, assignment, expenses, s
                       {e.vat_rate > 0 && <span className="text-[10px] text-slate-400">VAT {e.vat_rate}%</span>}
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold text-slate-900 tabular-nums">{fmt(e.amount_gross)}</p>
-                    {e.amount_vat > 0 && <p className="text-[10px] text-slate-400 tabular-nums">net {fmt(e.amount_net)}</p>}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="relative">
+                      <PoundSterling className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                      <input type="number" min="0" step="0.01" value={e.amount_net || ''} onChange={ev => updateAmount(ev.target.value)}
+                        placeholder="0.00"
+                        className="w-24 pl-7 pr-2 py-1.5 border border-slate-300 rounded-lg text-sm font-bold text-slate-900 tabular-nums focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white" />
+                    </div>
+                    <button type="button" onClick={() => removeExpense(e._temp_id)} className="p-1 text-slate-300 hover:text-red-500 transition">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  <button type="button" onClick={() => removeExpense(e._temp_id)} className="p-1 text-slate-300 hover:text-red-500 transition">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
                 </div>
                 {/* Receipt photo */}
                 <div className="mt-2 flex items-center gap-2">

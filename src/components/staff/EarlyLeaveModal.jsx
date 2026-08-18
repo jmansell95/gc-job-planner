@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, DoorOpen, Clock, CheckCircle2, FileText } from 'lucide-react';
 
@@ -11,23 +11,35 @@ const DEFAULT_REASONS = [
   'Other',
 ];
 
+function nowHHMM() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 // Lets staff leave site before the end of the shift with a reason. The reason
 // and optional note are saved to the assignment and surfaced to managers on
-// the timesheet approval view.
-export default function EarlyLeaveModal({ open, onClose, onConfirm, jobName }) {
+// the timesheet approval view. The departure time auto-populates with the
+// current time when the modal opens.
+export default function EarlyLeaveModal({ open, onClose, onConfirm, jobName, defaultTime }) {
   const [reason, setReason] = useState('');
   const [customReason, setCustomReason] = useState('');
   const [note, setNote] = useState('');
+  const [leaveTime, setLeaveTime] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Auto-populate the time when the modal opens
+  useEffect(() => {
+    if (open) setLeaveTime(defaultTime || nowHHMM());
+  }, [open, defaultTime]);
 
   const isOther = reason === 'Other';
   const finalReason = isOther ? customReason.trim() : reason;
-  const canConfirm = reason && (!isOther || customReason.trim()) && !saving;
+  const canConfirm = reason && (!isOther || customReason.trim()) && !saving && leaveTime;
 
   const handleConfirm = async () => {
     if (!canConfirm) return;
     setSaving(true);
-    await onConfirm({ reason: finalReason, note: note.trim() || null });
+    await onConfirm({ reason: finalReason, note: note.trim() || null, leave_time: leaveTime });
     setSaving(false);
     setReason(''); setCustomReason(''); setNote('');
   };
@@ -69,6 +81,15 @@ export default function EarlyLeaveModal({ open, onClose, onConfirm, jobName }) {
                 <p className="text-xs text-amber-900 leading-relaxed">
                   Please record your reason for leaving site. This is saved on your timesheet for your manager to review.
                 </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Departure time</label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input type="time" value={leaveTime} onChange={e => setLeaveTime(e.target.value)}
+                    className="w-full pl-10 pr-3 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white" />
+                </div>
               </div>
 
               <div>

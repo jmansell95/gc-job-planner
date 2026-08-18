@@ -194,9 +194,7 @@ export default function DisciplineBuilder({ disciplines, onChange, teams = [] })
                       {d.type === 'drilling' && d.drilling_method && d.drilling_method !== 'not_applicable' && (
                         <span className="ml-1.5">· {d.drilling_method.toUpperCase()}</span>
                       )}
-                      {Array.isArray(d.required_team_ids) && d.required_team_ids.length > 0 && (
-                        <span className="ml-1.5">· {d.required_team_ids.length} team{d.required_team_ids.length !== 1 ? 's' : ''}</span>
-                      )}
+
                     </p>
                   </div>
 
@@ -277,37 +275,6 @@ export default function DisciplineBuilder({ disciplines, onChange, teams = [] })
                         </div>
                       </div>
                     )}
-
-                    {/* Required Teams — per-discipline crew assignment */}
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-                        Required Teams <span className="text-slate-300 normal-case tracking-normal">· staff from these teams can be assigned to this track</span>
-                      </label>
-                      {teams.length === 0 ? (
-                        <p className="text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">No teams set up yet. Add teams in Settings first.</p>
-                      ) : (
-                        <div className="flex flex-wrap gap-1.5">
-                          {teams.map(t => {
-                            const selected = (d.required_team_ids || []).includes(t.id);
-                            return (
-                              <button
-                                key={t.id}
-                                type="button"
-                                onClick={() => toggleTeam(i, t.id)}
-                                className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition font-medium ${
-                                  selected
-                                    ? `${tone.bar} text-white border-transparent`
-                                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                                }`}
-                              >
-                                <Users className="w-3 h-3" />
-                                {t.name}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
 
                   </div>
                 )}

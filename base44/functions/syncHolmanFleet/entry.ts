@@ -140,10 +140,16 @@ export default async function(req: Request): Promise<Response> {
       let synced = 0;
       let unmatched = 0;
 
+      // Permanently blacklisted registrations — never synced from Holman
+      const BLACKLISTED_REGS = ['GJ69SWX'];
+
       for (const fv of fleetData) {
         const reg = normalizeReg(deepGet(fv, 'registration', 'registration_number', 'vrn', 'license_plate'));
         const holmanId = String(deepGet(fv, 'id', 'vehicle_id', 'fleet_id', 'asset_id') || '');
         const vin = String(deepGet(fv, 'vin', 'chassis_number') || '');
+
+        // Skip blacklisted vehicles entirely
+        if (BLACKLISTED_REGS.includes(reg)) continue;
 
         let match: any = null;
         if (reg) match = localVehicles.find((v: any) => normalizeReg(v.registration_number) === reg);

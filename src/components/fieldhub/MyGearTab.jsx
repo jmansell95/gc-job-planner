@@ -140,7 +140,7 @@ export default function MyGearTab({ staffProfile, allAssets = [], onOpenAsset })
           <PackageOpen className="w-10 h-10 text-slate-300" />
         </div>
         <p className="text-slate-500 font-medium text-base">No gear assigned to you</p>
-        <p className="text-slate-400 text-sm mt-1">Scan a rig QR code to start using it</p>
+        <p className="text-slate-400 text-sm mt-1">Scan a QR code to start using it</p>
       </div>
     );
   }

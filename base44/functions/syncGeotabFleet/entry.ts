@@ -279,6 +279,12 @@ export default async function(req: Request): Promise<Response> {
     const deviceRegMap: Record<string, string> = {};
     const deviceVehicleMap: Record<string, any> = {};
 
+    // ── Permanently blacklisted registrations — these vehicles are never
+    // created or updated by sync. They are permanently excluded from the
+    // fleet regardless of what Geotab/Holman reports.
+    const BLACKLISTED_REGS = ['GJ69SWX'];
+    const isBlacklisted = (reg: string) => BLACKLISTED_REGS.includes(normalizeReg(reg));
+
     // ── Sync vehicle details (create/update Vehicle records) ──
     for (const d of devices) {
       const deviceId = d.id;
@@ -293,6 +299,9 @@ export default async function(req: Request): Promise<Response> {
       }
       const vin = (d.vehicleIdentificationNumber || '').toString().trim();
       const vt = d.vehicleType?.id ? vehicleTypeMap[d.vehicleType.id] : null;
+
+      // Skip blacklisted vehicles entirely — never create or update them
+      if (isBlacklisted(reg)) continue;
 
       deviceRegMap[deviceId] = reg;
 

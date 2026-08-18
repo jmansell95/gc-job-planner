@@ -83,7 +83,7 @@ export default function JobManager({ onNavigateRota }) {
   const [editingJob, setEditingJob] = useState(null);
   const [cloningId, setCloningId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('active');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [createdJob, setCreatedJob] = useState(null);
   const [view, setView] = useState('jobs'); // 'jobs' | 'projects'
   const [layoutView, setLayoutView] = useState('grid'); // 'grid' | 'kanban'
@@ -317,7 +317,6 @@ export default function JobManager({ onNavigateRota }) {
           {/* Status buttons */}
           <div className="flex flex-wrap items-center gap-2">
             {[
-              { value: 'active', label: 'Active', count: jobs.filter(j => ['planning','in_progress','decommissioning'].includes(j.status || 'planning')).length },
               { value: 'all', label: 'All', count: jobs.length },
               { value: 'planning', label: 'Planning', count: jobs.filter(j => (j.status || 'planning') === 'planning').length },
               { value: 'in_progress', label: 'In Progress', count: jobs.filter(j => (j.status || 'planning') === 'in_progress').length },

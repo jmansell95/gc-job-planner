@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Download, ChevronRight, BookOpen, X } from 'lucide-react';
+import { Search, Download, ChevronRight, BookOpen, X, ArrowLeft } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 
@@ -14,7 +14,7 @@ const categoryConfig = {
 
 export default function HelpGuideDesktop({
   topics, isLoading, search, setSearch, activeCategory, setActiveCategory,
-  selectedTopic, setSelectedTopic, filtered, groupedByCategory, handleExportPDF,
+  selectedTopic, setSelectedTopic, filtered, groupedByCategory, handleExportPDF, onBack,
 }) {
   const categories = Object.keys(groupedByCategory);
 
@@ -24,6 +24,11 @@ export default function HelpGuideDesktop({
       <aside className="w-80 flex-shrink-0 border-r border-slate-200 bg-white/60 backdrop-blur-sm flex flex-col">
         <div className="px-5 pt-5 pb-3">
           <div className="flex items-center gap-2.5 mb-4">
+            {onBack && (
+              <button onClick={onBack} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition flex-shrink-0">
+                <ArrowLeft className="w-5 h-5 text-slate-600" />
+              </button>
+            )}
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm">
               <BookOpen className="w-5 h-5 text-white" />
             </div>

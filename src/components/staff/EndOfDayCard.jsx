@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Phone, PartyPopper } from 'lucide-react';
+import { CheckCircle2, PartyPopper } from 'lucide-react';
 
 // Celebratory end-of-day card — gradient hero with confetti accent.
 export default function EndOfDayCard() {
@@ -19,11 +19,8 @@ export default function EndOfDayCard() {
         </div>
         <h2 className="text-2xl md:text-3xl font-extrabold mb-2 tracking-tight">That's a wrap!</h2>
         <p className="text-emerald-50/90 text-sm md:text-base max-w-md mx-auto leading-relaxed">
-          All your jobs are complete. Give your line manager a quick call for any updates before heading home.
+          All your jobs are complete and your timesheet has been submitted. Have a safe journey home!
         </p>
-        <a href="tel:" className="mt-5 inline-flex items-center gap-2 px-5 py-3 bg-white/15 hover:bg-white/25 ring-1 ring-white/20 rounded-xl text-sm font-semibold backdrop-blur-sm transition touch-manipulation">
-          <Phone className="w-4 h-4" strokeWidth={2.5} /> Call your line manager
-        </a>
       </div>
     </motion.div>
   );

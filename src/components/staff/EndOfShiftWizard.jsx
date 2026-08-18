@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { X, CheckCircle2, Car, Ruler, FileText, ClipboardCheck, Send, ChevronRight, AlertTriangle, Coffee, Briefcase, Info, ShieldCheck, Clock, Receipt, Boxes } from 'lucide-react';
+import { X, CheckCircle2, Car, Ruler, FileText, ClipboardCheck, Send, ChevronRight, AlertTriangle, Coffee, Briefcase, Info, ShieldCheck, Clock, Receipt, Boxes, DoorOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import DailyExpenseStep from './DailyExpenseStep';
 import AssetRecoveryStep from './AssetRecoveryStep';
@@ -29,7 +29,7 @@ const entryMeta = (t) => {
 // travel home (last job) → final review & submit.
 const REQUIRED_WORK_MINS = 540; // 9 hours on-site (excludes travel)
 
-export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, job, staffId, isDriller, isLastJob }) {
+export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, job, staffId, isDriller, isLastJob, onEarlyLeave }) {
   const today = format(new Date(), 'yyyy-MM-dd');
   const [step, setStep] = useState(0);
   const [meterage, setMeterage] = useState('');
@@ -52,7 +52,15 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
   useEffect(() => {
     if (open) {
       setStep(0); setMeterage(''); setProgressNotes(assignment?.progress_notes || '');
-      setDepartSite(''); setArriveHome(''); setSubmitting(false);
+      // Default "Left site" to the assignment's left_site_at time if recorded
+      let defaultDepart = '';
+      if (assignment?.left_site_at) {
+        const d = new Date(assignment.left_site_at);
+        if (!isNaN(d.getTime())) {
+          defaultDepart = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        }
+      }
+      setDepartSite(defaultDepart); setArriveHome(''); setSubmitting(false);
       setExpenses([]);
       setAssetReturnData({ scannedItems: [], scannedAssetIds: [], scannedManifestIds: [] });
       setConfirmations({ tasks: false, travel: false, hours: false });
@@ -411,9 +419,15 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
                   {shortDayWithoutReason && (
                     <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-3.5 py-3">
                       <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="text-xs font-bold text-red-900">Cannot submit — under 9 hours with no early-leave reason</p>
-                        <p className="text-xs text-red-700 mt-0.5">Go back to your job card and tap <strong>Leave Site Early</strong> to record why, or add the missing on-site tasks.</p>
+                        <p className="text-xs text-red-700 mt-0.5">Record why you left site early, or go back and add the missing on-site tasks.</p>
+                        {onEarlyLeave && (
+                          <button type="button" onClick={() => onEarlyLeave(assignment?.id)}
+                            className="mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-2 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 active:scale-95 transition touch-manipulation">
+                            <DoorOpen className="w-3.5 h-3.5" /> Record Early Leave Reason
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
