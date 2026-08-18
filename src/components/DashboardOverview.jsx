@@ -18,25 +18,19 @@ import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
 import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
 import CommandJobModal from '@/components/dashboard/CommandJobModal';
 import { useSafetyCultureStatus } from '@/hooks/useSafetyCultureStatus';
-import { useDivisionFilter } from '@/hooks/useDivisionScope';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
 
 export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [drawerJob, setDrawerJob] = useState(null);
   const [modalJob, setModalJob] = useState(null);
   const { selectedJobId } = useJobFilter();
   const isAllJobs = selectedJobId === 'all';
-  const inDivision = useDivisionFilter();
-
-  const { data: staffRaw = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
-  const { data: vehiclesRaw = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
-  const { data: jobsRaw = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
-  const { data: timesheetsRaw = [] } = useQuery({ queryKey: ['timesheets'], queryFn: () => base44.entities.Timesheet.list('-created_date', 100) });
-  const staff = inDivision(staffRaw);
-  const vehicles = inDivision(vehiclesRaw);
-  const jobs = inDivision(jobsRaw);
-  const timesheets = inDivision(timesheetsRaw);
+  const { data: staff = [] } = useScopedEntity('Staff', { queryKey: ['staff'], limit: 500 });
+  const { data: vehicles = [] } = useScopedEntity('Vehicle', { queryKey: ['vehicles'], limit: 500 });
+  const { data: jobs = [] } = useScopedEntity('Job', { queryKey: ['jobs'], limit: 500 });
+  const { data: timesheets = [] } = useScopedEntity('Timesheet', { queryKey: ['timesheets'], sort: '-created_date', limit: 100 });
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const { data: deliveries = [] } = useQuery({ queryKey: ['deliveries'], queryFn: () => base44.entities.DeliveryLog.filter({ scheduled_date: todayStr }) });
+  const { data: deliveries = [] } = useScopedEntity('DeliveryLog', { queryKey: ['deliveries', todayStr], filter: { scheduled_date: todayStr }, limit: 500 });
   const { data: safetyReports = [] } = useQuery({ queryKey: ['safety-reports-open'], queryFn: () => base44.entities.SafetyReport.filter({ status: 'open' }) });
   const { isConnected: scConnected } = useSafetyCultureStatus();
 
@@ -44,17 +38,9 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
   const weekDays = Array.from({ length: 7 }, (_, i) => format(addDays(weekStart, i), 'yyyy-MM-dd'));
 
-  const { data: thisWeekRotasRaw = [] } = useQuery({
-    queryKey: ['rotas-this-week', weekStartStr],
-    queryFn: () => base44.entities.RotaAssignment.filter({ week_start: weekStartStr })
-  });
-  const thisWeekRotas = inDivision(thisWeekRotasRaw);
+  const { data: thisWeekRotas = [] } = useScopedEntity('RotaAssignment', { queryKey: ['rotas-this-week', weekStartStr], filter: { week_start: weekStartStr }, limit: 500 });
 
-  const { data: todayRotasRawUnscoped = [] } = useQuery({
-    queryKey: ['rotas-today', todayStr],
-    queryFn: () => base44.entities.RotaAssignment.filter({ assigned_date: todayStr })
-  });
-  const todayRotasRaw = inDivision(todayRotasRawUnscoped);
+  const { data: todayRotasRaw = [] } = useScopedEntity('RotaAssignment', { queryKey: ['rotas-today', todayStr], filter: { assigned_date: todayStr }, limit: 500 });
 
   const { data: profile } = useQuery({
     queryKey: ['my-staff-profile'],

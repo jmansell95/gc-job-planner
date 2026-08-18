@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
 import { format } from 'date-fns';
 import {
   FlaskConical, Filter, Search, ChevronRight, Ruler, Droplets, Gauge, Camera,
@@ -39,14 +40,8 @@ export default function InvestigationHub({ onNavigate }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: logs = [], isLoading } = useQuery({
-    queryKey: ['investigation-hub-logs'],
-    queryFn: () => base44.entities.InvestigationLog.list('-created_date', 300),
-  });
-  const { data: jobs = [] } = useQuery({
-    queryKey: ['investigation-hub-jobs'],
-    queryFn: () => base44.entities.Job.list(),
-  });
+  const { data: logs = [], isLoading } = useScopedEntity('InvestigationLog', { queryKey: ['investigation-hub-logs'], sort: '-created_date', limit: 300 });
+  const { data: jobs = [] } = useScopedEntity('Job', { queryKey: ['investigation-hub-jobs'], limit: 500 });
 
   const jobMap = useMemo(() => {
     const m = {};

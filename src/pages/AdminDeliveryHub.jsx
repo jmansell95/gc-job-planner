@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
 import { Truck, Search, LayoutGrid, List, Filter, Clock, PlayCircle, CheckCircle2, AlertTriangle, ArrowRightLeft, Package, Store, Boxes } from 'lucide-react';
 import { format, isToday, isFuture, isPast } from 'date-fns';
 import DeliveryBoard from '@/components/admin/DeliveryBoard';
@@ -41,15 +42,9 @@ export default function AdminDeliveryHub() {
   const [driverFilter, setDriverFilter] = useState('all');
   const [selected, setSelected] = useState(null);
 
-  const { data: deliveries = [], isLoading } = useQuery({
-    queryKey: ['admin-all-deliveries'],
-    queryFn: async () => {
-      const list = await base44.entities.DeliveryLog.list('-scheduled_date', 500);
-      return list;
-    }
-  });
-  const { data: jobs = [] } = useQuery({ queryKey: ['admin-delivery-jobs'], queryFn: () => base44.entities.Job.list() });
-  const { data: staff = [] } = useQuery({ queryKey: ['admin-delivery-staff'], queryFn: () => base44.entities.Staff.filter({ is_active: true }) });
+  const { data: deliveries = [], isLoading } = useScopedEntity('DeliveryLog', { queryKey: ['admin-all-deliveries'], sort: '-scheduled_date', limit: 500 });
+  const { data: jobs = [] } = useScopedEntity('Job', { queryKey: ['admin-delivery-jobs'], limit: 500 });
+  const { data: staff = [] } = useScopedEntity('Staff', { queryKey: ['admin-delivery-staff'], filter: { is_active: true }, limit: 500 });
 
   const drivers = useMemo(() => {
     const ids = new Set(deliveries.map(d => d.driver_staff_id).filter(Boolean));

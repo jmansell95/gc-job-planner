@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
 import { Truck, CheckCircle2, AlertTriangle, XCircle, Navigation } from 'lucide-react';
 import HubShell from '@/components/HubShell';
 import HubStatsBar from '@/components/dashboard/HubStatsBar';
@@ -41,10 +42,7 @@ function getVehicleStatus(v) {
  * stale delivery-task state.
  */
 export default function FleetHub() {
-  const { data: vehicles = [] } = useQuery({
-    queryKey: ['vehicles-fleet-hub'],
-    queryFn: () => base44.entities.Vehicle.list('-created_date', 500),
-  });
+  const { data: vehicles = [] } = useScopedEntity('Vehicle', { queryKey: ['vehicles-fleet-hub'], sort: '-created_date', limit: 500 });
 
   // Live Geotab data — fresh driving/ignition overlay (mode 'live')
   const { data: liveData } = useQuery({

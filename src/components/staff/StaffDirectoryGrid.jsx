@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
 import { User, Mail, Phone, Wrench } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 
@@ -10,10 +11,7 @@ import { Skeleton } from '@/components/StateViews';
  * overview for quick identification.
  */
 export default function StaffDirectoryGrid({ onSelect }) {
-  const { data: staff = [], isLoading } = useQuery({
-    queryKey: ['staff-directory'],
-    queryFn: () => base44.entities.Staff.filter({ is_active: true }, 'name'),
-  });
+  const { data: staff = [], isLoading } = useScopedEntity('Staff', { queryKey: ['staff-directory'], filter: { is_active: true }, sort: 'name' });
 
   const { data: teams = [] } = useQuery({
     queryKey: ['teams'],

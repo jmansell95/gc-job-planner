@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
 import { Printer, Send, CheckCircle2, Ban, Loader2, Receipt } from 'lucide-react';
 
 const gbp = (n) => '£' + (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -56,10 +57,7 @@ export default function InvoiceHistoryPanel({ companyName }) {
   const queryClient = useQueryClient();
   const [busyId, setBusyId] = useState(null);
 
-  const { data: invoices = [], isLoading } = useQuery({
-    queryKey: ['invoices'],
-    queryFn: () => base44.entities.Invoice.list('-created_date', 100),
-  });
+  const { data: invoices = [], isLoading } = useScopedEntity('Invoice', { queryKey: ['invoices'], sort: '-created_date', limit: 100 });
   const { data: clients = [] } = useQuery({ queryKey: ['billing-clients'], queryFn: () => base44.entities.Client.list() });
 
   const reprint = (inv) => {

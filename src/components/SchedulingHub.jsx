@@ -7,6 +7,7 @@ import TemplateWeekCopy from '@/components/rota/TemplateWeekCopy';
 import { Calendar, CalendarDays, CalendarClock, Navigation2, Loader2, Grid3x3, Warehouse, Users, AlertTriangle, CheckCircle2, Coffee } from 'lucide-react';
 import { useSchedulingAssistant } from '@/components/SchedulingAssistantChat';
 import { base44 } from '@/api/base44Client';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
 import { useToast } from '@/components/ui/use-toast';
 import TabBar from '@/components/TabBar';
 import HubStatsBar from '@/components/dashboard/HubStatsBar';
@@ -39,10 +40,7 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
   };
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const { data: todayAssignments = [] } = useQuery({
-    queryKey: ['rota-today-scheduling', todayStr],
-    queryFn: () => base44.entities.RotaAssignment.filter({ assigned_date: todayStr }, '-created_date', 500),
-  });
+  const { data: todayAssignments = [] } = useScopedEntity('RotaAssignment', { queryKey: ['rota-today-scheduling', todayStr], filter: { assigned_date: todayStr }, sort: '-created_date', limit: 500 });
 
   const schedStats = useMemo(() => {
     const onJob = todayAssignments.filter(a => a.assignment_type === 'job').length;

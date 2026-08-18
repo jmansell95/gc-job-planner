@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
 import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, FolderOpen, Copy, LayoutGrid, BarChart3, Users, Truck, PoundSterling, Calendar } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { EmptyState, ErrorState, CardGridSkeleton } from '@/components/StateViews';
@@ -90,18 +91,15 @@ export default function JobManager({ onNavigateRota }) {
 
   const queryClient = useQueryClient();
 
-  const { data: jobs = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ['jobs'],
-    queryFn: () => base44.entities.Job.list()
-  });
+  const { data: jobs = [], isLoading, isError, refetch } = useScopedEntity('Job', { queryKey: ['jobs'], limit: 500 });
 
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
   const { data: contractors = [] } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list() });
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order') });
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 200) });
-  const { data: rotas = [] } = useQuery({ queryKey: ['rotas-for-jobs'], queryFn: () => base44.entities.RotaAssignment.list('-created_date', 5000) });
-  const { data: costItems = [] } = useQuery({ queryKey: ['cost-items-for-jobs'], queryFn: () => base44.entities.JobCostItem.list('-created_date', 5000) });
+  const { data: rotas = [] } = useScopedEntity('RotaAssignment', { queryKey: ['rotas-for-jobs'], sort: '-created_date', limit: 5000 });
+  const { data: costItems = [] } = useScopedEntity('JobCostItem', { queryKey: ['cost-items-for-jobs'], sort: '-created_date', limit: 5000 });
   const { data: siteAssets = [] } = useQuery({ queryKey: ['site-assets-for-rig-count'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 5000) });
 
   // Compute crew count (unique staff) and rig count (internal_equipment) per job
