@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import {
@@ -126,7 +127,7 @@ export default function DivisionEditor({ division, onClose, onSaved }) {
   const inputCls = 'mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10 outline-none text-sm';
   const labelCls = 'text-xs font-bold text-slate-500 uppercase tracking-wide';
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 bg-blue-950/60 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
@@ -370,7 +371,8 @@ export default function DivisionEditor({ division, onClose, onSaved }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
