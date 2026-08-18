@@ -35,6 +35,8 @@ import { useDivision } from '@/contexts/DivisionContext';
 import RigSignInScanner from '@/components/staff/RigSignInScanner';
 import WeeklyRotaView from '@/components/staff/WeeklyRotaView';
 import OfflineBanner from '@/components/field/OfflineBanner';
+import SelfServiceHub from '@/components/staff/SelfServiceHub';
+import LiveCrewMap from '@/components/staff/LiveCrewMap';
 
 
 export default function StaffDashboard() {
@@ -819,11 +821,40 @@ export default function StaffDashboard() {
                   <HelpCircle className="w-7 h-7 text-amber-600" strokeWidth={2.5} />
                 </div>
                 <span className="text-base font-bold text-slate-800">Help Guides</span>
-              </button>
-          </div>
+            </button>
+            </div>
 
-        </div>
-      )}
+            {/* Self-Service Hub — holiday/expense/payslip requests, shift swap, messages */}
+            <div className="insight-card rounded-2xl p-4">
+            <h3 className="text-sm font-extrabold text-slate-900 mb-1">Self-Service & Comms</h3>
+            <p className="text-xs text-slate-500 mb-3">Request time off, swap shifts, message your crew</p>
+            <SelfServiceHub
+              staff={staff}
+              divisionId={activeDivision?.id}
+              divisionStaff={allStaff}
+              myAssignments={visibleAssignments.map(a => ({
+                ...a,
+                jobName: jobs.find(j => j.id === a.job_id)?.name,
+                location: jobs.find(j => j.id === a.job_id)?.location,
+              }))}
+              isManager={staff?.is_admin || isPlatformAdmin}
+            />
+            </div>
+
+            {/* Live Crew Map — where everyone is today */}
+            <div className="insight-card rounded-2xl p-4">
+            <h3 className="text-sm font-extrabold text-slate-900 mb-1">Crew Map — Today</h3>
+            <p className="text-xs text-slate-500 mb-3">See where your crew is deployed right now</p>
+            <LiveCrewMap
+              divisionId={activeDivision?.id}
+              staff={staff}
+              jobs={jobs}
+              allStaff={allStaff}
+            />
+            </div>
+
+            </div>
+            )}
 
       {/* Bottom Tab Bar */}
       <StaffTabBar activeTab={activeTab} onChange={setActiveTab} counts={{ today: todaysSorted.length, upcoming: upcomingAssignments.length }} />

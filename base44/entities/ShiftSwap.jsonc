@@ -1,0 +1,152 @@
+{
+  "name": "ShiftSwap",
+  "type": "object",
+  "properties": {
+    "offering_staff_id": {
+      "type": "string",
+      "description": "Staff ID of the person offering up their shift for swap."
+    },
+    "offering_staff_name": {
+      "type": "string",
+      "description": "Name of the offering staff member (denormalised for display)."
+    },
+    "assignment_id": {
+      "type": "string",
+      "description": "The RotaAssignment being offered for swap."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Job ID of the shift being offered (denormalised from the assignment)."
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (denormalised for display on the swap board)."
+    },
+    "division_id": {
+      "type": "string",
+      "description": "Division scope \u2014 only staff in the same division can see and claim swaps."
+    },
+    "assigned_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the shift being offered."
+    },
+    "start_time": {
+      "type": "string",
+      "description": "Shift start time (HH:MM, denormalised)."
+    },
+    "location": {
+      "type": "string",
+      "description": "Job site location (denormalised for display)."
+    },
+    "reason": {
+      "type": "string",
+      "description": "Why the staff member is offering the shift (optional)."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "offered",
+        "claimed",
+        "approved",
+        "rejected",
+        "cancelled"
+      ],
+      "default": "offered",
+      "description": "Swap lifecycle. 'offered' = open on the board, 'claimed' = someone picked it up pending manager approval, 'approved' = manager confirmed the swap, 'rejected' = manager declined, 'cancelled' = offerer withdrew."
+    },
+    "claiming_staff_id": {
+      "type": "string",
+      "description": "Staff ID of the person who claimed the swap. Set when status moves to 'claimed'."
+    },
+    "claiming_staff_name": {
+      "type": "string",
+      "description": "Name of the claiming staff member (denormalised)."
+    },
+    "claimed_at": {
+      "type": "string",
+      "description": "ISO timestamp when the swap was claimed."
+    },
+    "approved_by": {
+      "type": "string",
+      "description": "Name of the manager who approved/rejected the swap."
+    },
+    "approved_at": {
+      "type": "string",
+      "description": "ISO timestamp of the manager decision."
+    },
+    "manager_note": {
+      "type": "string",
+      "description": "Optional note from the manager when approving/rejecting."
+    }
+  },
+  "required": [
+    "offering_staff_id",
+    "division_id",
+    "assigned_date",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.division_id": "{{user.data.division_id}}"
+        },
+        {
+          "data.division_id": {
+            "$in": "{{user.data.managed_division_ids}}"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        }
+      ]
+    },
+    "create": {},
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "director"
+              }
+            },
+            {
+              "$or": [
+                {
+                  "data.division_id": "{{user.data.division_id}}"
+                },
+                {
+                  "data.division_id": {
+                    "$in": "{{user.data.managed_division_ids}}"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "data.offering_staff_id": "{{user.id}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

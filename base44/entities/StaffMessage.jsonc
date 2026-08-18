@@ -1,0 +1,102 @@
+{
+  "name": "StaffMessage",
+  "type": "object",
+  "properties": {
+    "sender_id": {
+      "type": "string",
+      "description": "Staff ID of the message sender"
+    },
+    "sender_name": {
+      "type": "string",
+      "description": "Sender display name (denormalised for display)"
+    },
+    "recipient_id": {
+      "type": "string",
+      "description": "Staff ID of the direct recipient. Null for crew-wide (division-scoped) messages."
+    },
+    "recipient_name": {
+      "type": "string",
+      "description": "Recipient display name (denormalised). Null for crew-wide messages."
+    },
+    "division_id": {
+      "type": "string",
+      "description": "Division scope for this message. Crew-wide messages are visible to all staff in this division."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Optional job context link \u2014 when a message is sent from a job channel."
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "direct",
+        "crew",
+        "job"
+      ],
+      "default": "direct",
+      "description": "Message channel. 'direct' = 1:1, 'crew' = division-wide broadcast, 'job' = job-scoped group chat."
+    },
+    "body": {
+      "type": "string",
+      "description": "Message text content"
+    },
+    "read_at": {
+      "type": "string",
+      "description": "ISO timestamp when the recipient read the message. Null until read."
+    }
+  },
+  "required": [
+    "sender_id",
+    "division_id",
+    "channel",
+    "body"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.division_id": "{{user.data.division_id}}"
+        },
+        {
+          "data.division_id": {
+            "$in": "{{user.data.managed_division_ids}}"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        },
+        {
+          "data.recipient_id": "{{user.id}}"
+        },
+        {
+          "data.sender_id": "{{user.id}}"
+        }
+      ]
+    },
+    "create": {},
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.sender_id": "{{user.id}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
