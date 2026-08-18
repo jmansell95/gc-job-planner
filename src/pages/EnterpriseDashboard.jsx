@@ -145,7 +145,7 @@ export default function EnterpriseDashboard() {
                   <Crown className="w-6 h-6 text-[#2E5A1A]" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] text-emerald-700 font-bold uppercase tracking-widest mb-0.5">Enterprise Parent</p>
+                  <p className="text-[10px] text-emerald-700 font-bold uppercase tracking-widest mb-0.5">Enterprise Dashboard</p>
                   <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight leading-none truncate">
                     Ground Control
                   </h1>
