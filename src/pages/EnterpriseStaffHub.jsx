@@ -6,7 +6,7 @@ import { useDivision } from '@/contexts/DivisionContext';
 import EnterpriseHeader from '@/components/EnterpriseHeader';
 import {
   Users, ArrowLeft, Search, Mail, Phone, Wrench, Building2,
-  Briefcase, UserCheck, AlertCircle, ShieldCheck, HardHat, UserCog,
+  UserCheck, AlertCircle, ShieldCheck, HardHat, UserCog,
 } from 'lucide-react';
 
 export default function EnterpriseStaffHub() {
@@ -151,11 +151,11 @@ export default function EnterpriseStaffHub() {
               </div>
               <div className="stat-gradient-violet rounded-2xl p-3 flex items-center gap-2.5 shadow-lg">
                 <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-                  <Briefcase className="w-4.5 h-4.5 text-white" />
+                  <Wrench className="w-4.5 h-4.5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide truncate">Showing</p>
-                  <p className="text-lg font-extrabold text-white tabular-nums truncate">{filtered.length}</p>
+                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide truncate">Subcontractors</p>
+                  <p className="text-lg font-extrabold text-white tabular-nums truncate">{staff.filter(s => s.worker_type === 'subcontractor').length}</p>
                 </div>
               </div>
             </div>
@@ -196,6 +196,19 @@ export default function EnterpriseStaffHub() {
                 <span className="w-2 h-2 rounded-full" style={{ background: division.color || '#2E5A1A' }} />
                 {division.name} ({count})
               </button>
+            ))}
+          </div>
+          {/* Worker-type breakdown */}
+          <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-slate-100">
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Workforce:</span>
+            {[
+              { label: 'Direct', count: staff.filter(s => s.worker_type === 'direct_employee').length, cls: 'bg-emerald-50 text-emerald-700' },
+              { label: 'Subcontractor', count: staff.filter(s => s.worker_type === 'subcontractor').length, cls: 'bg-blue-50 text-blue-700' },
+              { label: 'Agency', count: staff.filter(s => s.worker_type === 'agency').length, cls: 'bg-violet-50 text-violet-700' },
+            ].map(w => (
+              <span key={w.label} className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${w.cls}`}>
+                {w.label} <span className="tabular-nums">{w.count}</span>
+              </span>
             ))}
           </div>
         </div>

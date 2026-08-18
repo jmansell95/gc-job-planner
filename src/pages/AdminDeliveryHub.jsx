@@ -11,8 +11,9 @@ import GoodsInPanel from '@/components/logistics/GoodsInPanel';
 import ConsumableInventoryManager from '@/components/settings/ConsumableInventoryManager';
 import DeliveryDetailDrawer from '@/components/logistics/DeliveryDetailDrawer';
 import { Skeleton, EmptyState } from '@/components/StateViews';
-import PageHeader from '@/components/PageHeader';
-import TabBar from '@/components/TabBar';
+import HubShell from '@/components/HubShell';
+import SubPills from '@/components/SubPills';
+import HubStatsBar from '@/components/dashboard/HubStatsBar';
 
 const typeFilters = [
   { value: 'all', label: 'All Types', icon: Filter },
@@ -31,7 +32,8 @@ const dateFilters = [
 ];
 
 export default function AdminDeliveryHub() {
-  const [tab, setTab] = useState('board');
+  const [group, setGroup] = useState('operations');
+  const [sub, setSub] = useState('board');
   const [view, setView] = useState('board');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -88,44 +90,45 @@ export default function AdminDeliveryHub() {
   }, [deliveries]);
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        icon={Truck}
-        title="Logistics Hub"
-        subtitle="Delivery board, collections, route optimisation & driver handovers"
-        stats={[
-          { label: 'Today', value: stats.today, icon: Clock },
-          { label: 'In Transit', value: stats.inTransit, icon: PlayCircle },
-          { label: 'Completed', value: stats.completed, icon: CheckCircle2 },
-          { label: 'Overdue', value: stats.overdue, icon: AlertTriangle },
-        ]}
-      />
-      <TabBar
-        tabs={[
-          { id: 'board', label: 'Delivery Board', icon: LayoutGrid },
-          { id: 'reconcile', label: 'Reconcile', icon: CheckCircle2 },
-          { id: 'goods-in', label: 'Goods In', icon: Store },
-          { id: 'stock', label: 'Stock', icon: Boxes },
-        ]}
-        activeTab={tab}
-        onChange={setTab}
-      />
+    <HubShell
+      icon={Truck}
+      title="Logistics Hub"
+      subtitle="Delivery board, collections, route optimisation & driver handovers"
+      tabs={[
+        { id: 'operations', label: 'Operations', icon: LayoutGrid },
+        { id: 'inventory', label: 'Inventory', icon: Boxes },
+      ]}
+      activeTab={group}
+      onTabChange={(g) => { setGroup(g); setSub(g === 'operations' ? 'board' : 'goods-in'); }}
+      kpiStrip={<HubStatsBar tiles={[
+        { icon: Clock, label: 'Today', value: stats.today, color: 'amber' },
+        { icon: PlayCircle, label: 'In Transit', value: stats.inTransit, color: 'blue' },
+        { icon: CheckCircle2, label: 'Completed', value: stats.completed, color: 'emerald' },
+        { icon: AlertTriangle, label: 'Overdue', value: stats.overdue, color: 'rose' },
+        { icon: ArrowRightLeft, label: 'Handovers', value: stats.handovers, color: 'violet' },
+      ]} />}
+    >
+      <SubPills active={sub} onChange={setSub} pills={
+        group === 'operations'
+          ? [{ id: 'board', label: 'Delivery Board', icon: LayoutGrid }, { id: 'reconcile', label: 'Reconcile', icon: CheckCircle2 }]
+          : [{ id: 'goods-in', label: 'Goods In', icon: Store }, { id: 'stock', label: 'Consumable Stock', icon: Boxes }]
+      } />
 
       {/* Reconciliation tab — bulk proof-of-delivery approval */}
-      {tab === 'reconcile' && (
+      {sub === 'reconcile' && (
         <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-5">
           <BulkDeliveryReconciliation />
         </div>
       )}
 
       {/* Goods In tab — gatekeeper verification of received stock */}
-      {tab === 'goods-in' && <GoodsInPanel />}
+      {sub === 'goods-in' && <GoodsInPanel />}
 
       {/* Stock tab — consumable inventory catalog management */}
-      {tab === 'stock' && <ConsumableInventoryManager />}
+      {sub === 'stock' && <ConsumableInventoryManager />}
 
       {/* Board tab content */}
-      {tab === 'board' && (
+      {sub === 'board' && (
       <>
       {/* Filter bar */}
       <div className="bg-white rounded-2xl border border-slate-200 p-3 md:p-4 space-y-3">
@@ -214,6 +217,6 @@ export default function AdminDeliveryHub() {
       {selected && (
         <DeliveryDetailDrawer delivery={selected} jobs={jobs} staff={staff} onClose={() => setSelected(null)} />
       )}
-    </div>
+    </HubShell>
   );
 }
