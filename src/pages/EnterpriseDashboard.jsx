@@ -13,6 +13,8 @@ import {
 import EnterpriseHeader from '@/components/EnterpriseHeader';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 import DivisionWizard from '@/components/wizard/DivisionWizard';
+import CreationChoiceModal from '@/components/enterprise/CreationChoiceModal';
+import BusinessUnitCreateModal from '@/components/enterprise/BusinessUnitCreateModal';
 import DivisionCard from '@/components/enterprise/DivisionCard';
 import BusinessUnitCard from '@/components/enterprise/BusinessUnitCard';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -26,6 +28,8 @@ export default function EnterpriseDashboard() {
   const [customising, setCustomising] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+  const [showChoice, setShowChoice] = useState(false);
+  const [showBUForm, setShowBUForm] = useState(false);
 
   const { data: myProfile } = useQuery({ queryKey: ['ent-my-profile'], queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; } });
 
@@ -129,40 +133,42 @@ export default function EnterpriseDashboard() {
 
       {/* ─── Ground Control Hero ─── */}
       <div className="relative">
-        <div className="hero-vibrant absolute inset-0 overflow-hidden" />
+        <div className="absolute inset-0 bg-white" />
+        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 15% 20%, #2E5A1A 0%, transparent 45%), radial-gradient(circle at 85% 80%, #8DC63F 0%, transparent 50%)' }} />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-200 to-transparent" />
         <div className="relative px-4 xl:px-6 pt-[calc(3.5rem+env(safe-area-inset-top)+0.5rem)] xl:pt-8 pb-6">
           <div className="max-w-7xl mx-auto">
             {/* Title row */}
             <div className="flex items-center justify-between gap-3 mb-5">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg ring-1 ring-white/20">
-                  <Crown className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <Crown className="w-6 h-6 text-[#2E5A1A]" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] text-white/60 font-bold uppercase tracking-widest mb-0.5">Enterprise Parent</p>
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white tracking-tight leading-none truncate">
+                  <p className="text-[10px] text-emerald-700 font-bold uppercase tracking-widest mb-0.5">Enterprise Parent</p>
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight leading-none truncate">
                     Ground Control
                   </h1>
-                  <p className="text-xs sm:text-sm text-white/70 font-semibold mt-1 truncate">Housing Land &amp; Water Solutions &amp; 4 Specialist Divisions</p>
+                  <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-1 truncate">Housing Land &amp; Water Solutions &amp; 4 Specialist Divisions</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
+                <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-100">
                   <span className="relative flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
                   </span>
-                  <span className="text-sm font-bold text-white">All systems operational</span>
-                  <span className="text-white/50">·</span>
-                  <span className="text-xs font-medium text-white/70">{globalStats.activeDivisions} of {globalStats.divisions} live</span>
+                  <span className="text-sm font-bold text-slate-700">All systems operational</span>
+                  <span className="text-slate-300">·</span>
+                  <span className="text-xs font-medium text-slate-500">{globalStats.activeDivisions} of {globalStats.divisions} live</span>
                 </div>
                 {isSuperAdmin && (
-                  <button onClick={() => setCustomising(!customising)} className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-semibold hover:bg-white/20 transition">
+                  <button onClick={() => setCustomising(!customising)} className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-200 transition">
                     <LayoutGrid className="w-4 h-4" /> <span className="hidden md:inline">Customise</span>
                   </button>
                 )}
                 <div className="hidden xl:block relative">
-                  <button onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }} type="button" aria-label="Profile menu" className="relative flex items-center justify-center active:scale-95 rounded-full transition ring-2 ring-transparent hover:ring-white/30">
+                  <button onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }} type="button" aria-label="Profile menu" className="relative flex items-center justify-center active:scale-95 rounded-full transition ring-2 ring-transparent hover:ring-emerald-200">
                     <ProfileAvatar name={myProfileName} avatarUrl={myProfileAvatar} size={36} />
                   </button>
                   {profileMenuOpen && (
@@ -260,7 +266,7 @@ export default function EnterpriseDashboard() {
             )}
 
             {canManageDivisions && (
-              <button onClick={() => setShowWizard(true)} className="mt-3 w-full rounded-2xl border-2 border-dashed border-slate-300 p-5 text-left hover:border-[#2E5A1A] hover:bg-emerald-50/30 transition group flex flex-col items-center justify-center gap-2 min-h-[120px]">
+              <button onClick={() => setShowChoice(true)} className="mt-3 w-full rounded-2xl border-2 border-dashed border-slate-300 p-5 text-left hover:border-[#2E5A1A] hover:bg-emerald-50/30 transition group flex flex-col items-center justify-center gap-2 min-h-[120px]">
                 <div className="w-12 h-12 rounded-2xl bg-slate-100 group-hover:bg-[#2E5A1A]/10 flex items-center justify-center transition">
                   <Sparkles className="w-6 h-6 text-slate-400 group-hover:text-[#2E5A1A] transition" />
                 </div>
@@ -358,7 +364,17 @@ export default function EnterpriseDashboard() {
 
       </div>
 
-      {/* Wizard */}
+      {/* Creation flow */}
+      {showChoice && (
+        <CreationChoiceModal
+          onClose={() => setShowChoice(false)}
+          onPickBU={() => { setShowChoice(false); setShowBUForm(true); }}
+          onPickDivision={() => { setShowChoice(false); setShowWizard(true); }}
+        />
+      )}
+      {showBUForm && (
+        <BusinessUnitCreateModal onClose={() => setShowBUForm(false)} onCreated={() => setShowBUForm(false)} />
+      )}
       {showWizard && <DivisionWizard onClose={() => setShowWizard(false)} onCreated={() => setShowWizard(false)} />}
 
       {/* Customise panel */}
