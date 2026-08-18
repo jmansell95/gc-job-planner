@@ -394,24 +394,6 @@ export default function StaffDashboard() {
     }
   };
 
-  const handleConfirmShift = async (assignmentId) => {
-    try {
-      await base44.entities.RotaAssignment.update(assignmentId, { shift_status: 'confirmed' });
-      queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
-    } catch (error) {
-      console.error('Error confirming shift:', error);
-    }
-  };
-
-  const handleDeclineShift = async (assignmentId) => {
-    try {
-      await base44.entities.RotaAssignment.update(assignmentId, { shift_status: 'declined' });
-      queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
-    } catch (error) {
-      console.error('Error declining shift:', error);
-    }
-  };
-
   const handleAcknowledgeSchedule = async (weekStart) => {
     try {
       const res = await base44.functions.invoke('acknowledgeSchedule', { week_start: weekStart });
@@ -772,8 +754,6 @@ export default function StaffDashboard() {
               jobs={jobs}
               vehicles={vehicles}
               staff={staff}
-              onConfirm={handleConfirmShift}
-              onDecline={handleDeclineShift}
             />
           )}
         </div>

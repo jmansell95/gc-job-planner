@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
-import { ChevronLeft, ChevronRight, Clock, MapPin, Check, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, MapPin, Check } from 'lucide-react';
 
 // WeeklyRotaView — responsive weekly schedule for field staff.
 // Mobile: a horizontal day picker + the selected day's shift cards.
 // Tablet (md+): a full 7-column week grid showing every day at a glance.
 // Each shift card has one-tap confirm/decline. Replaces the old day-grouped
 // list with a touch-first rota that scales to tablet.
-export default function WeeklyRotaView({ assignments = [], jobs = [], vehicles = [], staff, onConfirm, onDecline }) {
+export default function WeeklyRotaView({ assignments = [], jobs = [], vehicles = [], staff }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [selectedDay, setSelectedDay] = useState(() => new Date());
 
@@ -81,8 +81,6 @@ export default function WeeklyRotaView({ assignments = [], jobs = [], vehicles =
           date={selectedDay}
           assignments={assignmentsByDate[format(selectedDay, 'yyyy-MM-dd')] || []}
           jobFor={jobFor}
-          onConfirm={onConfirm}
-          onDecline={onDecline}
           isToday={isSameDay(selectedDay, today)}
         />
       </div>
@@ -95,8 +93,6 @@ export default function WeeklyRotaView({ assignments = [], jobs = [], vehicles =
             date={d}
             assignments={assignmentsByDate[format(d, 'yyyy-MM-dd')] || []}
             jobFor={jobFor}
-            onConfirm={onConfirm}
-            onDecline={onDecline}
             isToday={isSameDay(d, today)}
             grid
           />
@@ -106,7 +102,7 @@ export default function WeeklyRotaView({ assignments = [], jobs = [], vehicles =
   );
 }
 
-function DayColumn({ date, assignments, jobFor, onConfirm, onDecline, isToday, grid }) {
+function DayColumn({ date, assignments, jobFor, isToday, grid }) {
   return (
     <div
       className={`rounded-2xl ${grid ? 'min-h-[220px]' : ''} ${
@@ -126,7 +122,7 @@ function DayColumn({ date, assignments, jobFor, onConfirm, onDecline, isToday, g
           grid && <p className="text-[11px] text-slate-300 text-center py-4">No shifts</p>
         ) : (
           assignments.map((a) => (
-            <RotaShiftCard key={a.id} assignment={a} job={jobFor(a.job_id)} onConfirm={onConfirm} onDecline={onDecline} />
+            <RotaShiftCard key={a.id} assignment={a} job={jobFor(a.job_id)} />
           ))
         )}
       </div>
@@ -134,18 +130,9 @@ function DayColumn({ date, assignments, jobFor, onConfirm, onDecline, isToday, g
   );
 }
 
-function RotaShiftCard({ assignment, job, onConfirm, onDecline }) {
-  const status = assignment.shift_status || 'pending';
+function RotaShiftCard({ assignment, job }) {
   return (
-    <div
-      className={`rounded-xl p-2.5 ${
-        status === 'confirmed'
-          ? 'bg-emerald-50 border border-emerald-200'
-          : status === 'declined'
-          ? 'bg-rose-50 border border-rose-200 opacity-60'
-          : 'bg-slate-50 border border-slate-200'
-      }`}
-    >
+    <div className="rounded-xl p-2.5 bg-slate-50 border border-slate-200">
       <p className="text-xs font-bold text-slate-900 truncate">{job?.name || 'Shift'}</p>
       <div className="flex items-center gap-1.5 mt-1 text-[10px] text-slate-500">
         {assignment.start_time && (
@@ -159,30 +146,9 @@ function RotaShiftCard({ assignment, job, onConfirm, onDecline }) {
           </span>
         )}
       </div>
-      {status === 'pending' && onConfirm && (
-        <div className="flex gap-1.5 mt-2">
-          <button
-            onClick={() => onConfirm(assignment.id)}
-            type="button"
-            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-[#2E5A1A] text-white text-[11px] font-bold active:scale-95 transition"
-          >
-            <Check className="w-3 h-3" /> Confirm
-          </button>
-          <button
-            onClick={() => onDecline(assignment.id)}
-            type="button"
-            className="flex items-center justify-center px-2 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 text-[11px] font-bold active:scale-95 transition"
-          >
-            <X className="w-3 h-3" />
-          </button>
-        </div>
-      )}
-      {status === 'confirmed' && (
-        <p className="text-[10px] font-bold text-emerald-600 mt-1.5 flex items-center gap-1">
-          <Check className="w-3 h-3" /> Confirmed
-        </p>
-      )}
-      {status === 'declined' && <p className="text-[10px] font-bold text-rose-600 mt-1.5">Declined</p>}
+      <p className="text-[10px] font-bold text-[#2E5A1A] mt-1.5 flex items-center gap-1">
+        <Check className="w-3 h-3" /> Scheduled
+      </p>
     </div>
   );
 }
