@@ -136,7 +136,7 @@ export default function EnterpriseDashboard() {
         <div className="absolute inset-0 bg-white" />
         <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 15% 20%, #2E5A1A 0%, transparent 45%), radial-gradient(circle at 85% 80%, #8DC63F 0%, transparent 50%)' }} />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-200 to-transparent" />
-        <div className="relative px-4 xl:px-6 xl:pt-8 pb-6">
+        <div className="relative px-4 xl:px-6 pt-2 xl:pt-8 pb-6">
           <div className="max-w-7xl mx-auto">
             {/* Title row */}
             <div className="flex items-center justify-between gap-3 mb-5">
