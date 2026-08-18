@@ -86,78 +86,75 @@ export default function CommandCentreSection({ monitors, onNavigate }) {
       {/* Stat tiles */}
       <StateMonitorBar monitors={monitors} onNavigate={onNavigate} />
 
-      {/* Mission Control strip — clean white card with merged exec snapshot data */}
+      {/* Mission Control strip — clean white card with merged exec snapshot data.
+          Restructured: system health banner on top (full width), metrics in a
+          responsive grid below — 2×2 on mobile, single row on desktop — so
+          nothing overlaps or clips on small screens. */}
       <div className="relative overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <div className="px-3 py-2.5 sm:px-4 sm:py-3.5 flex items-center gap-3 sm:gap-4 flex-wrap">
-          {/* System health indicator */}
-          <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
-            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center ring-1 ${healthBg} ${healthRing}`}>
-              {isHealthy ? <Activity className={`w-4 h-4 sm:w-5 sm:h-5 ${healthColor}`} /> : <AlertTriangle className={`w-4 h-4 sm:w-5 sm:h-5 ${healthColor}`} />}
+        {/* System health banner — full width, always on top */}
+        <div className="px-3 py-2.5 sm:px-4 sm:py-3 flex items-center gap-2.5">
+          <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center ring-1 flex-shrink-0 ${healthBg} ${healthRing}`}>
+            {isHealthy ? <Activity className={`w-4 h-4 sm:w-5 sm:h-5 ${healthColor}`} /> : <AlertTriangle className={`w-4 h-4 sm:w-5 sm:h-5 ${healthColor}`} />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <Radar className="w-3.5 h-3.5 text-[#2E5A1A] flex-shrink-0" />
+              <p className="text-xs font-bold text-[#2E5A1A] uppercase tracking-wide">Mission Control</p>
+            </div>
+            <p className="text-sm font-bold text-slate-800 truncate">{healthLabel}</p>
+            {m.issues.length > 0 && (
+              <p className="text-[11px] text-slate-400 truncate">{m.issues.join(' · ')}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Metrics grid — 2 cols on mobile, 4 cols on desktop, separated by a top border */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 px-3 pb-3 sm:px-4 sm:pb-4 pt-2.5 border-t border-slate-100">
+          {/* Burn Rate */}
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+              <Gauge className="w-4 h-4 text-slate-500" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <Radar className="w-3.5 h-3.5 text-[#2E5A1A]" />
-                <p className="text-xs font-bold text-[#2E5A1A] uppercase tracking-wide">Mission Control</p>
+              <p className={`text-base sm:text-lg font-bold tabular-nums leading-none ${burnText}`}>{m.burnRate}%</p>
+              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mt-0.5">Burn Rate</p>
+              <div className="mt-1 w-14 sm:w-16 h-1 bg-slate-200 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full ${burnColor}`} style={{ width: `${Math.min(m.burnRate, 100)}%` }} />
               </div>
-              <p className="text-sm font-bold text-slate-800 truncate">{healthLabel}</p>
-              {m.issues.length > 0 && (
-                <p className="text-[11px] text-slate-400 truncate">{m.issues.join(' · ')}</p>
-              )}
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="hidden sm:block h-10 w-px bg-slate-200 flex-shrink-0" />
-
-          {/* Inline metrics */}
-          <div className="flex items-center gap-3 sm:gap-5 flex-wrap flex-1 min-w-0">
-            {/* Burn Rate */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                <Gauge className="w-4 h-4 text-slate-500" />
-              </div>
-              <div>
-                <p className={`text-lg font-bold tabular-nums leading-none ${burnText}`}>{m.burnRate}%</p>
-                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mt-0.5">Burn Rate</p>
-                <div className="mt-1 w-16 h-1 bg-slate-200 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full ${burnColor}`} style={{ width: `${Math.min(m.burnRate, 100)}%` }} />
-                </div>
-              </div>
+          {/* Outstanding Revenue */}
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+              <PoundSterling className="w-4 h-4 text-slate-500" />
             </div>
-
-            {/* Outstanding Revenue */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                <PoundSterling className="w-4 h-4 text-slate-500" />
-              </div>
-              <div>
-                <p className="text-lg font-bold tabular-nums text-slate-800 leading-none">{gbp(m.totalInvoiceValue)}</p>
-                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mt-0.5">Outstanding</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">{m.pendingInvoices} pending · {m.overdueInvoices} overdue</p>
-              </div>
+            <div className="min-w-0">
+              <p className="text-base sm:text-lg font-bold tabular-nums text-slate-800 leading-none truncate">{gbp(m.totalInvoiceValue)}</p>
+              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mt-0.5">Outstanding</p>
+              <p className="text-[10px] text-slate-400 mt-0.5 truncate">{m.pendingInvoices} pending · {m.overdueInvoices} overdue</p>
             </div>
-
-            {/* Fleet Compliance — merged from Executive Snapshot */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                <ShieldCheck className="w-4 h-4 text-slate-500" />
-              </div>
-              <div>
-                <p className={`text-lg font-bold tabular-nums leading-none ${m.fleetCompliancePct < 80 ? 'text-amber-600' : 'text-slate-800'}`}>{m.fleetCompliancePct}%</p>
-                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mt-0.5">Fleet Compliance</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">{m.compliantAssets}/{m.totalAssets} assets</p>
-              </div>
-            </div>
-
           </div>
 
-          {/* Project Health — moved to right side on desktop */}
-          <div className="flex items-center gap-2 flex-shrink-0 sm:ml-auto">
-            <div className={`w-8 h-8 rounded-lg ${ph.bg} flex items-center justify-center`}>
+          {/* Fleet Compliance */}
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+              <ShieldCheck className="w-4 h-4 text-slate-500" />
+            </div>
+            <div className="min-w-0">
+              <p className={`text-base sm:text-lg font-bold tabular-nums leading-none ${m.fleetCompliancePct < 80 ? 'text-amber-600' : 'text-slate-800'}`}>{m.fleetCompliancePct}%</p>
+              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mt-0.5">Fleet Compliance</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">{m.compliantAssets}/{m.totalAssets} assets</p>
+            </div>
+          </div>
+
+          {/* Project Health */}
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={`w-8 h-8 rounded-lg ${ph.bg} flex items-center justify-center flex-shrink-0`}>
               <TrendingUp className={`w-4 h-4 ${ph.color}`} />
             </div>
-            <div className="text-right">
-              <p className={`text-lg font-bold leading-none ${ph.color}`}>{ph.label}</p>
+            <div className="min-w-0">
+              <p className={`text-base sm:text-lg font-bold leading-none ${ph.color}`}>{ph.label}</p>
               <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mt-0.5">Project Health</p>
               <p className="text-[10px] text-slate-400 mt-0.5">{m.jobsWithDelays} delayed</p>
             </div>
