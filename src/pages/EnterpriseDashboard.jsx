@@ -14,8 +14,8 @@ import EnterpriseHeader from '@/components/EnterpriseHeader';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 import DivisionWizard from '@/components/wizard/DivisionWizard';
 import DivisionCard from '@/components/enterprise/DivisionCard';
-import DivisionLoadingScreen from '@/components/DivisionLoadingScreen';
-import { AnimatePresence } from 'framer-motion';
+import DivisionLoadingScreen from '@/components/divisionLoading/DivisionLoadingScreen';
+import { AnimatePresence, motion } from 'framer-motion';
 
 import { STATUS_STYLES, WIDGET_STORAGE_KEY, DEFAULT_WIDGETS } from '@/components/enterprise/enterpriseConstants';
 
@@ -86,12 +86,7 @@ export default function EnterpriseDashboard() {
   const gbp = (n) => n ? '\u00A3' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '\u00A30';
 
   const enterDivision = (d) => {
-    if (d.division_type === 'geotechnical') {
-      setEnteringDivision(d);
-    } else {
-      setActiveDivision(d.id);
-      navigate(d.landing_page || '/admin', { state: { section: 'overview' } });
-    }
+    setEnteringDivision(d);
   };
 
   const handleLoadingComplete = () => {
@@ -236,7 +231,11 @@ export default function EnterpriseDashboard() {
           <section>
             <SectionTitle icon={Building2} title="Divisions" subtitle="Tap a division to enter its workspace" gradient="from-blue-500 to-cyan-600" />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {divisionStats.map(ds => <DivisionCard key={ds.division.id} ds={ds} onEnter={enterDivision} />)}
+              {divisionStats.map((ds, i) => (
+                <motion.div key={ds.division.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06, duration: 0.35, ease: 'easeOut' }}>
+                  <DivisionCard ds={ds} onEnter={enterDivision} />
+                </motion.div>
+              ))}
               {canManageDivisions && (
                 <button onClick={() => setShowWizard(true)} className="rounded-2xl border-2 border-dashed border-slate-300 p-5 text-left hover:border-[#2E5A1A] hover:bg-emerald-50/30 transition group flex flex-col items-center justify-center gap-2 min-h-[200px]">
                   <div className="w-12 h-12 rounded-2xl bg-slate-100 group-hover:bg-[#2E5A1A]/10 flex items-center justify-center transition">
