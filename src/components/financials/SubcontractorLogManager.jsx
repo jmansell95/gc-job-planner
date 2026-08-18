@@ -68,7 +68,7 @@ export default function SubcontractorLogManager({ job }) {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState(null);
-  const { isLocked, lockedInvoices, lockReason } = useBillingLock(job.id, job);
+  const { isLocked, effectiveLocked, lockedInvoices, lockReason, tempOpen, setTempOpen } = useBillingLock(job.id, job);
 
   const { data: contractors = [] } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list() });
   const { data: logs = [], isLoading } = useQuery({
@@ -209,7 +209,7 @@ export default function SubcontractorLogManager({ job }) {
             <h3 className="text-lg font-bold">Sub-Contractor Activity Logs</h3>
             <p className="text-[11px] text-white/60">Buy-side cost · sell-side margin · verification workflow</p>
           </div>
-          <button onClick={() => setShowForm(!showForm)} disabled={isLocked} className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 bg-white text-[#2E5A1A] rounded-lg text-xs font-bold hover:bg-white/90 transition disabled:opacity-40 disabled:cursor-not-allowed">
+          <button onClick={() => setShowForm(!showForm)} disabled={effectiveLocked} className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 bg-white text-[#2E5A1A] rounded-lg text-xs font-bold hover:bg-white/90 transition disabled:opacity-40 disabled:cursor-not-allowed">
             {showForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
             {showForm ? 'Cancel' : 'Log Work'}
           </button>
@@ -224,7 +224,7 @@ export default function SubcontractorLogManager({ job }) {
         )}
       </div>
 
-      {isLocked && <BillingLockBanner lockedInvoices={lockedInvoices} lockReason={lockReason} job={job} />}
+      {isLocked && <BillingLockBanner lockedInvoices={lockedInvoices} lockReason={lockReason} job={job} tempOpen={tempOpen} onTempOpen={setTempOpen} />}
 
       {/* Inline form */}
       {showForm && (
@@ -488,7 +488,7 @@ export default function SubcontractorLogManager({ job }) {
 
                                   {/* Status actions */}
                                   <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                                    {isLocked ? (
+                                    {effectiveLocked ? (
                                       <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-400 rounded-lg text-[10px] font-medium ml-auto"><Lock className="w-3 h-3" /> Locked</span>
                                     ) : (
                                       <>

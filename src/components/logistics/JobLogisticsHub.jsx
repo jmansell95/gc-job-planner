@@ -90,7 +90,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   const [offHireFile, setOffHireFile] = useState(null);
   const [uploadingOffHire, setUploadingOffHire] = useState(false);
   const offHireFileRef = useRef(null);
-  const { isLocked, lockReason } = useBillingLock(jobId, job);
+  const { isLocked, effectiveLocked, lockReason, tempOpen, setTempOpen } = useBillingLock(jobId, job);
 
   const assetMap = {};
   (siteAssets || []).forEach(a => { assetMap[a.id] = a; });
@@ -554,8 +554,8 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
           </span>
         </div>
         <div className="p-4 sm:p-5 space-y-4">
-          {isLocked && <BillingLockBanner lockReason={lockReason} job={job} />}
-          {canSeeCosts && !adding && !isLocked && (
+          {isLocked && <BillingLockBanner lockReason={lockReason} job={job} tempOpen={tempOpen} onTempOpen={setTempOpen} />}
+          {canSeeCosts && !adding && !effectiveLocked && (
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:flex-wrap">
               <button onClick={() => { setForm(blankForm()); setEditingId(null); setAdding(true); }}
                 className="inline-flex items-center justify-center gap-2 text-sm text-white font-semibold px-4 py-3.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#2E5A1A] hover:bg-[#1c4a12] active:scale-[0.98] transition shadow-md w-full sm:w-auto">
