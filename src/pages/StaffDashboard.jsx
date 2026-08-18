@@ -34,6 +34,7 @@ import DivisionIdentityBar from '@/components/DivisionIdentityBar';
 import { useDivision } from '@/contexts/DivisionContext';
 import RigSignInScanner from '@/components/staff/RigSignInScanner';
 import WeeklyRotaView from '@/components/staff/WeeklyRotaView';
+import OfflineBanner from '@/components/field/OfflineBanner';
 
 
 export default function StaffDashboard() {
@@ -572,6 +573,7 @@ export default function StaffDashboard() {
       {/* Today Tab — zero-scroll, action-first */}
       {activeTab === 'today' && (
         <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-4 space-y-3">
+          <OfflineBanner />
           <SyncHUD />
 
           {/* Consolidated alert — single line */}

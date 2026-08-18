@@ -312,6 +312,9 @@ export default function AssetScannerPage() {
             </div>
           </div>
 
+          {/* Scanner + My Gear split (tablet) / stacked (mobile) */}
+          <div className="md:grid md:grid-cols-2 md:gap-4">
+          <div className="space-y-4">
           {/* Scanner card with live search */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 relative">
             <BarcodeScanner
@@ -410,6 +413,21 @@ export default function AssetScannerPage() {
               <p className="text-slate-400 text-sm mt-1">Point your camera at a QR code or type a name like "shackle"</p>
             </div>
           )}
+          </div>
+
+          {/* My Gear manifest — tablet sidebar alongside the scanner */}
+          <div className="hidden md:block">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sticky top-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                  <Wrench className="w-4 h-4 text-emerald-700" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-800">My Gear Manifest</h3>
+              </div>
+              <MyGearTab staffProfile={staffProfile} allAssets={assets} onOpenAsset={setCommandAsset} />
+            </div>
+          </div>
+          </div>
             </>
           )}
 
