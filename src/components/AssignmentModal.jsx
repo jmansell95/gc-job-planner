@@ -1,8 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, AlertTriangle, Trash2, RotateCcw, Loader2, CheckCircle2, Clock, MapPin, Calendar, CalendarClock, User, Phone, Briefcase, FileText, ShieldX, ShieldAlert, Drill } from 'lucide-react';
+import { X, AlertTriangle, Trash2, RotateCcw, Loader2, CheckCircle2, Clock, MapPin, Calendar, CalendarClock, User, Phone, Briefcase, FileText, ShieldX, ShieldAlert, Drill, Search } from 'lucide-react';
 import { evaluateAssignmentCompliance, qualLabel } from '@/utils/complianceLock';
+
+function JobStatusBadge({ status }) {
+  const config = {
+    planning: { label: 'Planning', cls: 'bg-blue-100 text-blue-700' },
+    in_progress: { label: 'Active', cls: 'bg-emerald-100 text-emerald-700' },
+    completed: { label: 'Done', cls: 'bg-slate-100 text-slate-500' },
+    on_hold: { label: 'On Hold', cls: 'bg-amber-100 text-amber-700' },
+    cancelled: { label: 'Cancelled', cls: 'bg-red-100 text-red-600' },
+    decommissioning: { label: 'Decom', cls: 'bg-purple-100 text-purple-700' },
+  };
+  const c = config[status] || { label: status || 'Unknown', cls: 'bg-slate-100 text-slate-500' };
+  return <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap ${c.cls}`}>{c.label}</span>;
+}
 import { format, differenceInDays, addDays } from 'date-fns';
 import { isStaffOutsideJobTeams, getJobTeamIds } from '@/utils/jobTeams';
 import { isWeekend, buildRateMap } from '@/utils/overtime';
@@ -16,6 +29,9 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   const [resetting, setResetting] = useState(false);
   const [complianceOverride, setComplianceOverride] = useState(false);
   const [rigComplianceOverride, setRigComplianceOverride] = useState(false);
+  const [jobSearch, setJobSearch] = useState('');
+  const [jobDropdownOpen, setJobDropdownOpen] = useState(false);
+  const [showCompletedJobs, setShowCompletedJobs] = useState(false);
   const queryClient = useQueryClient();
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: absences = [] } = useQuery({ queryKey: ['absences'], queryFn: () => base44.entities.Absence.list() });
@@ -69,7 +85,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
         setFormData({
           job_id: '',
           staff_id: defaultStaffId || '',
-          assigned_date: '',
+          assigned_date: defaultDate || '',
           vehicle_id: '',
           rig_asset_id: '',
           start_time: defaults.start_time,
@@ -147,13 +163,16 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   const handleJobChange = (jobId) => {
     const job = jobs.find(j => j.id === jobId);
     const plannedStart = job?.start_date || '';
+    // Keep the clicked date (defaultDate), don't override with the job's planned start.
+    // Only fall back to the job start if no date was clicked (e.g. editing with no defaultDate).
+    const dateToUse = formData.assigned_date || plannedStart;
     setFormData(prev => {
-      const next = { ...prev, job_id: jobId, assigned_date: plannedStart, start_delayed: false, actual_start_date: '' };
-      if (plannedStart) {
-        const weekend = isWeekend(plannedStart);
+      const next = { ...prev, job_id: jobId, assigned_date: dateToUse, start_delayed: false, actual_start_date: '' };
+      if (dateToUse) {
+        const weekend = isWeekend(dateToUse);
         if (weekend && !prev.is_overtime && prev.rate_multiplier === '') {
           next.is_overtime = true;
-          next.rate_multiplier = String(rateMap[new Date(plannedStart + 'T00:00:00').getDay()] ?? 1.5);
+          next.rate_multiplier = String(rateMap[new Date(dateToUse + 'T00:00:00').getDay()] ?? 1.5);
         }
         if (!weekend && prev.is_overtime && prev.rate_multiplier === '') {
           next.is_overtime = false;
@@ -161,20 +180,39 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
       }
       return next;
     });
-    if (plannedStart && formData.staff_id) {
-      const res = checkConflicts(formData.staff_id, plannedStart, formData.vehicle_id, formData.start_time, formData.end_time);
+    if (dateToUse && formData.staff_id) {
+      const res = checkConflicts(formData.staff_id, dateToUse, formData.vehicle_id, formData.start_time, formData.end_time);
       setConflictWarnings(res.warnings);
       setTimeConflict(res.timeConflict);
     } else {
       setConflictWarnings([]);
       setTimeConflict(null);
     }
+    setJobSearch('');
+    setJobDropdownOpen(false);
   };
 
   const selectedJob = jobs.find(j => j.id === formData.job_id);
   const isDrillingJob = selectedJob && selectedJob.drilling_method && selectedJob.drilling_method !== 'not_applicable';
   const selectedRig = rigs.find(r => r.id === formData.rig_asset_id);
   const selectedStaff = staff.find(s => s.id === formData.staff_id);
+  const selectedStaffTeam = selectedStaff ? teams.find(t => t.id === selectedStaff.team_id) : null;
+  const isDrillerStaff = selectedStaffTeam && (selectedStaffTeam.job_type === 'cp_drilling' || selectedStaffTeam.job_type === 'rotary_drilling');
+  // Active jobs shown by default; completed jobs included only when searching or toggled
+  const activeStatuses = ['planning', 'in_progress'];
+  const filteredJobsList = jobs.filter(job => {
+    const isActive = activeStatuses.includes(job.status);
+    const q = jobSearch.toLowerCase().trim();
+    const matchesSearch = !q || (job.name || '').toLowerCase().includes(q) || (job.location || '').toLowerCase().includes(q) || (job.job_reference || '').toLowerCase().includes(q);
+    if (isActive && matchesSearch) return true;
+    if (!isActive && (q || showCompletedJobs) && matchesSearch) return true;
+    return false;
+  }).sort((a, b) => {
+    const aActive = activeStatuses.includes(a.status) ? 0 : 1;
+    const bActive = activeStatuses.includes(b.status) ? 0 : 1;
+    if (aActive !== bActive) return aActive - bActive;
+    return (a.name || '').localeCompare(b.name || '');
+  });
   const effectiveStartDisplay = formData.start_delayed && formData.actual_start_date ? formData.actual_start_date : formData.assigned_date;
   const multiDayDays = (!isEditing && selectedJob?.end_date && effectiveStartDisplay && selectedJob.end_date > effectiveStartDisplay) ? buildDateRange(effectiveStartDisplay, selectedJob.end_date) : [];
   const teamMismatch = isStaffOutsideJobTeams(selectedStaff, selectedJob, teams);
@@ -187,7 +225,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   const complianceExpiring = complianceEval.expiring.length > 0;
 
   // Equipment compliance hard-lock: expired rigs cannot be assigned to jobs
-  const rigComplianceBlocked = isDrillingJob && selectedRig && selectedRig.compliance_status === 'expired';
+  const rigComplianceBlocked = isDrillerStaff && selectedRig && selectedRig.compliance_status === 'expired';
 
   const handleDateChange = (date) => {
     const weekend = isWeekend(date);
@@ -290,7 +328,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
       if (!confirm('There are scheduling conflicts:\n\n' + conflictWarnings.map(w => '• ' + w).join('\n') + '\n\nAdd anyway?')) return;
     }
     if (!formData.assigned_date) {
-      alert('Please select a job — the assignment date is taken from the job\'s planned start.');
+      alert('Please select a date for this assignment.');
       return;
     }
     try {
@@ -391,11 +429,60 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-slate-600 mb-1">Job *</label>
-              <select value={formData.job_id} onChange={(e) => handleJobChange(e.target.value)} required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                <option value="">Select Job</option>
-                {jobs.map(job => <option key={job.id} value={job.id}>{job.name}</option>)}
-              </select>
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={jobSearch}
+                  onChange={(e) => setJobSearch(e.target.value)}
+                  onFocus={() => setJobDropdownOpen(true)}
+                  onBlur={() => setTimeout(() => { setJobDropdownOpen(false); if (formData.job_id) setJobSearch(''); }, 150)}
+                  placeholder={selectedJob ? `${selectedJob.name}${selectedJob.location ? ` · ${selectedJob.location}` : ''}` : 'Search active jobs by name or location…'}
+                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm"
+                />
+                {selectedJob && !jobSearch && (
+                  <button type="button" onClick={() => { setJobSearch(' '); setJobDropdownOpen(true); }}
+                    className="absolute right-2.5 top-2 text-[11px] text-emerald-600 font-semibold hover:underline">
+                    Change
+                  </button>
+                )}
+                {jobDropdownOpen && (
+                  <div className="absolute z-30 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-xl max-h-72 overflow-y-auto">
+                    {filteredJobsList.length === 0 ? (
+                      <div className="px-3 py-4 text-center">
+                        <p className="text-sm text-slate-400">No matching jobs.</p>
+                        {!showCompletedJobs && (
+                          <button type="button" onClick={() => setShowCompletedJobs(true)}
+                            className="mt-1 text-xs text-emerald-600 font-medium hover:underline">
+            Include completed jobs in search →
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        {!showCompletedJobs && !jobSearch && (
+                          <button type="button" onClick={() => setShowCompletedJobs(true)}
+                            className="w-full text-left px-3 py-1.5 text-[11px] text-slate-400 hover:text-emerald-600 font-medium border-b border-slate-100 bg-slate-50/50">
+            Only showing active jobs · Click to include completed →
+                          </button>
+                        )}
+                        {filteredJobsList.map(job => (
+                          <button key={job.id} type="button"
+                            onMouseDown={(e) => { e.preventDefault(); handleJobChange(job.id); }}
+                            className={`w-full text-left px-3 py-2.5 hover:bg-emerald-50 border-b border-slate-100 last:border-0 transition ${formData.job_id === job.id ? 'bg-emerald-50' : ''}`}>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-slate-800 truncate flex-1">{job.name}</span>
+                              <JobStatusBadge status={job.status} />
+                              {formData.job_id === job.id && <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />}
+                            </div>
+                            {job.location && <p className="text-xs text-slate-400 truncate mt-0.5 flex items-center gap-1"><MapPin className="w-3 h-3 flex-shrink-0" />{job.location}</p>}
+                          </button>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
               {selectedJob && requiredTeamNames.length > 0 && (
                 <p className="text-[11px] text-slate-400 mt-1">Required teams: {requiredTeamNames.join(', ')}</p>
               )}
@@ -443,7 +530,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                 )}
               </div>
             )}
-            {selectedJob?.start_date && (
+            {selectedJob?.start_date && selectedJob.status === 'planning' && (
               <div className="sm:col-span-2 rounded-lg border border-slate-200 p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <CalendarClock className="w-4 h-4 text-emerald-700" />
@@ -510,11 +597,9 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Assignment Date</label>
-              <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 font-medium flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                {formData.assigned_date ? format(new Date(formData.assigned_date + 'T00:00:00'), 'EEE dd MMM yyyy') : <span className="text-slate-400 italic">Select a job first</span>}
-              </div>
-              <p className="text-[11px] text-slate-400 mt-1">Auto from job planned start · override via "Delayed"</p>
+              <input type="date" value={formData.assigned_date} onChange={(e) => handleDateChange(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+              <p className="text-[11px] text-slate-400 mt-1">{defaultDate ? 'The day you clicked in the rota' : 'Pick a date for this shift'}</p>
             </div>
             {multiDayDays.length > 0 && (
               <div className="sm:col-span-2 flex items-start gap-2 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
@@ -530,7 +615,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                 {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number} — {v.name}</option>)}
               </select>
             </div>
-            {isDrillingJob && (
+            {isDrillerStaff && (
               <div className="sm:col-span-2 rounded-lg border border-emerald-300 bg-emerald-50/50 p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <Drill className="w-4 h-4 text-emerald-700" />
