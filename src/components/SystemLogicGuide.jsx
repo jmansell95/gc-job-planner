@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Loader2, BookOpen, ShieldCheck, TrendingUp, Sparkles, HardHat, FileClock, Clock, Activity, Zap, FileText, Radar } from 'lucide-react';
+import { Download, Loader2, BookOpen, ShieldCheck, TrendingUp, Sparkles, HardHat, FileClock, Clock, Activity, Zap, FileText, Radar, Users, MessageSquare, Camera, Mic, MapPin, CalendarClock } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { EMBLEM_URL } from '@/components/Logo';
 
@@ -83,6 +83,22 @@ const SECTIONS = [
       { stat: 'Scheduling Assistant', meaning: 'An AI assistant that suggests crew assignments based on qualifications, availability and job type. It validates staff qualifications against crew requirements before suggesting an assignment — work that takes a scheduler 20 minutes takes seconds.' },
       { stat: 'Incident Auto-Analysis', meaning: 'When logging a safety incident, an AI analysis button appears after the description is entered. The LLM analyses the incident against UK HSE guidelines and RIDDOR requirements, then suggests a root cause, corrective actions with priority and owner, whether it is RIDDOR-reportable, and prevention notes. Suggestions can be applied to the report with one click.' },
       { stat: 'What-If Rota Sandbox', meaning: 'A sandbox tab in the Scheduling Hub that lets planners test rota changes before applying them. Add proposed assignments and the system calculates the impact on crew utilisation, job coverage, and cost. An AI analysis button assesses risk factors (overallocation, single-point-of-failure) and recommends approve, reject, or modify.' },
+    ],
+  },
+  {
+    id: 'field',
+    icon: Users,
+    title: 'Field Team Features',
+    desc: 'Self-service, comms & productivity tools for field crews',
+    items: [
+      { stat: 'Staff Messenger', meaning: 'A division-scoped in-app messaging system with crew-wide (division) broadcasts, 1:1 direct messages, and job-scoped group chats. Messages are real-time via entity subscriptions and secured by row-level security so crews only see messages within their own division. Accessible from the "More" tab on the staff dashboard.' },
+      { stat: 'Shift Swap Marketplace', meaning: 'A marketplace where field staff can offer up their assigned shift for swap. Colleagues in the same division see the offer on the board and can claim it. The offering staff member\'s manager then approves or rejects the claim. On approval, the RotaAssignment is automatically reassigned to the claiming staff member — no manual rota editing required.' },
+      { stat: 'Self-Service Hub', meaning: 'A one-stop panel for field staff to request holidays, log expenses, and request payslips without calling the office. Holiday requests capture date range and reason, and notify the staff member\'s manager for approval. Expenses are saved as DailyCost records linked to the job. All requests are tracked with a status timeline (submitted → approved/rejected).' },
+      { stat: 'Live Crew Map', meaning: 'A real-time map showing where every crew member in the division is deployed today. Pins are clustered by job site, with crew avatars and started/active counts. Clicking a pin shows the job name, location, and crew on site. Gives managers instant visibility of their entire field operation without phoning around.' },
+      { stat: 'Voice-to-Text Dictation', meaning: 'A hands-free voice input button available on every field text-entry form — task descriptions, progress notes, and diary entries. Uses the browser\'s Web Speech API (en-GB) with graceful fallback on unsupported browsers. Designed for drillers wearing gloves or working in noisy cabs where typing is impractical. Tap the mic, speak, and the text is transcribed directly into the field.' },
+      { stat: 'Photo Auto-Tagging', meaning: 'When field staff upload site photos, AI vision (InvokeLLM) automatically analyses each image and tags it with: equipment visible (rigs, vans, tools), work activity (drilling, groundworks), site conditions (mud, weather), and a suggested caption. GPS coordinates are also captured. Photos are auto-organised in the job gallery by these tags — no manual labelling required. An "AI" badge on each photo thumbnail indicates it was auto-tagged.' },
+      { stat: 'GPS Auto-Arrival', meaning: 'The Shift Wizard uses device geolocation to auto-detect when a crew member arrives on site. If the GPS position is within the job\'s geofence radius, the arrival time is pre-filled into the travel-to-site form. The crew member just confirms — no manual time entry. Falls back gracefully to manual entry when GPS is unavailable or denied.' },
+      { stat: 'Tablet Split-Pane', meaning: 'All field CRUD and list/detail views use a responsive split-pane layout that adapts from a single-column stack on phones to a master-detail two-pane view on tablets. This ensures parity between phone (field crews) and tablet (management) as equal first-class design targets.' },
     ],
   },
   {

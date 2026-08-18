@@ -52,6 +52,9 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
         {branding.footer_text && !footer && (
           <p className="text-center text-sm text-white/70 mt-6 drop-shadow-sm">{branding.footer_text}</p>
         )}
+        <p className="text-center text-[11px] text-white/50 mt-4 drop-shadow-sm">
+          This application was created by Jordan Mansell
+        </p>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { canViewCostings } from '@/utils/access';
 import { useAuth } from '@/lib/AuthContext';
 import DelayLogForm from '@/components/DelayLogForm';
+import VoiceToTextButton from '@/components/ui/VoiceToTextButton';
 
 const SAFETY_REPORT_URL = 'https://app.safetyculture.com/inspection/audit_3f1be1e08438431a9bacaab5137107f7?page=1&isNew=true&holisticOnboarding=false';
 
@@ -340,10 +341,13 @@ export default function DailyTaskLog({ staffId, hideSubmit = false, lockedJobId 
               </div>
             )}
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">{isLunch ? 'Break type' : isTravel ? 'Travel time' : 'What did you do? *'}</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-slate-600">{isLunch ? 'Break type' : isTravel ? 'Travel time' : 'What did you do? *'}</label>
+                {!isLunch && !isTravel && <VoiceToTextButton onTranscript={(text) => setTask(prev => (prev + text).slice(0, 500))} />}
+              </div>
               {!isLunch && !isTravel && (
                 <input type="text" value={task} onChange={e => setTask(e.target.value)} required={!isLunch && !isTravel}
-                  placeholder="e.g. Put up heras fencing around the compound"
+                  placeholder="e.g. Put up heras fencing around the compound — or tap Voice"
                   className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
               )}
               <div className="flex flex-wrap gap-1.5 mt-2">
@@ -397,9 +401,12 @@ export default function DailyTaskLog({ staffId, hideSubmit = false, lockedJobId 
               </div>
             )}
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Notes (optional)</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-slate-600">Notes (optional)</label>
+                <VoiceToTextButton onTranscript={(text) => setNotes(prev => (prev + text).slice(0, 500))} />
+              </div>
               <input type="text" value={notes} onChange={e => setNotes(e.target.value)}
-                placeholder="Anything else worth noting"
+                placeholder="Anything else worth noting — or tap Voice"
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
             </div>
             <button type="submit" disabled={adding || !startTime || !endTime || durMins <= 0 || !!overlapEntry || (!isLunch && (!jobId || !task.trim()))}
