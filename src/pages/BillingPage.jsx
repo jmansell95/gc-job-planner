@@ -20,25 +20,16 @@ import TabBar from '@/components/TabBar';
 
 // ─── 3-step billing pipeline ──────────────────────────────────────────────
 const PIPELINE_STEPS = [
-  {
-    id: 'billing-readiness', step: 1, label: 'Ready to Bill', icon: FileCheck, desc: 'Unbilled work',
-    blurb: 'Review all completed work that hasn\'t been invoiced yet. This is the start of the billing cycle — confirm what\'s ready before raising invoices.',
-  },
-  {
-    id: 'invoicing', step: 2, label: 'Raise & Check', icon: PoundSterling, desc: 'Invoicing',
-    blurb: 'Raise invoices for the work you confirmed in the previous step and check for discrepancies before sending them to clients.',
-  },
-  {
-    id: 'aged-debtors', step: 3, label: 'Aged Debtors', icon: TrendingDown, desc: 'Chase overdue',
-    blurb: 'Track outstanding invoices and chase overdue payments. This is the final step — keep cash flowing by following up on unpaid invoices.',
-  },
+  { id: 'billing-readiness', step: 1, label: 'Ready to Bill', icon: FileCheck, desc: 'Unbilled work' },
+  { id: 'invoicing', step: 2, label: 'Raise & Check', icon: PoundSterling, desc: 'Invoicing' },
+  { id: 'aged-debtors', step: 3, label: 'Aged Debtors', icon: TrendingDown, desc: 'Chase overdue' },
 ];
 
 function PipelineFlow({ activeTab, onSelect }) {
   const activeIdx = PIPELINE_STEPS.findIndex((s) => s.id === activeTab);
   return (
-    <div className="insight-card rounded-2xl p-3 sm:p-4">
-      <div className="flex items-center gap-2 mb-3">
+    <div className="insight-card rounded-2xl p-2.5 sm:p-3">
+      <div className="flex items-center gap-2 mb-2">
         <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center">
           <FileBarChart className="w-3.5 h-3.5 text-white" />
         </div>
@@ -98,25 +89,6 @@ function PipelineFlow({ activeTab, onSelect }) {
   );
 }
 
-function PipelineIntro({ activeTab }) {
-  const step = PIPELINE_STEPS.find((s) => s.id === activeTab);
-  if (!step) return null;
-  const Icon = step.icon;
-  return (
-    <div className="bg-gradient-to-br from-[#2E5A1A]/5 to-[#8DC63F]/5 rounded-2xl border border-[#2E5A1A]/15 px-3.5 sm:px-4 py-3 flex items-start gap-3">
-      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-sm">
-        <Icon className="w-4 h-4 text-white" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-sm font-bold text-slate-900">
-          {step.label} — Step {PIPELINE_STEPS.findIndex((s) => s.id === activeTab) + 1} of {PIPELINE_STEPS.length}
-        </p>
-        <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">{step.blurb}</p>
-      </div>
-    </div>
-  );
-}
-
 // ─── Main page ────────────────────────────────────────────────────────────
 export default function BillingPage() {
   const navigate = useNavigate();
@@ -159,22 +131,15 @@ export default function BillingPage() {
       {/* Pipeline step content */}
       {tab === 'billing-readiness' && (
         <>
-          <PipelineIntro activeTab={tab} />
           <AfPPipelineWidget onSelectJob={setInvoiceJob} />
           <BillingReadinessReport onSelectJob={goToJob} />
         </>
       )}
       {tab === 'invoicing' && (
-        <>
-          <PipelineIntro activeTab={tab} />
-          <InvoiceDiscrepancyWidget />
-        </>
+        <InvoiceDiscrepancyWidget />
       )}
       {tab === 'aged-debtors' && (
-        <>
-          <PipelineIntro activeTab={tab} />
-          <AgedDebtorsDashboard />
-        </>
+        <AgedDebtorsDashboard />
       )}
 
       {/* Insights dashboard */}

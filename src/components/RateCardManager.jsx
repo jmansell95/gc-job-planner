@@ -24,7 +24,9 @@ const CATEGORY_META = {
 
 const inputCls = "w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]";
 
-function RateItemRow({ item, subcategory, onUpdate }) {
+function RateItemRow({ item, subcategory, onUpdate, viewMode = 'chargeable' }) {
+  const showCost = viewMode === 'internal';
+  const showCharge = viewMode === 'chargeable';
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     description: item.description,
@@ -147,45 +149,60 @@ function RateItemRow({ item, subcategory, onUpdate }) {
                 <span className="text-slate-400 font-normal">({fmt(item.price)} × {item.men})</span>
               </p>
             )}
-            {/* Mobile: inline cost/charge/margin */}
+            {/* Mobile: inline cost/charge (conditional on view) */}
             <div className="flex sm:hidden items-center gap-3 mt-2 text-xs">
-              <div>
-                <span className="text-[9px] text-amber-600 uppercase font-medium block">Cost</span>
-                <span className={`font-semibold tabular-nums ${hasCost ? 'text-amber-700' : 'text-slate-300'}`}>{costDisplay}</span>
-              </div>
-              <div>
-                <span className="text-[9px] text-emerald-600 uppercase font-medium block">Charge</span>
-                <span className={`font-semibold tabular-nums ${item.price != null ? 'text-slate-900' : 'text-slate-400 italic'}`}>{priceDisplay}</span>
-              </div>
+              {showCost && (
+                <div>
+                  <span className="text-[9px] text-amber-600 uppercase font-medium block">Cost</span>
+                  <span className={`font-semibold tabular-nums ${hasCost ? 'text-amber-700' : 'text-slate-300'}`}>{costDisplay}</span>
+                </div>
+              )}
+              {showCharge && (
+                <div>
+                  <span className="text-[9px] text-emerald-600 uppercase font-medium block">Charge</span>
+                  <span className={`font-semibold tabular-nums ${item.price != null ? 'text-slate-900' : 'text-slate-400 italic'}`}>{priceDisplay}</span>
+                </div>
+              )}
+              {showCharge && marginPct != null && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${marginPct >= 20 ? 'bg-emerald-50 text-emerald-700' : marginPct >= 0 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600'}`}>
+                  {marginPct.toFixed(0)}%
+                </span>
+              )}
               {item.unit && <span className="text-slate-400">/{item.unit}</span>}
               <button onClick={() => { setForm({ description: item.description, price: item.price ?? '', price_text: item.price_text ?? '', cost_price: item.cost_price ?? '', unit: item.unit ?? '', men: item.men ?? '', notes: item.notes ?? '', effective_date: item.effective_date ?? '', expiry_date: item.expiry_date ?? '' }); setEditing(true); }} className="ml-auto p-1 text-slate-400 hover:text-[#2E5A1A] transition">
                 <Pencil className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
-          {/* Desktop: aligned columns */}
+          {/* Desktop: aligned columns (conditional on view) */}
           <div className="hidden sm:flex items-center gap-4 flex-shrink-0">
             {item.unit && <span className="text-xs text-slate-400">/{item.unit}</span>}
-            {/* Internal Cost */}
-            <div className="text-right w-20">
-              <p className="text-[9px] text-amber-600 uppercase font-medium">Cost</p>
-              <span className={`text-sm font-semibold tabular-nums block ${hasCost ? 'text-amber-700' : 'text-slate-300'}`}>{costDisplay}</span>
-            </div>
-            {/* Charge Out */}
-            <div className="text-right w-20">
-              <p className="text-[9px] text-emerald-600 uppercase font-medium">Charge</p>
-              <span className={`text-sm font-semibold tabular-nums block ${item.price != null ? 'text-slate-900' : 'text-slate-400 italic'}`}>{priceDisplay}</span>
-            </div>
-            {/* Margin */}
-            <div className="text-right w-16">
-              {marginPct != null ? (
-                <span className={`text-xs font-bold tabular-nums ${marginPct >= 20 ? 'text-emerald-600' : marginPct >= 0 ? 'text-amber-600' : 'text-red-600'}`}>
-                  {marginPct.toFixed(0)}%
-                </span>
-              ) : (
-                <span className="text-xs text-slate-300">—</span>
-              )}
-            </div>
+            {/* Internal Cost — only in Internal Costs view */}
+            {showCost && (
+              <div className="text-right w-20">
+                <p className="text-[9px] text-amber-600 uppercase font-medium">Cost</p>
+                <span className={`text-sm font-semibold tabular-nums block ${hasCost ? 'text-amber-700' : 'text-slate-300'}`}>{costDisplay}</span>
+              </div>
+            )}
+            {/* Charge Out — only in Chargeable Rates view */}
+            {showCharge && (
+              <div className="text-right w-20">
+                <p className="text-[9px] text-emerald-600 uppercase font-medium">Charge</p>
+                <span className={`text-sm font-semibold tabular-nums block ${item.price != null ? 'text-slate-900' : 'text-slate-400 italic'}`}>{priceDisplay}</span>
+              </div>
+            )}
+            {/* Margin — only in Chargeable Rates view (uses stored cost data even though column is hidden) */}
+            {showCharge && (
+              <div className="text-right w-16">
+                {marginPct != null ? (
+                  <span className={`text-xs font-bold tabular-nums ${marginPct >= 20 ? 'text-emerald-600' : marginPct >= 0 ? 'text-amber-600' : 'text-red-600'}`}>
+                    {marginPct.toFixed(0)}%
+                  </span>
+                ) : (
+                  <span className="text-xs text-slate-300">—</span>
+                )}
+              </div>
+            )}
             <button onClick={() => { setForm({ description: item.description, price: item.price ?? '', price_text: item.price_text ?? '', cost_price: item.cost_price ?? '', unit: item.unit ?? '', men: item.men ?? '', notes: item.notes ?? '', effective_date: item.effective_date ?? '', expiry_date: item.expiry_date ?? '' }); setEditing(true); }} className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-[#2E5A1A] transition">
               <Pencil className="w-3.5 h-3.5" />
             </button>
@@ -196,7 +213,7 @@ function RateItemRow({ item, subcategory, onUpdate }) {
   );
 }
 
-function AddRateForm({ category, subcategory, source, supplierId, onAdded }) {
+function AddRateForm({ category, subcategory, source, supplierId, onAdded, viewMode = 'chargeable' }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ description: '', price: '', cost_price: '', unit: 'day', notes: '' });
   const [saving, setSaving] = useState(false);
@@ -234,9 +251,12 @@ function AddRateForm({ category, subcategory, source, supplierId, onAdded }) {
   return (
     <div className="p-3 bg-slate-50 border-b border-slate-100 space-y-2">
       <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Description" className={inputCls} autoFocus />
-      <div className="grid grid-cols-3 gap-2">
-        <input type="number" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="Charge Out £" className={inputCls} />
-        <input type="number" step="0.01" value={form.cost_price} onChange={e => setForm({ ...form, cost_price: e.target.value })} placeholder="Internal Cost £" className={inputCls} />
+      <div className="grid grid-cols-2 gap-2">
+        {viewMode === 'chargeable' ? (
+          <input type="number" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="Charge Out £" className={inputCls} />
+        ) : (
+          <input type="number" step="0.01" value={form.cost_price} onChange={e => setForm({ ...form, cost_price: e.target.value })} placeholder="Internal Cost £" className={inputCls} />
+        )}
         <input value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} placeholder="Unit (day, hour, m)" className={inputCls} />
       </div>
       <input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Notes" className={inputCls} />
@@ -252,62 +272,68 @@ function AddRateForm({ category, subcategory, source, supplierId, onAdded }) {
   );
 }
 
-// Rate card source tabs — shared between MPL and Drilling Rates views.
-// Shows: Chargeable Rates | Internal Costs | Drilling Rates 2026 | [year-specific draft suppliers]
-// Year selector groups draft rate cards by year for visual organisation.
-function RateCardSourceTabs({
-  activeRateCard, setActiveRateCard,
-  isOurCard, isInternalCosts, isDrillingRates,
-  internalCostsSupplier, internalCostItemCount,
+// Two-view pill toggle: Chargeable Rates (sell prices + Drilling Rates 2026) | Internal Costs (cost prices)
+// Drilling Rates 2026 and draft suppliers appear as sub-filters within the Chargeable Rates view.
+function RateCardViewToggle({
+  activeView, setActiveView,
+  activeSource, setActiveSource,
+  internalCostItemCount,
   suppliersWithItems, draftSuppliersForYear, items,
   availableYears, activeYear, setActiveYear,
 }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-      {/* Year selector — visual organisation of rate cards by year */}
-      {availableYears.length > 1 && (
-        <div className="px-4 pt-3 pb-1 flex items-center gap-2 border-b border-slate-100">
-          <Calendar className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Year:</span>
-          <div className="flex gap-1">
-            {availableYears.map(yr => (
-              <button key={yr} onClick={() => setActiveYear(yr)}
-                className={`px-2.5 py-1 rounded-md text-xs font-bold transition ${activeYear === yr ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
-                {yr}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-      <div className="flex gap-1.5 px-3 pt-3 overflow-x-auto no-scrollbar border-b border-slate-100">
-        {/* Chargeable Rates (live) */}
-        <button onClick={() => setActiveRateCard('our_company')}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition border-b-2 whitespace-nowrap ${isOurCard ? 'border-[#2E5A1A] text-[#2E5A1A] bg-[#2E5A1A]/5' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+      {/* Top-level pill toggle: Chargeable Rates | Internal Costs */}
+      <div className="flex gap-1.5 p-2.5 border-b border-slate-100">
+        <button onClick={() => setActiveView('chargeable')}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition flex-1 sm:flex-none justify-center ${activeView === 'chargeable' ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
           <Receipt className="w-4 h-4" /> Chargeable Rates
         </button>
-        {/* Internal Costs */}
-        <button onClick={() => setActiveRateCard('internal_costs')}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition border-b-2 whitespace-nowrap ${isInternalCosts ? 'border-amber-600 text-amber-700 bg-amber-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+        <button onClick={() => setActiveView('internal')}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition flex-1 sm:flex-none justify-center ${activeView === 'internal' ? 'bg-amber-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
           <HardHat className="w-4 h-4" /> Internal Costs
-          {internalCostItemCount > 0 && <span className="text-xs text-slate-400">({internalCostItemCount})</span>}
+          {internalCostItemCount > 0 && <span className={`text-xs ${activeView === 'internal' ? 'text-white/70' : 'text-slate-400'}`}>({internalCostItemCount})</span>}
         </button>
-        {/* Drilling Rates 2026 */}
-        <button onClick={() => setActiveRateCard('drilling_rates')}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition border-b-2 whitespace-nowrap ${isDrillingRates ? 'border-blue-600 text-blue-700 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-          <FileSpreadsheet className="w-4 h-4" /> Drilling Rates 2026
-        </button>
-        {/* Year-specific draft suppliers */}
-        {draftSuppliersForYear.map(s => (
-          <button key={s.id} onClick={() => setActiveRateCard(s.id)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition border-b-2 whitespace-nowrap ${activeRateCard === s.id ? 'border-[#2E5A1A] text-[#2E5A1A] bg-[#2E5A1A]/5' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-            <Building2 className="w-4 h-4" /> {s.name}
-            <span className="text-xs text-slate-400">({items.filter(i => i.supplier_id === s.id).length})</span>
-          </button>
-        ))}
-        {suppliersWithItems.length === 0 && draftSuppliersForYear.length === 0 && (
-          <span className="px-3 py-2 text-xs text-slate-400 whitespace-nowrap">No draft rate cards yet — use "Clone to Draft" to create next year's rates</span>
-        )}
       </div>
+      {/* Sub-filter row — only within Chargeable Rates view */}
+      {activeView === 'chargeable' && (
+        <>
+          {availableYears.length > 1 && (
+            <div className="px-4 pt-2.5 pb-1 flex items-center gap-2 border-b border-slate-100">
+              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Year:</span>
+              <div className="flex gap-1">
+                {availableYears.map(yr => (
+                  <button key={yr} onClick={() => setActiveYear(yr)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition ${activeYear === yr ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                    {yr}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="flex gap-1.5 px-3 py-2 overflow-x-auto no-scrollbar">
+            <button onClick={() => setActiveSource('standard')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition whitespace-nowrap ${activeSource === 'standard' ? 'bg-[#2E5A1A]/10 text-[#2E5A1A] border border-[#2E5A1A]/20' : 'text-slate-500 hover:bg-slate-100 border border-transparent'}`}>
+              <Receipt className="w-3.5 h-3.5" /> Standard Rates
+            </button>
+            <button onClick={() => setActiveSource('drilling')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition whitespace-nowrap ${activeSource === 'drilling' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'text-slate-500 hover:bg-slate-100 border border-transparent'}`}>
+              <FileSpreadsheet className="w-3.5 h-3.5" /> Drilling Rates 2026
+            </button>
+            {draftSuppliersForYear.map(s => (
+              <button key={s.id} onClick={() => setActiveSource(s.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition whitespace-nowrap ${activeSource === s.id ? 'bg-[#2E5A1A]/10 text-[#2E5A1A] border border-[#2E5A1A]/20' : 'text-slate-500 hover:bg-slate-100 border border-transparent'}`}>
+                <Building2 className="w-3.5 h-3.5" /> {s.name}
+                <span className="text-xs text-slate-400">({items.filter(i => i.supplier_id === s.id).length})</span>
+              </button>
+            ))}
+            {suppliersWithItems.length === 0 && draftSuppliersForYear.length === 0 && activeSource === 'standard' && (
+              <span className="px-3 py-1.5 text-xs text-slate-400 whitespace-nowrap self-center">No draft rate cards yet — use "Clone to Draft" to create next year's rates</span>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -315,9 +341,10 @@ function RateCardSourceTabs({
 export default function RateCardManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  // 'our_company' = Chargeable Rates, 'internal_costs' = Internal Costs tab,
-  // 'drilling_rates' = Drilling Rates 2026 (SOR), or a supplier_id
-  const [activeRateCard, setActiveRateCard] = useState('our_company');
+  // Two-view model: 'chargeable' (sell prices + Drilling Rates 2026 + drafts) | 'internal' (cost prices)
+  // activeSource refines the chargeable view: 'standard' | 'drilling' | supplierId (draft)
+  const [activeView, setActiveView] = useState('chargeable');
+  const [activeSource, setActiveSource] = useState('standard');
   const [activeCategory, setActiveCategory] = useState('labour');
   const [query, setQuery] = useState('');
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -387,11 +414,12 @@ export default function RateCardManager() {
     queryClient.invalidateQueries({ queryKey: ['suppliers'] });
   };
 
-  const isOurCard = activeRateCard === 'our_company';
-  const isInternalCosts = activeRateCard === 'internal_costs';
-  const isDrillingRates = activeRateCard === 'drilling_rates';
+  const isInternalCosts = activeView === 'internal';
+  const isDrillingRates = activeView === 'chargeable' && activeSource === 'drilling';
+  const isOurCard = activeView === 'chargeable' && activeSource === 'standard';
   const internalCostsSupplier = useMemo(() => suppliers.find(s => s.name === INTERNAL_COSTS_SUPPLIER_NAME), [suppliers]);
-  const activeSupplier = isOurCard || isInternalCosts || isDrillingRates ? null : suppliers.find(s => s.id === activeRateCard);
+  const activeSupplier = (activeView === 'chargeable' && activeSource !== 'standard' && activeSource !== 'drilling')
+    ? suppliers.find(s => s.id === activeSource) : null;
 
   // Extract year from supplier names like "Our Rate Card — 2027 Draft"
   const parseYearFromName = (name) => {
@@ -428,7 +456,7 @@ export default function RateCardManager() {
     let list = items.filter(i => {
       if (isOurCard) return i.rate_card_source !== 'supplier';
       if (isInternalCosts) return i.rate_card_source === 'supplier' && internalCostsSupplier && i.supplier_id === internalCostsSupplier.id;
-      return i.rate_card_source === 'supplier' && i.supplier_id === activeRateCard;
+      return i.rate_card_source === 'supplier' && i.supplier_id === activeSource;
     }).filter(i => i.category === activeCategory);
     if (query.trim()) {
       const q = query.toLowerCase();
@@ -439,7 +467,7 @@ export default function RateCardManager() {
       );
     }
     return list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  }, [items, activeCategory, query, isOurCard, isInternalCosts, internalCostsSupplier, activeRateCard]);
+  }, [items, activeCategory, query, isOurCard, isInternalCosts, internalCostsSupplier, activeSource]);
 
   const grouped = useMemo(() => {
     const map = {};
@@ -456,13 +484,13 @@ export default function RateCardManager() {
       ? items.filter(i => i.rate_card_source !== 'supplier')
       : isInternalCosts
         ? items.filter(i => i.rate_card_source === 'supplier' && internalCostsSupplier && i.supplier_id === internalCostsSupplier.id)
-        : items.filter(i => i.rate_card_source === 'supplier' && i.supplier_id === activeRateCard);
+        : items.filter(i => i.rate_card_source === 'supplier' && i.supplier_id === activeSource);
     return {
       labour: scoped.filter(i => i.category === 'labour').length,
       plant: scoped.filter(i => i.category === 'plant').length,
       materials: scoped.filter(i => i.category === 'materials').length,
     };
-  }, [items, isOurCard, isInternalCosts, internalCostsSupplier, activeRateCard]);
+  }, [items, isOurCard, isInternalCosts, internalCostsSupplier, activeSource]);
 
   const totalForCard = counts.labour + counts.plant + counts.materials;
 
@@ -472,7 +500,7 @@ export default function RateCardManager() {
       ? items.filter(i => i.rate_card_source !== 'supplier')
       : isInternalCosts
         ? items.filter(i => i.rate_card_source === 'supplier' && internalCostsSupplier && i.supplier_id === internalCostsSupplier.id)
-        : items.filter(i => i.rate_card_source === 'supplier' && i.supplier_id === activeRateCard);
+        : items.filter(i => i.rate_card_source === 'supplier' && i.supplier_id === activeSource);
     const withPrice = scoped.filter(i => i.price != null && i.price > 0);
     const missingCost = scoped.filter(i => (i.cost_price == null || i.cost_price === '') && i.price != null);
     const zeroMargin = withPrice.filter(i => i.cost_price != null && i.cost_price >= i.price);
@@ -487,7 +515,7 @@ export default function RateCardManager() {
       avgMargin,
       withMargin: margins.length,
     };
-  }, [items, isOurCard, activeRateCard]);
+  }, [items, isOurCard, isInternalCosts, internalCostsSupplier, activeSource]);
 
   const applyBulkAdjustment = async () => {
     const pct = parseFloat(bulkPct);
@@ -504,7 +532,7 @@ export default function RateCardManager() {
         ? items.filter(i => i.rate_card_source !== 'supplier')
         : isInternalCosts
           ? items.filter(i => i.rate_card_source === 'supplier' && internalCostsSupplier && i.supplier_id === internalCostsSupplier.id)
-          : items.filter(i => i.rate_card_source === 'supplier' && i.supplier_id === activeRateCard);
+          : items.filter(i => i.rate_card_source === 'supplier' && i.supplier_id === activeSource);
       targetItems = scoped.filter(i => i.price != null);
     }
     if (targetItems.length === 0) {
@@ -570,7 +598,7 @@ export default function RateCardManager() {
       toast({ title: 'Draft rate card created', description: `${clones.length} rates cloned to "${draftName}"${!isNaN(pct) ? ` with ${pct > 0 ? '+' : ''}${pct}% uplift` : ''}.` });
       setCloneOpen(false); setClonePct('');
       refresh();
-      setActiveRateCard(draftSupplier.id);
+      setActiveSource(draftSupplier.id);
     } catch (e) {
       toast({ title: 'Clone failed', description: e?.message, variant: 'destructive' });
     }
@@ -594,27 +622,24 @@ export default function RateCardManager() {
     );
   }
 
-  // "Drilling Rates 2026" tab — render SOR inline within the MPL view
+  // "Drilling Rates 2026" — rendered inline within the Chargeable Rates view
   if (isDrillingRates) {
     return (
       <div className="space-y-4">
         <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (chargeable rates, internal costs, drilling rates) and Project Rate Cards" />
         <div className="flex gap-1.5 bg-slate-100 p-1 rounded-lg w-fit">
-          <button onClick={() => { setViewMode('master'); setActiveRateCard('our_company'); }} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-[#2E5A1A] shadow-sm">
+          <button onClick={() => { setViewMode('master'); setActiveSource('standard'); }} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-[#2E5A1A] shadow-sm">
             Master Price List
           </button>
           <button onClick={() => setViewMode('project')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
             Project Rate Cards
           </button>
         </div>
-        {/* Rate card source tabs — same row as MPL so Drilling Rates is always accessible */}
-        <RateCardSourceTabs
-          activeRateCard={activeRateCard}
-          setActiveRateCard={setActiveRateCard}
-          isOurCard={false}
-          isInternalCosts={false}
-          isDrillingRates={true}
-          internalCostsSupplier={internalCostsSupplier}
+        <RateCardViewToggle
+          activeView={activeView}
+          setActiveView={setActiveView}
+          activeSource={activeSource}
+          setActiveSource={setActiveSource}
           internalCostItemCount={items.filter(i => i.supplier_id === internalCostsSupplier?.id).length}
           suppliersWithItems={suppliersWithItems}
           draftSuppliersForYear={draftSuppliersForYear}
@@ -639,14 +664,12 @@ export default function RateCardManager() {
           Project Rate Cards
         </button>
       </div>
-      {/* Rate card source tabs — Chargeable Rates | Internal Costs | Drilling Rates 2026 | Drafts */}
-      <RateCardSourceTabs
-        activeRateCard={activeRateCard}
-        setActiveRateCard={setActiveRateCard}
-        isOurCard={isOurCard}
-        isInternalCosts={isInternalCosts}
-        isDrillingRates={isDrillingRates}
-        internalCostsSupplier={internalCostsSupplier}
+      {/* Two-view toggle: Chargeable Rates | Internal Costs (with Drilling Rates as sub-filter) */}
+      <RateCardViewToggle
+        activeView={activeView}
+        setActiveView={setActiveView}
+        activeSource={activeSource}
+        setActiveSource={setActiveSource}
         internalCostItemCount={items.filter(i => i.supplier_id === internalCostsSupplier?.id).length}
         suppliersWithItems={suppliersWithItems}
         draftSuppliersForYear={draftSuppliersForYear}
@@ -783,12 +806,18 @@ export default function RateCardManager() {
 
       {/* List */}
       <div className="overflow-y-auto max-h-[55vh]">
-        {/* Column header — hidden on mobile (rate rows show their own labels) */}
+        {/* Column header — hidden on mobile (rate rows show their own labels). Columns conditional on view. */}
         <div className="hidden sm:flex items-center gap-4 px-4 py-1.5 bg-slate-100/80 border-b border-slate-200 sticky top-0 z-20">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide flex-1">Description</span>
-          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide w-20 text-right">Internal Cost</span>
-          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide w-20 text-right">Charge Out</span>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide w-16 text-right">Margin</span>
+          {activeView === 'internal' && (
+            <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide w-20 text-right">Internal Cost</span>
+          )}
+          {activeView === 'chargeable' && (
+            <>
+              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide w-20 text-right">Charge Out</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide w-16 text-right">Margin</span>
+            </>
+          )}
           <span className="w-6 flex-shrink-0" />
         </div>
         {isLoading ? (
@@ -803,8 +832,8 @@ export default function RateCardManager() {
               <div className="px-4 py-2 bg-slate-50/80 sticky top-0 z-10">
                 <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{subcategory}</p>
               </div>
-              {subItems.map(item => <RateItemRow key={item.id} item={item} onUpdate={refresh} />)}
-              <AddRateForm category={activeCategory} subcategory={subcategory} source={isOurCard ? 'our_company' : 'supplier'} supplierId={isOurCard ? null : (isInternalCosts ? internalCostsSupplier?.id : activeRateCard)} onAdded={refresh} />
+              {subItems.map(item => <RateItemRow key={item.id} item={item} onUpdate={refresh} viewMode={activeView} />)}
+              <AddRateForm category={activeCategory} subcategory={subcategory} source={isOurCard ? 'our_company' : 'supplier'} supplierId={isOurCard ? null : (isInternalCosts ? internalCostsSupplier?.id : activeSource)} onAdded={refresh} viewMode={activeView} />
             </div>
           ))
         )}
@@ -814,7 +843,8 @@ export default function RateCardManager() {
         open={showSupplierUpload}
         onClose={() => setShowSupplierUpload(false)}
         onIngested={(supplierId) => {
-          setActiveRateCard(supplierId);
+          setActiveView('chargeable');
+          setActiveSource(supplierId);
           refresh();
         }}
       />
