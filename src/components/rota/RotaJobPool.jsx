@@ -8,6 +8,7 @@ import {
 import { startOfWeek, format, addDays } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { getJobPrimaryType } from '@/utils/jobTeams';
+import { useDivision } from '@/contexts/DivisionContext';
 
 /**
  * Quick-Assign Job Pool — mobile-first, organised by discipline.
@@ -47,6 +48,7 @@ export default function RotaJobPool({ weekStart, embedded = false }) {
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { activeDivisionId } = useDivision();
 
   const ws = weekStart || format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
   const days = Array.from({ length: 5 }, (_, i) => format(addDays(new Date(ws), i), 'yyyy-MM-dd'));
@@ -75,10 +77,11 @@ export default function RotaJobPool({ weekStart, embedded = false }) {
 
   // All assignments for this week — used to show existing coverage per job/day
   const { data: allRotas = [] } = useQuery({
-    queryKey: ['rotas', ws],
+    queryKey: ['rotas', ws, activeDivisionId || 'overview'],
     queryFn: async () => {
-      const all = await base44.entities.RotaAssignment.list();
-      return all.filter(a => a.week_start === ws && (!a.assignment_type || a.assignment_type === 'job'));
+      const res = await base44.functions.invoke('getDivisionScopedData', { entity: 'RotaAssignment', division_id: activeDivisionId, filter: { week_start: ws } });
+      const all = res.data?.data || [];
+      return all.filter(a => !a.assignment_type || a.assignment_type === 'job');
     },
   });
 

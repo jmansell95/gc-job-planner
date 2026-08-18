@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Calendar, Users, Briefcase, Loader2, GripVertical, Coffee, Stethoscope, Warehouse } from 'lucide-react';
 import { addDays, format, startOfWeek } from 'date-fns';
+import { useDivision } from '@/contexts/DivisionContext';
 
 // Drag-and-Drop Rota Timeline — Google-Calendar-style drag interface
 // where managers assign staff to jobs by dragging cards across the
@@ -21,6 +22,7 @@ export default function DragDropRotaTimeline({ weekStart: propWeekStart }) {
   const [weekStart, setWeekStart] = useState(propWeekStart || format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
   const [assignments, setAssignments] = useState([]);
   const [saving, setSaving] = useState(false);
+  const { activeDivisionId } = useDivision();
 
   const { data: staff = [] } = useQuery({
     queryKey: ['rota-staff-dnd'],
@@ -33,9 +35,11 @@ export default function DragDropRotaTimeline({ weekStart: propWeekStart }) {
   });
 
   const { data: existingAssignments = [], refetch } = useQuery({
-    queryKey: ['rota-assignments-dnd', weekStart],
-    queryFn: async () => { const r = await base44.entities.RotaAssignment.filter({ week_start: weekStart }, 'assigned_date', 500); return r.data || r || []; },
-    onSuccess: (data) => setAssignments(data),
+    queryKey: ['rota-assignments-dnd', weekStart, activeDivisionId || 'overview'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getDivisionScopedData', { entity: 'RotaAssignment', division_id: activeDivisionId, filter: { week_start: weekStart }, sort: 'assigned_date', limit: 500 });
+      return res.data?.data || [];
+    },
   });
 
   useEffect(() => {

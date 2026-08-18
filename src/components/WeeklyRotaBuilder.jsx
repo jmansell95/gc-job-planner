@@ -19,6 +19,7 @@ import { getCurrentTimeStr, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { computeRotaWarnings } from '@/utils/rotaWarnings';
 import RotaWarningsPanel from '@/components/RotaWarningsPanel';
+import { useDivision } from '@/contexts/DivisionContext';
 const jobTypeColors = {
   drilling: { bg: 'bg-amber-50', border: 'border-amber-400', text: 'text-amber-800', dot: 'bg-amber-500', badge: 'bg-amber-100 text-amber-700' },
   groundworks: { bg: 'bg-emerald-50', border: 'border-emerald-400', text: 'text-emerald-800', dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
@@ -49,6 +50,7 @@ export default function WeeklyRotaBuilder() {
   const [todayCrewExpanded, setTodayCrewExpanded] = useState(false);
 
   const queryClient = useQueryClient();
+  const { activeDivisionId } = useDivision();
   const weekStart = startOfWeek(selectedWeek, { weekStartsOn: 1 });
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
 
@@ -61,10 +63,14 @@ export default function WeeklyRotaBuilder() {
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
 
   const { data: rotas = [] } = useQuery({
-    queryKey: ['rotas', weekStartStr],
+    queryKey: ['rotas', weekStartStr, activeDivisionId || 'overview'],
     queryFn: async () => {
-      const all = await base44.entities.RotaAssignment.list();
-      return all.filter(a => a.week_start === weekStartStr);
+      const res = await base44.functions.invoke('getDivisionScopedData', {
+        entity: 'RotaAssignment',
+        division_id: activeDivisionId,
+        filter: { week_start: weekStartStr },
+      });
+      return res.data?.data || [];
     }
   });
 
@@ -192,8 +198,12 @@ export default function WeeklyRotaBuilder() {
     const prevWeekStr = format(prevWeekStart, 'yyyy-MM-dd');
     setSmartFillLoading(true);
     try {
-      const all = await base44.entities.RotaAssignment.list();
-      const prevWeekRotas = all.filter(r => r.week_start === prevWeekStr);
+      const res = await base44.functions.invoke('getDivisionScopedData', {
+        entity: 'RotaAssignment',
+        division_id: activeDivisionId,
+        filter: { week_start: prevWeekStr },
+      });
+      const prevWeekRotas = res.data?.data || [];
       if (prevWeekRotas.length === 0) {
         alert('No assignments found for last week to copy.');
         setSmartFillLoading(false);

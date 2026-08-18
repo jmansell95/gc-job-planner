@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import { Copy, Loader2, AlertTriangle, Check } from 'lucide-react';
 import { format, addDays, startOfWeek } from 'date-fns';
+import { useDivision } from '@/contexts/DivisionContext';
 
 /**
  * "Copy last week's rota" button. Duplicates all assignments from the
@@ -12,21 +13,28 @@ import { format, addDays, startOfWeek } from 'date-fns';
  */
 export default function TemplateWeekCopy({ targetWeekStart, onDone }) {
   const { toast } = useToast();
+  const { activeDivisionId } = useDivision();
   const [showPreview, setShowPreview] = useState(false);
   const [copying, setCopying] = useState(false);
 
   const prevWeekStart = format(addDays(new Date(targetWeekStart), -7), 'yyyy-MM-dd');
 
   const { data: prevWeekRotas = [], isLoading } = useQuery({
-    queryKey: ['rotas-prev-week', prevWeekStart],
-    queryFn: () => base44.entities.RotaAssignment.filter({ week_start: prevWeekStart }, '-assigned_date', 500),
+    queryKey: ['rotas-prev-week', prevWeekStart, activeDivisionId || 'overview'],
     enabled: showPreview,
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getDivisionScopedData', { entity: 'RotaAssignment', division_id: activeDivisionId, filter: { week_start: prevWeekStart }, sort: '-assigned_date', limit: 500 });
+      return res.data?.data || [];
+    },
   });
 
   const { data: targetWeekRotas = [] } = useQuery({
-    queryKey: ['rotas-target-week', targetWeekStart],
-    queryFn: () => base44.entities.RotaAssignment.filter({ week_start: targetWeekStart }, '-assigned_date', 500),
+    queryKey: ['rotas-target-week', targetWeekStart, activeDivisionId || 'overview'],
     enabled: showPreview,
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getDivisionScopedData', { entity: 'RotaAssignment', division_id: activeDivisionId, filter: { week_start: targetWeekStart }, sort: '-assigned_date', limit: 500 });
+      return res.data?.data || [];
+    },
   });
 
   // Detect conflicts: staff already assigned on the same date in the target week

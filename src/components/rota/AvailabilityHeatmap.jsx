@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Calendar, Coffee, Stethoscope, Users, Warehouse, Loader2 } from 'lucide-react';
 import { format, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
+import { useDivision } from '@/contexts/DivisionContext';
 
 // Availability Heatmap — overlays absence, training, and yard/depot
 // status as colored background highlights on the rota grid so
@@ -17,6 +18,7 @@ const TYPE_CONFIG = {
 
 export default function AvailabilityHeatmap({ weekStart: propWeekStart }) {
   const [weekStart, setWeekStart] = useState(propWeekStart || format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
+  const { activeDivisionId } = useDivision();
 
   const { data: staff = [], isLoading } = useQuery({
     queryKey: ['heatmap-staff'],
@@ -24,8 +26,11 @@ export default function AvailabilityHeatmap({ weekStart: propWeekStart }) {
   });
 
   const { data: assignments = [] } = useQuery({
-    queryKey: ['heatmap-assignments', weekStart],
-    queryFn: async () => { const r = await base44.entities.RotaAssignment.filter({ week_start: weekStart }, 'assigned_date', 500); return r.data || r || []; },
+    queryKey: ['heatmap-assignments', weekStart, activeDivisionId || 'overview'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getDivisionScopedData', { entity: 'RotaAssignment', division_id: activeDivisionId, filter: { week_start: weekStart }, sort: 'assigned_date', limit: 500 });
+      return res.data?.data || [];
+    },
   });
 
   const { data: absences = [] } = useQuery({
