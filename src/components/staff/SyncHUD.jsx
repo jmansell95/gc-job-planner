@@ -41,26 +41,26 @@ export default function SyncHUD() {
   let state, icon, bg, text, subtext;
   if (syncing) {
     state = 'syncing';
-    icon = <Loader2 className="w-4 h-4 animate-spin" />;
-    bg = 'bg-blue-50 border-blue-200';
+    icon = <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} />;
+    bg = 'bg-gradient-to-r from-blue-50 to-blue-100/40 border-blue-200/60';
     text = 'text-blue-700';
     subtext = 'Uploading your data…';
   } else if (!isOnline) {
     state = 'offline';
-    icon = <WifiOff className="w-4 h-4" />;
-    bg = 'bg-amber-50 border-amber-200';
+    icon = <WifiOff className="w-4 h-4" strokeWidth={2.5} />;
+    bg = 'bg-gradient-to-r from-amber-50 to-amber-100/40 border-amber-200/60';
     text = 'text-amber-700';
     subtext = pendingCount > 0 ? `${pendingCount} item${pendingCount !== 1 ? 's' : ''} queued — will send when reconnected` : 'Offline — your work is saved locally';
   } else if (hasError) {
     state = 'error';
-    icon = <AlertTriangle className="w-4 h-4" />;
-    bg = 'bg-red-50 border-red-200';
+    icon = <AlertTriangle className="w-4 h-4" strokeWidth={2.5} />;
+    bg = 'bg-gradient-to-r from-red-50 to-red-100/40 border-red-200/60';
     text = 'text-red-700';
     subtext = `${pendingCount} item${pendingCount !== 1 ? 's' : ''} failed to sync — tap retry`;
   } else {
     state = 'synced';
-    icon = <CheckCircle2 className="w-4 h-4" />;
-    bg = 'bg-emerald-50 border-emerald-200';
+    icon = <CheckCircle2 className="w-4 h-4" strokeWidth={2.5} />;
+    bg = 'bg-gradient-to-r from-emerald-50 to-[#8DC63F]/8 border-emerald-200/60';
     text = 'text-emerald-700';
     subtext = lastSyncedAt ? 'All data synced to office' : 'All synced';
   }

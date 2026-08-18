@@ -14,9 +14,9 @@ import JobDocumentViewer from '@/components/staff/JobDocumentViewer';
 import PredictiveHazardAlerts from '@/components/jobs/PredictiveHazardAlerts';
 
 const statusConfig = {
-  assigned: { label: 'Assigned', icon: Clock, color: 'text-slate-500', bg: 'bg-slate-100' },
-  started: { label: 'In Progress', icon: PlayCircle, color: 'text-blue-700', bg: 'bg-blue-50' },
-  completed: { label: 'Completed', icon: CheckCircle2, color: 'text-[#2E5A1A]', bg: 'bg-[#2E5A1A]/10' },
+  assigned: { label: 'Assigned', icon: Clock, color: 'text-slate-600', bg: 'bg-gradient-to-r from-slate-50 to-slate-100/50' },
+  started: { label: 'In Progress', icon: PlayCircle, color: 'text-blue-700', bg: 'bg-gradient-to-r from-blue-50 to-blue-100/40' },
+  completed: { label: 'Completed', icon: CheckCircle2, color: 'text-[#2E5A1A]', bg: 'bg-gradient-to-r from-[#2E5A1A]/8 to-[#8DC63F]/8' },
 };
 
 // The hero card for the active/next job today — big, focused, one primary action.
@@ -64,39 +64,39 @@ export default function ActiveJobCard({
   if (isAssigned && canPerformActions && canStart) {
     primaryButton = (
       <button onClick={() => onOpenShiftWizard(assignment.id)} type="button"
-        className="w-full flex items-center justify-center gap-2.5 px-5 py-5 command-gradient text-white rounded-2xl text-lg font-bold shadow-lg shadow-[#2E5A1A]/30 active:scale-95 transition touch-manipulation">
-        <PlayCircle className="w-7 h-7" /> {isEarlyStart ? 'Start Early' : 'Start Shift'}
+        className="w-full flex items-center justify-center gap-2.5 px-5 py-5 command-gradient text-white rounded-2xl text-lg font-bold shadow-xl shadow-[#2E5A1A]/35 active:scale-95 transition touch-manipulation glow-brand">
+        <PlayCircle className="w-7 h-7" strokeWidth={2.5} /> {isEarlyStart ? 'Start Early' : 'Start Shift'}
       </button>
     );
   } else if (isStarted && canPerformActions && hasLeftSite) {
     primaryButton = (
       <button onClick={() => onOpenShiftWizard(assignment.id, { forceStep: 'end_of_shift' })} type="button"
-        className="w-full flex items-center justify-center gap-2.5 px-5 py-5 command-gradient text-white rounded-2xl text-lg font-bold shadow-lg shadow-[#2E5A1A]/30 active:scale-95 transition touch-manipulation">
-        <Send className="w-7 h-7" /> Finish & Submit Timesheet
+        className="w-full flex items-center justify-center gap-2.5 px-5 py-5 command-gradient text-white rounded-2xl text-lg font-bold shadow-xl shadow-[#2E5A1A]/35 active:scale-95 transition touch-manipulation glow-brand">
+        <Send className="w-7 h-7" strokeWidth={2.5} /> Finish & Submit Timesheet
       </button>
     );
   } else if (isStarted && canPerformActions) {
     primaryButton = (
       <button onClick={() => onOpenShiftWizard(assignment.id)} type="button"
-        className="w-full flex items-center justify-center gap-2.5 px-5 py-5 command-gradient text-white rounded-2xl text-lg font-bold shadow-lg shadow-[#2E5A1A]/30 active:scale-95 transition touch-manipulation">
-        <PlayCircle className="w-7 h-7" /> Continue Shift
+        className="w-full flex items-center justify-center gap-2.5 px-5 py-5 command-gradient text-white rounded-2xl text-lg font-bold shadow-xl shadow-[#2E5A1A]/35 active:scale-95 transition touch-manipulation glow-brand">
+        <PlayCircle className="w-7 h-7" strokeWidth={2.5} /> Continue Shift
       </button>
     );
   } else if (isCompleted) {
     primaryButton = (
-      <div className="w-full flex items-center justify-center gap-2.5 px-5 py-5 bg-[#2E5A1A]/10 text-[#2E5A1A] rounded-2xl text-lg font-bold">
-        <CheckCircle2 className="w-7 h-7" /> Shift Completed
+      <div className="w-full flex items-center justify-center gap-2.5 px-5 py-5 bg-gradient-to-br from-[#2E5A1A]/10 to-[#8DC63F]/10 text-[#2E5A1A] rounded-2xl text-lg font-bold ring-1 ring-[#2E5A1A]/15">
+        <CheckCircle2 className="w-7 h-7" strokeWidth={2.5} /> Shift Completed
       </div>
     );
   } else if (isAssigned && !canStart) {
     primaryButton = (
-      <div className="w-full flex items-center justify-center gap-2.5 px-5 py-4 bg-slate-100 text-slate-500 rounded-2xl text-base font-semibold">
+      <div className="w-full flex items-center justify-center gap-2.5 px-5 py-4 bg-slate-100/80 text-slate-500 rounded-2xl text-base font-semibold">
         <Clock className="w-6 h-6" /> Starts {format(scheduledStart, 'dd MMM')}{assignment.start_time ? ` · ${assignment.start_time}` : ''}
       </div>
     );
   } else if (isAssigned && !canPerformActions) {
     primaryButton = (
-      <div className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-slate-100 text-slate-600 rounded-2xl text-sm font-semibold">
+      <div className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-slate-100/80 text-slate-600 rounded-2xl text-sm font-semibold">
         <Clock className="w-5 h-5" /> {isBeforeSiteOpen() ? 'Unlocks at 8:00 AM' : 'Outside working hours'}
       </div>
     );
@@ -105,12 +105,12 @@ export default function ActiveJobCard({
   return (
     <motion.div
       variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } } }}
-      className="insight-card rounded-2xl overflow-hidden"
+      className="insight-card rounded-3xl overflow-hidden"
     >
-      {/* Status strip */}
-      <div className={`px-4 py-2.5 flex items-center justify-between ${status.bg}`}>
+      {/* Status strip — gradient with subtle depth */}
+      <div className={`px-4 py-3 flex items-center justify-between ${status.bg} border-b border-slate-100/50`}>
         <span className={`inline-flex items-center gap-1.5 text-sm font-bold ${status.color}`}>
-          <StatusIcon className="w-4 h-4" /> {status.label}
+          <StatusIcon className="w-4 h-4" strokeWidth={2.5} /> {status.label}
         </span>
         <div className="flex items-center gap-2">
           {isStarted && assignment.started_at && (
@@ -134,16 +134,16 @@ export default function ActiveJobCard({
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
             <span className="inline-flex items-center gap-1.5">
-              <Calendar className="w-4 h-4 text-slate-400" /> {format(new Date(assignment.assigned_date), 'EEE dd MMM')}
+              <Calendar className="w-4 h-4 text-[#2E5A1A]/60" /> {format(new Date(assignment.assigned_date), 'EEE dd MMM')}
             </span>
             {assignment.start_time && (
               <span className="inline-flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-slate-400" /> {assignment.start_time}{assignment.end_time ? `–${assignment.end_time}` : ''}
+                <Clock className="w-4 h-4 text-[#2E5A1A]/60" /> {assignment.start_time}{assignment.end_time ? `–${assignment.end_time}` : ''}
               </span>
             )}
             {vehicle && (
               <span className="inline-flex items-center gap-1.5">
-                <Truck className="w-4 h-4 text-slate-400" /> <span className="font-mono">{vehicle.registration_number}</span>
+                <Truck className="w-4 h-4 text-[#2E5A1A]/60" /> <span className="font-mono font-medium">{vehicle.registration_number}</span>
               </span>
             )}
           </div>

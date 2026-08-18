@@ -25,8 +25,8 @@ export default function FieldPageShell({
 }) {
   return (
     <div className="min-h-screen page-bg-vibrant">
-      {/* Sticky header */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-slate-200 safe-area-top">
+      {/* Sticky header — glass morphism with gradient accent */}
+      <div className="sticky top-0 z-30 bg-white/75 backdrop-blur-xl border-b border-slate-200/70 safe-area-top shadow-sm shadow-slate-900/[0.03]">
         {/* Division accent strip — always visible at the top of the screen */}
         {accentColor && (
           <div className="h-1 w-full flex-shrink-0" style={{ background: accentColor }} />
@@ -34,18 +34,18 @@ export default function FieldPageShell({
         <div className="flex items-center justify-between px-4 py-3 gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
             {onBack && (
-              <button onClick={onBack} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition flex-shrink-0 active:scale-95 touch-manipulation">
+              <button onClick={onBack} className="w-9 h-9 rounded-xl bg-slate-100/80 hover:bg-slate-200/80 flex items-center justify-center transition flex-shrink-0 active:scale-95 touch-manipulation">
                 <ArrowLeft className="w-5 h-5 text-slate-600" />
               </button>
             )}
             {Icon && (
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm flex-shrink-0">
-                <Icon className="w-4 h-4 text-white" />
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-md shadow-[#2E5A1A]/20 flex-shrink-0">
+                <Icon className="w-4.5 h-4.5 text-white" strokeWidth={2.5} />
               </div>
             )}
             <div className="min-w-0">
-              <h1 className="text-base font-bold text-slate-900 truncate leading-tight">{title}</h1>
-              {subtitle && <p className="text-[11px] text-slate-500 truncate leading-tight mt-0.5">{subtitle}</p>}
+              <h1 className="text-base font-bold text-slate-900 truncate leading-tight tracking-tight">{title}</h1>
+              {subtitle && <p className="text-[11px] text-slate-500 truncate leading-tight mt-0.5 font-medium">{subtitle}</p>}
             </div>
           </div>
           {actions && <div className="flex items-center gap-1.5 flex-shrink-0">{actions}</div>}

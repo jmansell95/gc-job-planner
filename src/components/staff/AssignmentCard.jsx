@@ -50,7 +50,7 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
 
   return (
     <motion.div variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } } }}
-      className="insight-card rounded-2xl overflow-hidden">
+      className="insight-card rounded-3xl overflow-hidden">
       <div className={`h-1.5 ${accent}`} />
 
       {job.status === 'on_hold' && (
@@ -119,8 +119,8 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
               <div className="flex flex-col gap-2 w-full">
                 {canStart ? (
                   <button onClick={() => onOpenShiftWizard(assignment.id)}
-                    className="flex items-center justify-center gap-2 px-5 py-4 bg-[#2E5A1A] text-white rounded-2xl hover:bg-[#1c4a12] active:scale-95 transition text-base font-bold touch-manipulation">
-                    <PlayCircle className="w-6 h-6" /> Start Shift
+                    className="flex items-center justify-center gap-2 px-5 py-4 bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] text-white rounded-2xl hover:shadow-lg active:scale-95 transition text-base font-bold touch-manipulation shadow-md shadow-[#2E5A1A]/25 glow-brand">
+                    <PlayCircle className="w-6 h-6" strokeWidth={2.5} /> Start Shift
                   </button>
                 ) : (
                   <span className="inline-flex items-center gap-2 px-4 py-3 bg-slate-100 text-slate-500 rounded-2xl text-sm font-semibold">
@@ -145,14 +145,14 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
                 <div className="flex flex-wrap gap-2.5 w-full">
                   {hasLeftSite ? (
                     <button onClick={() => onOpenShiftWizard(assignment.id, { forceStep: 'end_of_shift' })}
-                      className="flex items-center justify-center gap-2 px-5 py-4 bg-[#2E5A1A] text-white rounded-2xl hover:bg-[#1c4a12] active:scale-95 transition text-base font-bold touch-manipulation flex-1 min-w-[160px]">
-                      <Send className="w-6 h-6" /> Finish & Submit Timesheet
+                      className="flex items-center justify-center gap-2 px-5 py-4 bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] text-white rounded-2xl hover:shadow-lg active:scale-95 transition text-base font-bold touch-manipulation flex-1 min-w-[160px] shadow-md shadow-[#2E5A1A]/25 glow-brand">
+                      <Send className="w-6 h-6" strokeWidth={2.5} /> Finish & Submit Timesheet
                     </button>
                   ) : (
                     <>
                       <button onClick={() => onOpenShiftWizard(assignment.id)}
-                        className="flex items-center justify-center gap-2 px-5 py-4 bg-[#2E5A1A] text-white rounded-2xl hover:bg-[#1c4a12] active:scale-95 transition text-base font-bold touch-manipulation flex-1 min-w-[160px]">
-                        <PlayCircle className="w-6 h-6" /> Continue Shift
+                        className="flex items-center justify-center gap-2 px-5 py-4 bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] text-white rounded-2xl hover:shadow-lg active:scale-95 transition text-base font-bold touch-manipulation flex-1 min-w-[160px] shadow-md shadow-[#2E5A1A]/25 glow-brand">
+                        <PlayCircle className="w-6 h-6" strokeWidth={2.5} /> Continue Shift
                       </button>
                       <button onClick={() => onLeaveSite?.(assignment.id)}
                         className="flex items-center gap-2 px-4 py-4 bg-[#2E5A1A]/10 text-[#2E5A1A] rounded-2xl hover:bg-[#2E5A1A]/15 active:scale-95 transition text-sm font-semibold">

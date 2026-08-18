@@ -445,20 +445,20 @@ export default function StaffDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50">
-        <div className="w-12 h-12 border-4 border-slate-200 border-t-[#2E5A1A] rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen page-bg-vibrant">
+        <div className="w-12 h-12 border-4 border-slate-200/80 border-t-[#2E5A1A] rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (!staff) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50 px-6">
-        <div className="text-center max-w-sm">
-          <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
-            <HardHat className="w-7 h-7 text-slate-400" />
+      <div className="flex items-center justify-center min-h-screen page-bg-vibrant px-6">
+        <div className="text-center max-w-sm insight-card rounded-3xl p-8">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200/50 flex items-center justify-center mx-auto mb-4">
+            <HardHat className="w-8 h-8 text-slate-400" />
           </div>
-          <p className="text-slate-700 font-semibold">No crew profile found</p>
+          <p className="text-slate-700 font-bold text-lg">No crew profile found</p>
           <p className="text-slate-400 text-sm mt-1">Contact your manager to get set up.</p>
         </div>
       </div>
@@ -623,25 +623,25 @@ export default function StaffDashboard() {
 
           {/* Quick Actions — Rig QR sign-in + Equipment sign-out */}
           {staff?.id && !staff?.is_admin && (
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-3">
               <button onClick={() => setShowRigScanner(true)} type="button"
-                className="flex items-center gap-2.5 bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] rounded-2xl px-4 py-3.5 text-white active:scale-95 transition touch-manipulation shadow-sm">
-                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
-                  <ScanLine className="w-5 h-5 text-white" />
+                className="flex items-center gap-3 bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] rounded-2xl px-4 py-4 text-white active:scale-95 transition touch-manipulation shadow-lg shadow-[#2E5A1A]/25 glow-brand">
+                <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <ScanLine className="w-5.5 h-5.5 text-white" strokeWidth={2.5} />
                 </div>
                 <div className="text-left min-w-0">
                   <p className="text-sm font-bold leading-tight">Scan Rig QR</p>
-                  <p className="text-[11px] text-white/70 truncate">Sign into your rig</p>
+                  <p className="text-[11px] text-white/75 truncate font-medium">Sign into your rig</p>
                 </div>
               </button>
               <button onClick={() => navigate('/scanner')} type="button"
-                className="flex items-center gap-2.5 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 active:scale-95 transition touch-manipulation hover:border-[#2E5A1A]/30">
-                <div className="w-10 h-10 rounded-xl bg-[#2E5A1A]/10 flex items-center justify-center flex-shrink-0">
-                  <Package className="w-5 h-5 text-[#2E5A1A]" />
+                className="flex items-center gap-3 bg-white border border-slate-200/80 rounded-2xl px-4 py-4 active:scale-95 transition touch-manipulation hover:border-[#2E5A1A]/30 shadow-sm shadow-slate-900/[0.04]">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2E5A1A]/10 to-[#8DC63F]/10 flex items-center justify-center flex-shrink-0">
+                  <Package className="w-5.5 h-5.5 text-[#2E5A1A]" strokeWidth={2.5} />
                 </div>
                 <div className="text-left min-w-0">
                   <p className="text-sm font-bold leading-tight text-slate-900">Sign Out Gear</p>
-                  <p className="text-[11px] text-slate-400 truncate">Scan to your job</p>
+                  <p className="text-[11px] text-slate-400 truncate font-medium">Scan to your job</p>
                 </div>
               </button>
             </div>
@@ -651,7 +651,7 @@ export default function StaffDashboard() {
           {assignmentsLoading ? (
             <div className="space-y-4">
               {Array.from({ length: 2 }).map((_, i) => (
-                <div key={i} className="insight-card rounded-2xl p-5">
+                <div key={i} className="insight-card rounded-3xl p-5">
                   <Skeleton className="h-1.5 w-full mb-4 rounded-full" />
                   <Skeleton className="h-4 w-1/3 mb-3" />
                   <SkeletonText lines={3} />
@@ -659,18 +659,18 @@ export default function StaffDashboard() {
               ))}
             </div>
           ) : scheduleLocked ? (
-            <div className="insight-card rounded-2xl">
+            <div className="insight-card rounded-3xl">
               <EmptyState icon={CalendarClock} title="New schedule on the way" message="Your manager is preparing your new rota. You'll get it by email once it's ready." />
             </div>
           ) : visibleAssignments.length === 0 ? (
-            <div className="insight-card rounded-2xl">
+            <div className="insight-card rounded-3xl">
               <EmptyState icon={CalendarDays} title="No shifts scheduled" message="Check back later — your manager will assign you to upcoming jobs." />
             </div>
           ) : todaysSorted.length === 0 ? (() => {
             // No jobs today — show a countdown to the next upcoming shift
             if (upcomingAssignments.length === 0) {
               return (
-                <div className="insight-card rounded-2xl">
+                <div className="insight-card rounded-3xl">
                   <EmptyState icon={CalendarDays} title="No jobs today" message="Check back later — your manager will assign you to upcoming jobs." />
                 </div>
               );
@@ -681,17 +681,17 @@ export default function StaffDashboard() {
             const daysUntil = Math.ceil((nextDate - new Date(new Date().toDateString())) / (1000 * 60 * 60 * 24));
             const label = daysUntil === 0 ? 'Later today' : daysUntil === 1 ? 'Tomorrow' : `In ${daysUntil} days`;
             return (
-              <div className="insight-card rounded-2xl p-5 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-[#2E5A1A]/10 flex items-center justify-center mx-auto mb-3">
-                  <CalendarClock className="w-7 h-7 text-[#2E5A1A]" />
+              <div className="insight-card rounded-3xl p-5 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2E5A1A]/10 to-[#8DC63F]/10 flex items-center justify-center mx-auto mb-3">
+                  <CalendarClock className="w-7 h-7 text-[#2E5A1A]" strokeWidth={2.5} />
                 </div>
                 <p className="text-sm font-bold text-slate-900 mb-1">No jobs today</p>
                 <p className="text-xs text-slate-500 mb-3">Your next shift is <span className="font-semibold text-[#2E5A1A]">{label}</span></p>
-                <div className="bg-slate-50 rounded-xl border border-slate-200 px-4 py-3 text-left">
+                <div className="bg-slate-50/80 rounded-xl border border-slate-200/70 px-4 py-3 text-left">
                   <p className="text-sm font-bold text-slate-900 truncate">{nextJob?.name || 'Shift'}</p>
                   <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
-                    <Calendar className="w-3.5 h-3.5" /> {format(nextDate, 'EEEE dd MMM')}
-                    {next.start_time && <><span>·</span><Clock className="w-3.5 h-3.5" /> {next.start_time}</>}
+                    <Calendar className="w-3.5 h-3.5 text-[#2E5A1A]/60" /> {format(nextDate, 'EEEE dd MMM')}
+                    {next.start_time && <><span>·</span><Clock className="w-3.5 h-3.5 text-[#2E5A1A]/60" /> {next.start_time}</>}
                   </div>
                 </div>
                 <button onClick={() => setActiveTab('upcoming')} type="button"
@@ -715,8 +715,8 @@ export default function StaffDashboard() {
                 <div>
                   {!activeStarted && todaysSorted.length > 1 && (
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold uppercase tracking-wide">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Up Next
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-50 to-amber-100/50 text-amber-700 text-xs font-bold uppercase tracking-wide ring-1 ring-amber-200/50">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" /> Up Next
                       </span>
                     </div>
                   )}
@@ -750,7 +750,7 @@ export default function StaffDashboard() {
           {assignmentsLoading ? (
             <div className="space-y-4">
               {Array.from({ length: 2 }).map((_, i) => (
-                <div key={i} className="insight-card rounded-2xl p-5">
+                <div key={i} className="insight-card rounded-3xl p-5">
                   <Skeleton className="h-1.5 w-full mb-4 rounded-full" />
                   <Skeleton className="h-4 w-1/3 mb-3" />
                   <SkeletonText lines={3} />
@@ -765,7 +765,7 @@ export default function StaffDashboard() {
                 return (
                   <div key={date}>
                     <div className="flex items-center gap-2 mb-2.5">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wide shadow-sm">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/80 backdrop-blur-sm border border-slate-200/70 text-xs font-bold text-slate-700 uppercase tracking-wide shadow-sm">
                         {format(d, 'EEEE')}
                       </span>
                       <span className="text-xs text-slate-400">{format(d, 'dd MMM yyyy')}</span>
@@ -782,7 +782,7 @@ export default function StaffDashboard() {
               })}
             </div>
           ) : (
-            <div className="insight-card rounded-2xl">
+            <div className="insight-card rounded-3xl">
               <EmptyState icon={CalendarDays} title="No upcoming jobs" message="Check back later — your manager will assign you to upcoming jobs." />
             </div>
           )}
@@ -794,39 +794,39 @@ export default function StaffDashboard() {
         <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-5 space-y-4">
           <div className="grid grid-cols-2 gap-3.5">
             <button onClick={() => navigate('/scanner')} type="button"
-              className="bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] rounded-2xl flex flex-col items-center gap-3 p-5 hover:shadow-lg active:scale-95 transition touch-manipulation text-white">
-              <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center">
-                <ScanLine className="w-7 h-7 text-white" />
+              className="bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] rounded-2xl flex flex-col items-center gap-3 p-5 hover:shadow-xl active:scale-95 transition touch-manipulation text-white shadow-lg shadow-[#2E5A1A]/25 glow-brand">
+              <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center">
+                <ScanLine className="w-7 h-7 text-white" strokeWidth={2.5} />
               </div>
               <span className="text-base font-bold">Asset Scanner</span>
             </button>
             {staff.delivery_dashboard_enabled && (
               <button onClick={() => navigate('/deliveries')} type="button"
-                className="bg-white border border-slate-200 rounded-2xl flex flex-col items-center gap-3 p-5 hover:border-blue-400 hover:shadow-md active:scale-95 transition touch-manipulation">
-                <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center">
-                  <Truck className="w-7 h-7 text-blue-600" />
+                className="bg-white border border-slate-200/80 rounded-2xl flex flex-col items-center gap-3 p-5 hover:border-blue-400 hover:shadow-lg active:scale-95 transition touch-manipulation shadow-sm shadow-slate-900/[0.04]">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 flex items-center justify-center">
+                  <Truck className="w-7 h-7 text-blue-600" strokeWidth={2.5} />
                 </div>
                 <span className="text-base font-bold text-slate-800">Deliveries</span>
               </button>
             )}
             <button onClick={() => navigate('/staff-profile')} type="button"
-              className="bg-white border border-slate-200 rounded-2xl flex flex-col items-center gap-3 p-5 hover:border-violet-400 hover:shadow-md active:scale-95 transition touch-manipulation">
-              <div className="w-14 h-14 rounded-2xl bg-violet-50 flex items-center justify-center">
-                <UserCircle className="w-7 h-7 text-violet-600" />
+              className="bg-white border border-slate-200/80 rounded-2xl flex flex-col items-center gap-3 p-5 hover:border-violet-400 hover:shadow-lg active:scale-95 transition touch-manipulation shadow-sm shadow-slate-900/[0.04]">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-50 to-violet-100/50 flex items-center justify-center">
+                <UserCircle className="w-7 h-7 text-violet-600" strokeWidth={2.5} />
               </div>
               <span className="text-base font-bold text-slate-800">Profile</span>
             </button>
             <button onClick={() => setShowScheduleSummary(true)} type="button"
-              className="bg-white border border-slate-200 rounded-2xl flex flex-col items-center gap-3 p-5 hover:border-[#2E5A1A] hover:shadow-md active:scale-95 transition touch-manipulation">
-              <div className="w-14 h-14 rounded-2xl bg-[#2E5A1A]/10 flex items-center justify-center">
-                <CalendarDays className="w-7 h-7 text-[#2E5A1A]" />
+              className="bg-white border border-slate-200/80 rounded-2xl flex flex-col items-center gap-3 p-5 hover:border-[#2E5A1A] hover:shadow-lg active:scale-95 transition touch-manipulation shadow-sm shadow-slate-900/[0.04]">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2E5A1A]/10 to-[#8DC63F]/10 flex items-center justify-center">
+                <CalendarDays className="w-7 h-7 text-[#2E5A1A]" strokeWidth={2.5} />
               </div>
               <span className="text-base font-bold text-slate-800">Schedule</span>
             </button>
             <button onClick={() => navigate('/help')} type="button"
-              className="bg-white border border-slate-200 rounded-2xl flex flex-col items-center gap-3 p-5 hover:border-amber-400 hover:shadow-md active:scale-95 transition touch-manipulation">
-                <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center">
-                  <HelpCircle className="w-7 h-7 text-amber-600" />
+              className="bg-white border border-slate-200/80 rounded-2xl flex flex-col items-center gap-3 p-5 hover:border-amber-400 hover:shadow-lg active:scale-95 transition touch-manipulation shadow-sm shadow-slate-900/[0.04]">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/50 flex items-center justify-center">
+                  <HelpCircle className="w-7 h-7 text-amber-600" strokeWidth={2.5} />
                 </div>
                 <span className="text-base font-bold text-slate-800">Help Guides</span>
               </button>

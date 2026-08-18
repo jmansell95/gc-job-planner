@@ -49,9 +49,9 @@ export default function TodayPrepStrip({ todaysSorted = [], jobs = [], myComplia
 
   if (items.length === 0) {
     return (
-      <div className="mb-4 flex items-center gap-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-3">
-        <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+      <div className="mb-4 flex items-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-50 to-[#8DC63F]/8 border border-emerald-200/60 px-4 py-3">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-100 to-emerald-200/50 flex items-center justify-center flex-shrink-0">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600" strokeWidth={2.5} />
         </div>
         <p className="text-sm font-semibold text-emerald-800">All set — no prep items outstanding for today.</p>
       </div>
@@ -59,15 +59,15 @@ export default function TodayPrepStrip({ todaysSorted = [], jobs = [], myComplia
   }
 
   const toneStyles = {
-    amber: { chip: 'bg-amber-50 text-amber-800 border-amber-200', icon: 'bg-amber-100 text-amber-600' },
-    red: { chip: 'bg-red-50 text-red-800 border-red-200', icon: 'bg-red-100 text-red-600' },
-    blue: { chip: 'bg-blue-50 text-blue-800 border-blue-200', icon: 'bg-blue-100 text-blue-600' },
+    amber: { chip: 'bg-gradient-to-r from-amber-50 to-amber-100/40 text-amber-800 border-amber-200/60', icon: 'bg-gradient-to-br from-amber-100 to-amber-200/50 text-amber-600' },
+    red: { chip: 'bg-gradient-to-r from-red-50 to-red-100/40 text-red-800 border-red-200/60', icon: 'bg-gradient-to-br from-red-100 to-red-200/50 text-red-600' },
+    blue: { chip: 'bg-gradient-to-r from-blue-50 to-blue-100/40 text-blue-800 border-blue-200/60', icon: 'bg-gradient-to-br from-blue-100 to-blue-200/50 text-blue-600' },
   };
 
   return (
     <div className="mb-4">
       <div className="flex items-center gap-1.5 mb-2.5">
-        <Sparkles className="w-3.5 h-3.5 text-slate-400" />
+        <Sparkles className="w-3.5 h-3.5 text-[#2E5A1A]" strokeWidth={2.5} />
         <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Today's Prep</p>
       </div>
       <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1.5">
@@ -77,7 +77,7 @@ export default function TodayPrepStrip({ todaysSorted = [], jobs = [], myComplia
           return (
             <span key={i} className={`inline-flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-sm font-semibold whitespace-nowrap border ${tone.chip}`}>
               <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${tone.icon}`}>
-                <Icon className="w-4 h-4" />
+                <Icon className="w-4 h-4" strokeWidth={2.5} />
               </span>
               {item.label}
             </span>

@@ -25,7 +25,7 @@ export default function StaffTabBar({ activeTab, onChange, counts = {} }) {
         }`}
       >
         {isActive && (
-          <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-1 bg-[#2E5A1A] rounded-full" />
+          <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-1 bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] rounded-full" />
         )}
         <div className="relative">
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition ${isActive ? 'bg-[#2E5A1A]/10' : ''}`}>
@@ -64,21 +64,21 @@ export default function StaffTabBar({ activeTab, onChange, counts = {} }) {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/80 safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-2xl border-t border-slate-200/60 safe-area-bottom shadow-[0_-4px_24px_-8px_rgba(15,23,42,0.08)]">
       <div className="max-w-6xl mx-auto flex items-stretch justify-around px-2 relative">
         {renderTab(sideTabs[0])}
         {renderTab(sideTabs[1])}
 
-        {/* Center Scanner FAB — prominent, elevated */}
+        {/* Center Scanner FAB — prominent, elevated with glow */}
         <button
           onClick={() => navigate('/scanner')}
           type="button"
           className="flex flex-col items-center justify-center gap-1 px-2 touch-manipulation"
         >
-          <div className="w-14 h-14 -mt-6 rounded-2xl bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] text-white flex items-center justify-center shadow-lg shadow-[#2E5A1A]/30 ring-4 ring-white active:scale-95 transition">
-            <ScanLine className="w-6 h-6" />
+          <div className="w-14 h-14 -mt-6 rounded-2xl bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] text-white flex items-center justify-center shadow-xl shadow-[#2E5A1A]/40 ring-4 ring-white active:scale-90 transition glow-brand">
+            <ScanLine className="w-6 h-6" strokeWidth={2.5} />
           </div>
-          <span className="text-[11px] font-semibold text-[#2E5A1A]">Scan</span>
+          <span className="text-[11px] font-bold text-[#2E5A1A]">Scan</span>
         </button>
 
         {renderNavButton({ key: 'profile', label: 'Profile', icon: UserCircle, path: '/staff-profile' })}
