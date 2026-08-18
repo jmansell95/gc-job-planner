@@ -171,6 +171,7 @@ function buildInvoiceHtml(invoice, job, client, companyName) {
 export default function GenerateInvoiceModal({ open, onClose, job, client, data, companyName, raisedByName }) {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
+  const hasData = data && Object.keys(data).length > 0;
 
   // Existing invoices — used to compute the next sequential invoice number
   const { data: existing = [] } = useQuery({
@@ -183,7 +184,28 @@ export default function GenerateInvoiceModal({ open, onClose, job, client, data,
     queryFn: async () => { const list = await base44.entities.BusinessConfig.filter({ key: 'global' }); return list[0] || null; },
   });
 
-  const lines = useMemo(() => (job ? buildInvoiceLines(job, data) : []), [job, data]);
+  // Self-sufficient data fetch — only when the caller didn't pass a pre-built `data` object.
+  // Lets the modal be launched from anywhere with just a job (e.g. the AfP pipeline).
+  const { data: fCostItems = [] } = useQuery({ queryKey: ['inv-cost-items', job?.id], queryFn: () => base44.entities.JobCostItem.filter({ job_id: job?.id }), enabled: open && !!job?.id && !hasData });
+  const { data: fHotels = [] } = useQuery({ queryKey: ['inv-hotels', job?.id], queryFn: () => base44.entities.HotelBooking.filter({ job_id: job?.id }), enabled: open && !!job?.id && !hasData });
+  const { data: fDeliveries = [] } = useQuery({ queryKey: ['inv-deliveries', job?.id], queryFn: () => base44.entities.DeliveryLog.filter({ job_id: job?.id }), enabled: open && !!job?.id && !hasData });
+  const { data: fTimesheets = [] } = useQuery({ queryKey: ['inv-timesheets', job?.id], queryFn: () => base44.entities.Timesheet.filter({ job_id: job?.id }), enabled: open && !!job?.id && !hasData });
+  const { data: fInvLogs = [] } = useQuery({ queryKey: ['inv-invlogs', job?.id], queryFn: () => base44.entities.InvestigationLog.filter({ job_id: job?.id }), enabled: open && !!job?.id && !hasData });
+  const { data: fRigAssignments = [] } = useQuery({ queryKey: ['inv-rig-assignments', job?.id], queryFn: () => base44.entities.JobAssetAssignment.filter({ job_id: job?.id }), enabled: open && !!job?.id && !hasData });
+  const { data: fRateItems = [] } = useQuery({ queryKey: ['inv-rate-items'], queryFn: () => base44.entities.RateCardItem.filter({ is_active: true }), enabled: open && !!job?.id && !hasData });
+  const { data: fSiteAssets = [] } = useQuery({ queryKey: ['inv-site-assets'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 500), enabled: open && !!job?.id && !hasData });
+  const { data: fClient } = useQuery({ queryKey: ['inv-client', job?.client_id], queryFn: async () => { if (!job?.client_id) return null; const list = await base44.entities.Client.filter({ id: job.client_id }); return list[0] || null; }, enabled: open && !!job?.id && !client });
+  const { data: fProfile } = useQuery({ queryKey: ['inv-me'], queryFn: () => base44.auth.me().catch(() => null), enabled: open && !!job?.id && !raisedByName });
+
+  const resolvedData = hasData ? data : {
+    costItems: fCostItems, hotelBookings: fHotels, deliveries: fDeliveries, timesheets: fTimesheets,
+    invLogs: fInvLogs, rigAssignments: fRigAssignments, rateItems: fRateItems, siteAssets: fSiteAssets,
+  };
+  const resolvedClient = client || fClient || null;
+  const resolvedCompany = companyName || bizConfig?.company_name || 'Ground Control';
+  const resolvedRaisedBy = raisedByName || fProfile?.name || '';
+
+  const lines = useMemo(() => (job ? buildInvoiceLines(job, resolvedData) : []), [job, resolvedData]);
   const vatRate = Number(job?.vat_rate) || Number(bizConfig?.default_vat_rate) || 20;
   const netTotal = lines.reduce((s, l) => s + (Number(l.line_total) || 0), 0);
   const vatTotal = netTotal * (vatRate / 100);
@@ -207,8 +229,8 @@ export default function GenerateInvoiceModal({ open, onClose, job, client, data,
         job_id: job.id,
         job_name: job.name,
         job_reference: job.job_reference || '',
-        client_id: client?.id || job.client_id || '',
-        client_name: client?.name || '',
+        client_id: resolvedClient?.id || job.client_id || '',
+        client_name: resolvedClient?.name || '',
         status: 'draft',
         issue_date: issueDate,
         due_date: dueDate,
@@ -218,10 +240,12 @@ export default function GenerateInvoiceModal({ open, onClose, job, client, data,
         vat_total: vatTotal,
         gross_total: grossTotal,
         revenue_method: job.revenue_method || 'none',
-        raised_by_name: raisedByName || '',
+        raised_by_name: resolvedRaisedBy || '',
       };
       const created = await base44.entities.Invoice.create(invoice);
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['afp-pipeline-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['afp-pipeline-jobs'] });
       openPrint(created);
       onClose();
     } catch (e) {
@@ -233,7 +257,7 @@ export default function GenerateInvoiceModal({ open, onClose, job, client, data,
   };
 
   const openPrint = (invoice) => {
-    const html = buildInvoiceHtml(invoice, job, client, companyName || 'Ground Control');
+    const html = buildInvoiceHtml(invoice, job, resolvedClient, resolvedCompany);
     const win = window.open('', '_blank');
     if (!win) { alert('Pop-up blocked — please allow pop-ups to print the invoice.'); return; }
     win.document.write(html);

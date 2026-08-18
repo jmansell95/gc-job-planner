@@ -14,6 +14,7 @@ import BillingInsightsTab from '@/components/billing/BillingInsightsTab';
 import ContractsAndOrdersTab from '@/components/billing/ContractsAndOrdersTab';
 import MarginGuardTab from '@/components/billing/MarginGuardTab';
 import AfPPipelineWidget from '@/components/billing/AfPPipelineWidget';
+import GenerateInvoiceModal from '@/components/billing/GenerateInvoiceModal';
 import PageHeader from '@/components/PageHeader';
 import TabBar from '@/components/TabBar';
 
@@ -136,6 +137,7 @@ export default function BillingPage() {
 
   const isPipelineTab = PIPELINE_STEPS.some((s) => s.id === tab);
   const goToJob = (job) => navigate('/admin', { state: { section: 'job-detail', job } });
+  const [invoiceJob, setInvoiceJob] = useState(null);
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -158,7 +160,7 @@ export default function BillingPage() {
       {tab === 'billing-readiness' && (
         <>
           <PipelineIntro activeTab={tab} />
-          <AfPPipelineWidget onSelectJob={goToJob} />
+          <AfPPipelineWidget onSelectJob={setInvoiceJob} />
           <BillingReadinessReport onSelectJob={goToJob} />
         </>
       )}
@@ -196,6 +198,13 @@ export default function BillingPage() {
           onSelectJob={goToJob}
         />
       )}
+
+      {/* AfP pipeline → Raise invoice popup (self-sufficient: fetches its own data) */}
+      <GenerateInvoiceModal
+        open={!!invoiceJob}
+        onClose={() => setInvoiceJob(null)}
+        job={invoiceJob}
+      />
     </div>
   );
 }
