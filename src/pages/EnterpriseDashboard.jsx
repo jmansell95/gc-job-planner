@@ -6,7 +6,7 @@ import { useDivision } from '@/contexts/DivisionContext';
 import { useAuth } from '@/lib/AuthContext';
 import {
   Building2, Users, Briefcase, Truck, ClipboardCheck, ShieldCheck, PoundSterling,
-  ArrowRight, Settings, Sparkles, AlertTriangle, CheckCircle2,
+  ArrowRight, ArrowLeft, Layers, Settings, Sparkles, AlertTriangle, CheckCircle2,
   LayoutGrid, X, Activity, Crown, Wrench, TrendingUp, Clock,
   User, HelpCircle, LogOut,
 } from 'lucide-react';
@@ -14,6 +14,7 @@ import EnterpriseHeader from '@/components/EnterpriseHeader';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 import DivisionWizard from '@/components/wizard/DivisionWizard';
 import DivisionCard from '@/components/enterprise/DivisionCard';
+import BusinessUnitCard from '@/components/enterprise/BusinessUnitCard';
 import DivisionLoadingScreen from '@/components/divisionLoading/DivisionLoadingScreen';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -27,6 +28,7 @@ export default function EnterpriseDashboard() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [enteringDivision, setEnteringDivision] = useState(null);
+  const [selectedBusinessUnit, setSelectedBusinessUnit] = useState(null);
 
   const { data: myProfile } = useQuery({ queryKey: ['ent-my-profile'], queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; } });
 
@@ -72,6 +74,17 @@ export default function EnterpriseDashboard() {
       return s ? { division: d, staffCount: s.staffCount, activeStaff: s.activeStaff, jobsCount: s.jobsCount, activeJobs: s.activeJobs, vehiclesCount: s.vehiclesCount, outstanding: s.outstanding } : { division: d, staffCount: 0, activeStaff: 0, jobsCount: 0, activeJobs: 0, vehiclesCount: 0, outstanding: 0 };
     });
   }, [permittedDivisions, statsData]);
+
+  // Two-level hierarchy: business units (parent divisions with children) and
+  // standalone divisions (no parent, no children). Child divisions are grouped
+  // under their parent business unit for the second navigation level.
+  const hierarchy = useMemo(() => {
+    const all = permittedDivisions;
+    const parentIds = new Set(all.filter(d => d.parent_division_id).map(d => d.parent_division_id));
+    const businessUnits = all.filter(d => !d.parent_division_id && parentIds.has(d.id));
+    const standalone = all.filter(d => !d.parent_division_id && !parentIds.has(d.id));
+    return { businessUnits, standalone, parentIds };
+  }, [permittedDivisions]);
 
   // Global stats from the server, scoped to permitted divisions.
   const globalStats = useMemo(() => {
@@ -226,26 +239,85 @@ export default function EnterpriseDashboard() {
           })}
         </div>
 
-        {/* Divisions */}
+        {/* Divisions — two-level navigation: Business Units → Divisions */}
         {widgets.divisionHealth && (
           <section>
-            <SectionTitle icon={Building2} title="Divisions" subtitle="Tap a division to enter its workspace" gradient="from-blue-500 to-cyan-600" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {divisionStats.map((ds, i) => (
-                <motion.div key={ds.division.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06, duration: 0.35, ease: 'easeOut' }}>
-                  <DivisionCard ds={ds} onEnter={enterDivision} />
-                </motion.div>
-              ))}
-              {canManageDivisions && (
-                <button onClick={() => setShowWizard(true)} className="rounded-2xl border-2 border-dashed border-slate-300 p-5 text-left hover:border-[#2E5A1A] hover:bg-emerald-50/30 transition group flex flex-col items-center justify-center gap-2 min-h-[200px]">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 group-hover:bg-[#2E5A1A]/10 flex items-center justify-center transition">
-                    <Sparkles className="w-6 h-6 text-slate-400 group-hover:text-[#2E5A1A] transition" />
+            {selectedBusinessUnit ? (
+              <>
+                {/* Level 2: Divisions within the selected business unit */}
+                <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-20 -mx-4 xl:-mx-6 px-4 xl:px-6 py-3 mb-4 backdrop-blur-md bg-white/80 border-b border-slate-200 flex items-center gap-3">
+                  <button
+                    onClick={() => setSelectedBusinessUnit(null)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-white shadow-md transition hover:opacity-90 flex-shrink-0"
+                    style={{ background: selectedBusinessUnit.color || '#2E5A1A' }}
+                  >
+                    <ArrowLeft className="w-4 h-4" /> Back
+                  </button>
+                  <div className="min-w-0">
+                    <h2 className="text-sm sm:text-base font-extrabold text-slate-900 truncate">{selectedBusinessUnit.name}</h2>
+                    <p className="text-[11px] text-slate-500 truncate">{selectedBusinessUnit.tagline || 'Business Unit'}</p>
                   </div>
-                  <p className="text-sm font-bold text-slate-500 group-hover:text-[#2E5A1A] transition">Add a Division</p>
-                  <p className="text-xs text-slate-400 text-center">Guided setup wizard</p>
-                </button>
-              )}
-            </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {divisionStats
+                    .filter(ds => ds.division.parent_division_id === selectedBusinessUnit.id)
+                    .map((ds, i) => (
+                      <motion.div key={ds.division.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06, duration: 0.35, ease: 'easeOut' }}>
+                        <DivisionCard ds={ds} onEnter={enterDivision} />
+                      </motion.div>
+                    ))}
+                  {canManageDivisions && (
+                    <button onClick={() => setShowWizard(true)} className="rounded-2xl border-2 border-dashed border-slate-300 p-5 text-left hover:border-[#2E5A1A] hover:bg-emerald-50/30 transition group flex flex-col items-center justify-center gap-2 min-h-[200px]">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 group-hover:bg-[#2E5A1A]/10 flex items-center justify-center transition">
+                        <Sparkles className="w-6 h-6 text-slate-400 group-hover:text-[#2E5A1A] transition" />
+                      </div>
+                      <p className="text-sm font-bold text-slate-500 group-hover:text-[#2E5A1A] transition">Add a Division</p>
+                      <p className="text-xs text-slate-400 text-center">Guided setup wizard</p>
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Level 1: Business Units + Standalone Divisions */}
+                <SectionTitle icon={Layers} title="Business Units" subtitle="Tap a unit to view its divisions" gradient="from-emerald-600 to-teal-700" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {hierarchy.businessUnits.map((bu, i) => {
+                    const childCount = permittedDivisions.filter(d => d.parent_division_id === bu.id).length;
+                    return (
+                      <motion.div key={bu.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08, duration: 0.35, ease: 'easeOut' }}>
+                        <BusinessUnitCard unit={bu} childCount={childCount} onEnter={setSelectedBusinessUnit} />
+                      </motion.div>
+                    );
+                  })}
+                </div>
+                {hierarchy.standalone.length > 0 && (
+                  <>
+                    <div className="mt-5 sm:mt-6">
+                      <SectionTitle icon={Building2} title="Standalone Divisions" subtitle="Independent divisions" gradient="from-blue-500 to-cyan-600" />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {divisionStats
+                        .filter(ds => hierarchy.standalone.some(s => s.id === ds.division.id))
+                        .map((ds, i) => (
+                          <motion.div key={ds.division.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06, duration: 0.35, ease: 'easeOut' }}>
+                            <DivisionCard ds={ds} onEnter={enterDivision} />
+                          </motion.div>
+                        ))}
+                    </div>
+                  </>
+                )}
+                {canManageDivisions && (
+                  <button onClick={() => setShowWizard(true)} className="mt-3 w-full rounded-2xl border-2 border-dashed border-slate-300 p-5 text-left hover:border-[#2E5A1A] hover:bg-emerald-50/30 transition group flex flex-col items-center justify-center gap-2 min-h-[120px]">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 group-hover:bg-[#2E5A1A]/10 flex items-center justify-center transition">
+                      <Sparkles className="w-6 h-6 text-slate-400 group-hover:text-[#2E5A1A] transition" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-500 group-hover:text-[#2E5A1A] transition">Add a Business Unit or Division</p>
+                    <p className="text-xs text-slate-400 text-center">Guided setup wizard</p>
+                  </button>
+                )}
+              </>
+            )}
           </section>
         )}
 

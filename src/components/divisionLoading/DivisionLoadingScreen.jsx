@@ -9,6 +9,7 @@ import SurveysScene from './SurveysScene';
 import StructuralScene from './StructuralScene';
 import RenewablesScene from './RenewablesScene';
 import GeneralScene from './GeneralScene';
+import RoadCareScene from './RoadCareScene';
 
 /**
  * DivisionLoadingScreen — full-screen animated splash shown when entering ANY
@@ -22,6 +23,7 @@ const SCENES = {
   geotechnical: GeotechScene,
   land_water: LandWaterScene,
   infrastructure: InfrastructureScene,
+  road_care: RoadCareScene,
   lde: LabScene,
   environmental: EnvironmentalScene,
   surveys: SurveysScene,
@@ -102,7 +104,8 @@ export default function DivisionLoadingScreen({ division, onComplete, duration =
       {/* Progress bar */}
       <div className="w-56 h-1.5 bg-white/15 rounded-full overflow-hidden z-10">
         <div
-          className="h-full bg-gradient-to-r from-[#8DC63F] to-white rounded-full transition-all duration-75 ease-out"
+          className="h-full rounded-full transition-all duration-75 ease-out"
+          style={{ background: `linear-gradient(to right, ${divColor}, #ffffff)`, width: `${progress}%` }}
           style={{ width: `${progress}%` }}
         />
       </div>

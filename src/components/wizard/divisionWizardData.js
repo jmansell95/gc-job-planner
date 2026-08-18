@@ -140,6 +140,17 @@ export const DIVISION_TYPES = [
     settings: { ...BASE_SETTINGS },
   },
   {
+    value: 'road_care',
+    label: 'Road Care',
+    icon: 'Road',
+    blurb: 'Road maintenance & repairs',
+    color: '#ea580c',
+    tagline: 'Road Maintenance & Repairs',
+    enabled_hubs: [...ALL_HUBS.filter(h => h !== 'investigation')],
+    nav_items: ['home', 'schedule', 'scan', 'ai_hub', 'profile'],
+    settings: { ...BASE_SETTINGS },
+  },
+  {
     value: 'lde',
     label: 'LDE',
     icon: 'FlaskConical',
