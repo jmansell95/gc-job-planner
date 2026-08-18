@@ -153,7 +153,7 @@ export default function EnterpriseDashboard() {
                   <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white tracking-tight leading-none truncate">
                     Land &amp; Water Solutions
                   </h1>
-                  <p className="text-xs sm:text-sm text-white/70 font-semibold mt-1 truncate">Enterprise Command Centre</p>
+                  <p className="text-xs sm:text-sm text-white/70 font-semibold mt-1 truncate">Business Unit · Housing 4 Specialist Divisions</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -280,7 +280,7 @@ export default function EnterpriseDashboard() {
             ) : (
               <>
                 {/* Level 1: Business Units + Standalone Divisions */}
-                <SectionTitle icon={Layers} title="Business Units" subtitle="Tap a unit to view its divisions" gradient="from-emerald-600 to-teal-700" />
+                <SectionTitle icon={Layers} title="Business Unit" subtitle="4 specialist divisions housed within Land & Water" gradient="from-emerald-600 to-teal-700" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {hierarchy.businessUnits.map((bu, i) => {
                     const childCount = permittedDivisions.filter(d => d.parent_division_id === bu.id).length;
@@ -360,7 +360,7 @@ export default function EnterpriseDashboard() {
         {/* Workforce Overview */}
         {widgets.workforceOverview && (
           <section className="insight-card rounded-2xl p-4 sm:p-5">
-            <SectionTitle icon={Users} title="Workforce Overview" subtitle="Headcount across divisions" gradient="from-violet-500 to-purple-600" />
+            <SectionTitle icon={Users} title="Workforce Overview" subtitle="Crew across Land & Water's 4 divisions" gradient="from-violet-500 to-purple-600" />
             <div className="grid grid-cols-2 gap-2 sm:gap-2.5 mb-3">
               <div className="stat-gradient-violet rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white relative overflow-hidden">
                 <div className="absolute right-1 top-1 opacity-20"><Users className="w-7 h-7 sm:w-9 sm:h-9" /></div>

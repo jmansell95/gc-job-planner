@@ -47,7 +47,7 @@ export default function BusinessUnitCard({ unit, childCount, onEnter }) {
           <div className="flex items-center gap-2">
             <div className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200">
               <span className="text-lg sm:text-xl font-extrabold text-slate-900 tabular-nums">{childCount}</span>
-              <span className="text-xs text-slate-400 font-semibold ml-1">{childCount === 1 ? 'Division' : 'Divisions'}</span>
+              <span className="text-xs text-slate-400 font-semibold ml-1">Divisions Housed</span>
             </div>
           </div>
           <span className="inline-flex items-center gap-1.5 text-sm font-bold text-[#2E5A1A] group-hover:gap-2.5 transition-all">
