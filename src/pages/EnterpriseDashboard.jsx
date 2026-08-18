@@ -149,7 +149,7 @@ export default function EnterpriseDashboard() {
                   <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight leading-none truncate">
                     Ground Control
                   </h1>
-                  <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-1 truncate">Housing Land &amp; Water Solutions &amp; 4 Specialist Divisions</p>
+                  <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-1 truncate">Everything in one place to Create. Maintain. Sustain.</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
