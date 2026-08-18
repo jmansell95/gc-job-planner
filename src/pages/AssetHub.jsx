@@ -289,8 +289,8 @@ export default function AssetHub() {
               selectionMode={selectionMode}
               selected={selected}
               setSelected={setSelected}
-              onOpenRig={setOpenRig}
-              onOpenEquip={setOpenEquip}
+              onOpenRig={(rig) => navigate(`/assets/${rig.id}`)}
+              onOpenEquip={(equip) => navigate(`/assets/${equip.id}`)}
               onCertVault={setCertVaultRig}
             />
           ) : view === 'deployments' ? (

@@ -30,6 +30,7 @@ import AdminDeliveryHub from './pages/AdminDeliveryHub';
 import HelpGuide from './pages/HelpGuide';
 import PresentationPack from './pages/PresentationPack';
 import AssetHub from './pages/AssetHub';
+import AssetDetailPage from './pages/AssetDetailPage';
 import FleetHub from './pages/FleetHub';
 import KeyLogBookDocs from './pages/KeyLogBookDocs';
 import ImprovementRoadmap from './pages/ImprovementRoadmap';
@@ -118,6 +119,7 @@ const AuthenticatedApp = () => {
             <Route path="/staff" element={<RouteGuard><HubReadinessGate featureId="staff"><StaffPage /></HubReadinessGate></RouteGuard>} />
             <Route path="/safety" element={<Navigate to="/compliance" replace />} />
             <Route path="/assets" element={<RouteGuard><HubReadinessGate featureId="assets"><AssetHub /></HubReadinessGate></RouteGuard>} />
+            <Route path="/assets/:id" element={<RouteGuard><AssetDetailPage /></RouteGuard>} />
             <Route path="/fleet" element={<RouteGuard><HubReadinessGate featureId="fleet"><FleetHub /></HubReadinessGate></RouteGuard>} />
             <Route path="/timesheets" element={<Navigate to="/staff" replace />} />
             <Route path="/contacts" element={<Navigate to="/staff" replace />} />
