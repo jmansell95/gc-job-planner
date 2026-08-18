@@ -6,7 +6,7 @@ import { useDivision } from '@/contexts/DivisionContext';
 import { useAuth } from '@/lib/AuthContext';
 import {
   Building2, Users, Briefcase, Truck, ClipboardCheck, ShieldCheck, PoundSterling,
-  ArrowRight, ArrowLeft, Layers, Settings, Sparkles, AlertTriangle, CheckCircle2,
+  ArrowRight, Layers, Settings, Sparkles, AlertTriangle, CheckCircle2,
   LayoutGrid, X, Activity, Crown, Wrench, TrendingUp, Clock,
   User, HelpCircle, LogOut,
 } from 'lucide-react';
@@ -15,7 +15,6 @@ import ProfileAvatar from '@/components/ui/ProfileAvatar';
 import DivisionWizard from '@/components/wizard/DivisionWizard';
 import DivisionCard from '@/components/enterprise/DivisionCard';
 import BusinessUnitCard from '@/components/enterprise/BusinessUnitCard';
-import DivisionLoadingScreen from '@/components/divisionLoading/DivisionLoadingScreen';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { STATUS_STYLES, WIDGET_STORAGE_KEY, DEFAULT_WIDGETS } from '@/components/enterprise/enterpriseConstants';
@@ -27,14 +26,9 @@ export default function EnterpriseDashboard() {
   const [customising, setCustomising] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
-  const [enteringDivision, setEnteringDivision] = useState(null);
-  const [selectedBusinessUnit, setSelectedBusinessUnit] = useState(null);
 
   const { data: myProfile } = useQuery({ queryKey: ['ent-my-profile'], queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; } });
 
-  // Single server-side aggregation — replaces 6 separate list() calls that were
-  // capped at 500–5000 records and went stale when mutations didn't invalidate.
-  // Refetches on mount and window focus so changes inside divisions pull through.
   const { data: statsData } = useQuery({
     queryKey: ['ent-stats'],
     queryFn: async () => { const res = await base44.functions.invoke('getEnterpriseStats'); return res.data; },
@@ -63,21 +57,16 @@ export default function EnterpriseDashboard() {
     try { localStorage.setItem(WIDGET_STORAGE_KEY, JSON.stringify(next)); } catch {}
   };
 
-  // Filter server-side division stats by the user's permitted divisions.
+  // Per-division stats (full division objects merged with server counts)
   const divisionStats = useMemo(() => {
     const all = statsData?.divisionStats || [];
-    const permittedIds = new Set(permittedDivisions.map(d => d.id));
-    // Merge: use the full division object from context (for landing_page etc.),
-    // but pull the computed counts from the server response.
     return permittedDivisions.map(d => {
       const s = all.find(x => x.division.id === d.id);
       return s ? { division: d, staffCount: s.staffCount, activeStaff: s.activeStaff, jobsCount: s.jobsCount, activeJobs: s.activeJobs, vehiclesCount: s.vehiclesCount, outstanding: s.outstanding } : { division: d, staffCount: 0, activeStaff: 0, jobsCount: 0, activeJobs: 0, vehiclesCount: 0, outstanding: 0 };
     });
   }, [permittedDivisions, statsData]);
 
-  // Two-level hierarchy: business units (parent divisions with children) and
-  // standalone divisions (no parent, no children). Child divisions are grouped
-  // under their parent business unit for the second navigation level.
+  // Two-level hierarchy
   const hierarchy = useMemo(() => {
     const all = permittedDivisions;
     const parentIds = new Set(all.filter(d => d.parent_division_id).map(d => d.parent_division_id));
@@ -86,7 +75,15 @@ export default function EnterpriseDashboard() {
     return { businessUnits, standalone, parentIds };
   }, [permittedDivisions]);
 
-  // Global stats from the server, scoped to permitted divisions.
+  // Child stats per BU (for the preview strip on BU cards)
+  const buChildStats = useMemo(() => {
+    const map = {};
+    for (const bu of hierarchy.businessUnits) {
+      map[bu.id] = divisionStats.filter(ds => ds.division.parent_division_id === bu.id);
+    }
+    return map;
+  }, [hierarchy.businessUnits, divisionStats]);
+
   const globalStats = useMemo(() => {
     const base = statsData?.globalStats || { divisions: 0, activeDivisions: 0, staff: 0, activeJobs: 0, vehicles: 0, pendingTs: 0, openCompliance: 0, totalOutstanding: 0 };
     return {
@@ -98,19 +95,11 @@ export default function EnterpriseDashboard() {
 
   const gbp = (n) => n ? '\u00A3' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '\u00A30';
 
+  const goToBU = (bu) => navigate(`/enterprise/business-unit/${bu.id}`);
   const enterDivision = (d) => {
-    setEnteringDivision(d);
+    setActiveDivision(d.id);
+    navigate(d.landing_page || '/admin', { state: { section: 'overview' } });
   };
-
-  const handleLoadingComplete = () => {
-    if (enteringDivision) {
-      const d = enteringDivision;
-      setEnteringDivision(null);
-      setActiveDivision(d.id);
-      navigate(d.landing_page || '/admin', { state: { section: 'overview' } });
-    }
-  };
-
   const goToSettings = (tab) => navigate('/enterprise/settings', { state: { tab: tab || 'divisions' } });
   const canManageDivisions = isSuperAdmin;
 
@@ -138,22 +127,23 @@ export default function EnterpriseDashboard() {
     <div className="min-h-screen page-bg-vibrant">
       <EnterpriseHeader />
 
-      {/* ─── Hero Section ─── */}
+      {/* ─── Ground Control Hero ─── */}
       <div className="relative">
         <div className="hero-vibrant absolute inset-0 overflow-hidden" />
         <div className="relative px-4 xl:px-6 pt-[calc(3.5rem+env(safe-area-inset-top)+0.5rem)] xl:pt-8 pb-6">
           <div className="max-w-7xl mx-auto">
-            {/* Top row: title + profile */}
+            {/* Title row */}
             <div className="flex items-center justify-between gap-3 mb-5">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg ring-1 ring-white/20">
-                  <Building2 className="w-6 h-6 text-white" />
+                  <Crown className="w-6 h-6 text-white" />
                 </div>
                 <div className="min-w-0">
+                  <p className="text-[10px] text-white/60 font-bold uppercase tracking-widest mb-0.5">Enterprise Parent</p>
                   <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white tracking-tight leading-none truncate">
                     Ground Control
                   </h1>
-                  <p className="text-xs sm:text-sm text-white/70 font-semibold mt-1 truncate">Enterprise Parent · Housing Land & Water Solutions & 4 Specialist Divisions</p>
+                  <p className="text-xs sm:text-sm text-white/70 font-semibold mt-1 truncate">Housing Land &amp; Water Solutions &amp; 4 Specialist Divisions</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -200,17 +190,17 @@ export default function EnterpriseDashboard() {
               </div>
             </div>
 
-            {/* Hero metrics strip */}
+            {/* Enterprise KPIs */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
               {[
-                { label: 'Divisions', value: globalStats.divisions, icon: Building2, gradient: 'stat-gradient-brand' },
-                { label: 'Crew', value: globalStats.staff, icon: Users, gradient: 'stat-gradient-blue' },
+                { label: 'Business Units', value: hierarchy.businessUnits.length, icon: Layers, gradient: 'stat-gradient-brand' },
+                { label: 'Total Crew', value: globalStats.staff, icon: Users, gradient: 'stat-gradient-blue' },
                 { label: 'Active Jobs', value: globalStats.activeJobs, icon: Briefcase, gradient: 'stat-gradient-amber' },
                 { label: 'Outstanding', value: gbp(globalStats.totalOutstanding), icon: PoundSterling, gradient: 'stat-gradient-rose' },
               ].map(m => (
                 <div key={m.label} className={`${m.gradient} rounded-xl sm:rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-lg`}>
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <m.icon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-white" />
+                    <m.icon className="w-4 h-4 text-white" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide truncate">{m.label}</p>
@@ -239,84 +229,44 @@ export default function EnterpriseDashboard() {
           })}
         </div>
 
-        {/* Divisions — two-level navigation: Business Units → Divisions */}
+        {/* Business Units — Level 1 with division previews */}
         {widgets.divisionHealth && (
-          <section>
-            {selectedBusinessUnit ? (
+          <section className="mt-5 sm:mt-6">
+            <SectionTitle icon={Layers} title="Business Units" subtitle="Housing specialist divisions — click to drill down" gradient="from-emerald-600 to-teal-700" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              {hierarchy.businessUnits.map((bu, i) => (
+                <motion.div key={bu.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08, duration: 0.35, ease: 'easeOut' }}>
+                  <BusinessUnitCard unit={bu} childStats={buChildStats[bu.id] || []} onEnter={goToBU} />
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Standalone divisions (no parent BU) */}
+            {hierarchy.standalone.length > 0 && (
               <>
-                {/* Level 2: Divisions within the selected business unit */}
-                <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-20 -mx-4 xl:-mx-6 px-4 xl:px-6 py-3 mb-4 backdrop-blur-md bg-white/80 border-b border-slate-200 flex items-center gap-3">
-                  <button
-                    onClick={() => setSelectedBusinessUnit(null)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-white shadow-md transition hover:opacity-90 flex-shrink-0"
-                    style={{ background: selectedBusinessUnit.color || '#2E5A1A' }}
-                  >
-                    <ArrowLeft className="w-4 h-4" /> Back
-                  </button>
-                  <div className="min-w-0">
-                    <h2 className="text-sm sm:text-base font-extrabold text-slate-900 truncate">{selectedBusinessUnit.name}</h2>
-                    <p className="text-[11px] text-slate-500 truncate">{selectedBusinessUnit.tagline || 'Business Unit'}</p>
-                  </div>
+                <div className="mt-5 sm:mt-6">
+                  <SectionTitle icon={Building2} title="Standalone Divisions" subtitle="Independent divisions" gradient="from-blue-500 to-cyan-600" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {divisionStats
-                    .filter(ds => ds.division.parent_division_id === selectedBusinessUnit.id)
+                    .filter(ds => hierarchy.standalone.some(s => s.id === ds.division.id))
                     .map((ds, i) => (
                       <motion.div key={ds.division.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06, duration: 0.35, ease: 'easeOut' }}>
                         <DivisionCard ds={ds} onEnter={enterDivision} />
                       </motion.div>
                     ))}
-                  {canManageDivisions && (
-                    <button onClick={() => setShowWizard(true)} className="rounded-2xl border-2 border-dashed border-slate-300 p-5 text-left hover:border-[#2E5A1A] hover:bg-emerald-50/30 transition group flex flex-col items-center justify-center gap-2 min-h-[200px]">
-                      <div className="w-12 h-12 rounded-2xl bg-slate-100 group-hover:bg-[#2E5A1A]/10 flex items-center justify-center transition">
-                        <Sparkles className="w-6 h-6 text-slate-400 group-hover:text-[#2E5A1A] transition" />
-                      </div>
-                      <p className="text-sm font-bold text-slate-500 group-hover:text-[#2E5A1A] transition">Add a Division</p>
-                      <p className="text-xs text-slate-400 text-center">Guided setup wizard</p>
-                    </button>
-                  )}
                 </div>
               </>
-            ) : (
-              <>
-                {/* Level 1: Business Units + Standalone Divisions */}
-                <SectionTitle icon={Layers} title="Business Unit" subtitle="4 specialist divisions housed within Land & Water" gradient="from-emerald-600 to-teal-700" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {hierarchy.businessUnits.map((bu, i) => {
-                    const childCount = permittedDivisions.filter(d => d.parent_division_id === bu.id).length;
-                    return (
-                      <motion.div key={bu.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08, duration: 0.35, ease: 'easeOut' }}>
-                        <BusinessUnitCard unit={bu} childCount={childCount} onEnter={setSelectedBusinessUnit} />
-                      </motion.div>
-                    );
-                  })}
+            )}
+
+            {canManageDivisions && (
+              <button onClick={() => setShowWizard(true)} className="mt-3 w-full rounded-2xl border-2 border-dashed border-slate-300 p-5 text-left hover:border-[#2E5A1A] hover:bg-emerald-50/30 transition group flex flex-col items-center justify-center gap-2 min-h-[120px]">
+                <div className="w-12 h-12 rounded-2xl bg-slate-100 group-hover:bg-[#2E5A1A]/10 flex items-center justify-center transition">
+                  <Sparkles className="w-6 h-6 text-slate-400 group-hover:text-[#2E5A1A] transition" />
                 </div>
-                {hierarchy.standalone.length > 0 && (
-                  <>
-                    <div className="mt-5 sm:mt-6">
-                      <SectionTitle icon={Building2} title="Standalone Divisions" subtitle="Independent divisions" gradient="from-blue-500 to-cyan-600" />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {divisionStats
-                        .filter(ds => hierarchy.standalone.some(s => s.id === ds.division.id))
-                        .map((ds, i) => (
-                          <motion.div key={ds.division.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06, duration: 0.35, ease: 'easeOut' }}>
-                            <DivisionCard ds={ds} onEnter={enterDivision} />
-                          </motion.div>
-                        ))}
-                    </div>
-                  </>
-                )}
-                {canManageDivisions && (
-                  <button onClick={() => setShowWizard(true)} className="mt-3 w-full rounded-2xl border-2 border-dashed border-slate-300 p-5 text-left hover:border-[#2E5A1A] hover:bg-emerald-50/30 transition group flex flex-col items-center justify-center gap-2 min-h-[120px]">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-100 group-hover:bg-[#2E5A1A]/10 flex items-center justify-center transition">
-                      <Sparkles className="w-6 h-6 text-slate-400 group-hover:text-[#2E5A1A] transition" />
-                    </div>
-                    <p className="text-sm font-bold text-slate-500 group-hover:text-[#2E5A1A] transition">Add a Business Unit or Division</p>
-                    <p className="text-xs text-slate-400 text-center">Guided setup wizard</p>
-                  </button>
-                )}
-              </>
+                <p className="text-sm font-bold text-slate-500 group-hover:text-[#2E5A1A] transition">Add a Business Unit or Division</p>
+                <p className="text-xs text-slate-400 text-center">Guided setup wizard</p>
+              </button>
             )}
           </section>
         )}
@@ -324,7 +274,7 @@ export default function EnterpriseDashboard() {
         {/* Fleet & Assets */}
         {widgets.fleetAssets && (
           <section className="insight-card rounded-2xl p-4 sm:p-5">
-            <SectionTitle icon={Truck} title="Fleet & Assets" subtitle="Vehicles and equipment across divisions" gradient="from-cyan-500 to-blue-600" />
+            <SectionTitle icon={Truck} title="Fleet & Assets" subtitle="Vehicles and equipment across all divisions" gradient="from-cyan-500 to-blue-600" />
             <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
               <div className="stat-gradient-teal rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white relative overflow-hidden">
                 <div className="absolute right-1 top-1 opacity-20"><Truck className="w-7 h-7 sm:w-9 sm:h-9" /></div>
@@ -357,17 +307,17 @@ export default function EnterpriseDashboard() {
           </section>
         )}
 
-        {/* Workforce Overview */}
+        {/* Workforce Overview — aggregated per BU */}
         {widgets.workforceOverview && (
           <section className="insight-card rounded-2xl p-4 sm:p-5">
-            <SectionTitle icon={Users} title="Workforce Overview" subtitle="Crew across Land & Water's 4 divisions" gradient="from-violet-500 to-purple-600" />
+            <SectionTitle icon={Users} title="Workforce by Business Unit" subtitle="Crew aggregated per business unit" gradient="from-violet-500 to-purple-600" />
             <div className="grid grid-cols-2 gap-2 sm:gap-2.5 mb-3">
               <div className="stat-gradient-violet rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white relative overflow-hidden">
                 <div className="absolute right-1 top-1 opacity-20"><Users className="w-7 h-7 sm:w-9 sm:h-9" /></div>
                 <div className="relative">
                   <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide">Total Staff</p>
                   <p className="text-xl sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.staff}</p>
-                  <p className="text-[9px] sm:text-[10px] text-white/70">across all divisions</p>
+                  <p className="text-[9px] sm:text-[10px] text-white/70">across all BUs</p>
                 </div>
               </div>
               <div className="stat-gradient-emerald rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white relative overflow-hidden">
@@ -380,18 +330,25 @@ export default function EnterpriseDashboard() {
               </div>
             </div>
             <div className="space-y-1.5">
-              {divisionStats.map(ds => (
-                <div key={ds.division.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: ds.division.color || '#2E5A1A' }} />
-                    <span className="text-xs font-semibold text-slate-700 truncate">{ds.division.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2 sm:gap-3 text-xs flex-shrink-0">
-                    <span className="text-slate-500 font-medium hidden sm:inline">{ds.activeStaff} active</span>
-                    <span className="font-bold text-slate-700 tabular-nums">{ds.staffCount}</span>
-                  </div>
-                </div>
-              ))}
+              {hierarchy.businessUnits.map(bu => {
+                const children = buChildStats[bu.id] || [];
+                const total = children.reduce((s, c) => s + c.staffCount, 0);
+                const active = children.reduce((s, c) => s + c.activeStaff, 0);
+                return (
+                  <button key={bu.id} onClick={() => goToBU(bu)} className="w-full flex items-center justify-between p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 transition text-left">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: bu.color || '#2E5A1A' }} />
+                      <span className="text-xs font-semibold text-slate-700 truncate">{bu.name}</span>
+                      <span className="text-[10px] text-slate-400 hidden sm:inline">· {children.length} divisions</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs flex-shrink-0">
+                      <span className="text-emerald-600 font-bold">{active} active</span>
+                      <span className="font-extrabold text-slate-900 tabular-nums">{total}</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             <button onClick={() => navigate('/enterprise/staff')} className="w-full mt-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-sm font-semibold text-slate-600 transition">
               Go to Staff Hub <ArrowRight className="w-4 h-4" />
@@ -400,13 +357,6 @@ export default function EnterpriseDashboard() {
         )}
 
       </div>
-
-      {/* Division loading screen */}
-      <AnimatePresence>
-        {enteringDivision && (
-          <DivisionLoadingScreen division={enteringDivision} onComplete={handleLoadingComplete} />
-        )}
-      </AnimatePresence>
 
       {/* Wizard */}
       {showWizard && <DivisionWizard onClose={() => setShowWizard(false)} onCreated={() => setShowWizard(false)} />}
@@ -421,9 +371,9 @@ export default function EnterpriseDashboard() {
             </div>
             <div className="space-y-2">
               {[
-                { key: 'divisionHealth', label: 'Divisions', desc: 'Division cards grid' },
+                { key: 'divisionHealth', label: 'Business Units', desc: 'BU cards with division previews' },
                 { key: 'fleetAssets', label: 'Fleet & Assets', desc: 'Vehicles, equipment & compliance' },
-                { key: 'workforceOverview', label: 'Workforce Overview', desc: 'Headcount across divisions' },
+                { key: 'workforceOverview', label: 'Workforce by BU', desc: 'Headcount aggregated per BU' },
               ].map(w => (
                 <label key={w.key} className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
                   <div>
