@@ -52,6 +52,22 @@ export default function EnterpriseFleetHub() {
     queryFn: () => base44.entities.Vehicle.list('-created_date', 500),
   });
 
+  // Live Geotab driving status — fresh DeviceStatusInfo overlay, polled every 60s
+  const { data: liveData } = useQuery({
+    queryKey: ['enterprise-fleet-live-driving'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getVehicleLocationHistory', { mode: 'live', limit: 500 });
+      return res?.data ?? res;
+    },
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
+  const liveByVehicle = useMemo(() => {
+    const map = {};
+    (liveData?.vehicles || []).forEach(loc => { if (loc.vehicle_id) map[loc.vehicle_id] = loc; });
+    return map;
+  }, [liveData]);
+
   const divisionMap = useMemo(() => {
     const m = {};
     divisions.forEach(d => { m[d.id] = d; });
@@ -82,15 +98,18 @@ export default function EnterpriseFleetHub() {
   }, [divisions, vehiclesByDivision]);
 
   const stats = useMemo(() => {
-    let compliant = 0, warning = 0, expired = 0;
+    let compliant = 0, warning = 0, expired = 0, driving = 0;
     vehicles.forEach(v => {
       const { level } = getVehicleStatus(v);
       if (level === 'expired') expired++;
       else if (level === 'warning') warning++;
       else compliant++;
+      const live = liveByVehicle[v.id];
+      if (live && (live.is_driving_now || (live.speed_kph || 0) > 0)) driving++;
+      else if (!live && v.current_operator_name) driving++;
     });
-    return { total: vehicles.length, compliant, warning, expired };
-  }, [vehicles]);
+    return { total: vehicles.length, compliant, warning, expired, driving };
+  }, [vehicles, liveByVehicle]);
 
   const q = search.toLowerCase().trim();
   const filtered = useMemo(() => {
@@ -152,7 +171,7 @@ export default function EnterpriseFleetHub() {
             </div>
 
             {/* Hero metrics */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
               <div className="stat-gradient-teal rounded-2xl p-3 flex items-center gap-2.5 shadow-lg">
                 <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
                   <Truck className="w-4.5 h-4.5 text-white" />
@@ -187,6 +206,15 @@ export default function EnterpriseFleetHub() {
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide truncate">Critical</p>
                   <p className="text-lg font-extrabold text-white tabular-nums truncate">{stats.expired}</p>
+                </div>
+              </div>
+              <div className="stat-gradient-blue rounded-2xl p-3 flex items-center gap-2.5 shadow-lg">
+                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <Navigation className="w-4.5 h-4.5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide truncate">Driving Now</p>
+                  <p className="text-lg font-extrabold text-white tabular-nums truncate">{stats.driving}</p>
                 </div>
               </div>
             </div>

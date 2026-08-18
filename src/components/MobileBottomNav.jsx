@@ -5,6 +5,7 @@ import {
   Boxes, Car, PoundSterling, Users, Sparkles, User, HelpCircle,
 } from 'lucide-react';
 import { useDivision } from '@/contexts/DivisionContext';
+import { useAIHub } from '@/components/ai/AIHub';
 import { getNavConfigs } from '@/utils/divisionNav';
 
 /**
@@ -35,6 +36,7 @@ export default function MobileBottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const { activeDivision } = useDivision();
+  const { openHub } = useAIHub();
 
   // Resolve nav items for the active division
   const items = activeDivision ? getNavConfigs(activeDivision) : [];
@@ -88,7 +90,7 @@ export default function MobileBottomNav() {
               key={item.id}
               onClick={() => {
                 if (item.isAIHub) {
-                  window.dispatchEvent(new CustomEvent('gc-open-ai-hub'));
+                  openHub();
                   return;
                 }
                 if (item.path) navigate(item.path);

@@ -7,6 +7,8 @@ import {
   CalendarDays, ExternalLink, Lock,
   TrendingUp, FileX, Clock, Users,
 } from 'lucide-react';
+import TabBar from '@/components/TabBar';
+import SubPills from '@/components/SubPills';
 import SafetyCultureGate from '@/components/safety/SafetyCultureGate';
 import SafetyCultureCheckHub from '@/components/safety/SafetyCultureCheckHub';
 import IncidentReporter from '@/components/safety/IncidentReporter';
@@ -21,9 +23,33 @@ import { resolveRole } from '@/utils/access';
 
 const SC_URL = 'https://app.safetyculture.com';
 
+// 3 consolidated tabs (down from 7)
+const TABS = [
+  {
+    id: 'safety', label: 'Safety', icon: ShieldAlert, sub: [
+      { id: 'safety-hub', label: 'Safety Hub' },
+      { id: 'incidents', label: 'Incidents' },
+      { id: 'stats', label: 'H&S Stats' },
+    ],
+  },
+  {
+    id: 'readiness', label: 'Readiness', icon: ShieldCheck, sub: [
+      { id: 'readiness', label: 'Readiness Gate' },
+      { id: 'calendar', label: 'Calendar' },
+    ],
+  },
+  {
+    id: 'training-env', label: 'Training & Env', icon: HardHat, sub: [
+      { id: 'toolbox', label: 'Toolbox Talks' },
+      { id: 'environmental', label: 'Environmental' },
+    ],
+  },
+];
+
 export default function CompliancePage() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState('safety-hub');
+  const [tab, setTab] = useState('safety');
+  const [subTab, setSubTab] = useState('safety-hub');
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {
@@ -60,16 +86,6 @@ export default function CompliancePage() {
     return { openIncidents: safetyReports.length, expiringSoon, expired, recentTalks, totalStaff: staff.length };
   })();
 
-  const tabs = [
-    { id: 'safety-hub', label: 'Safety Hub', icon: ShieldAlert },
-    { id: 'readiness', label: 'Readiness', icon: ShieldCheck },
-    { id: 'incidents', label: 'Incidents', icon: AlertTriangle },
-    { id: 'stats', label: 'H&S Stats', icon: BarChart3 },
-    { id: 'toolbox', label: 'Toolbox Talks', icon: HardHat },
-    { id: 'environmental', label: 'Environmental', icon: TrendingUp },
-    { id: 'calendar', label: 'Calendar', icon: CalendarDays },
-  ];
-
   const navToAdmin = (section) => navigate('/admin', { state: { section } });
 
   // Access guard — management & admin only
@@ -89,6 +105,13 @@ export default function CompliancePage() {
       </div>
     );
   }
+
+  const activeTab = TABS.find(t => t.id === tab);
+  const handleTabChange = (t) => {
+    setTab(t);
+    const at = TABS.find(x => x.id === t);
+    setSubTab(at?.sub?.[0]?.id || t);
+  };
 
   return (
     <div className="space-y-4">
@@ -132,73 +155,64 @@ export default function CompliancePage() {
         { icon: HardHat, label: 'Toolbox Talks', value: complianceKpis.recentTalks, sublabel: 'Last 30 days', color: 'brand' },
       ]} />
 
-      {/* ── Modern Tab Bar ── */}
-      <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/70 shadow-sm p-1.5 flex gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        {tabs.map(t => {
-          const Icon = t.icon;
-          const active = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              type="button"
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold transition flex-shrink-0 whitespace-nowrap active:scale-[0.97] ${
-                active
-                  ? 'bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white shadow-sm shadow-emerald-200/60'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-              }`}
-            >
-              <Icon className={`w-4 h-4 ${active ? 'text-white' : 'text-slate-400'}`} />
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* ── Consolidated Tab Bar (3 tabs) ── */}
+      <TabBar tabs={TABS.map(t => ({ id: t.id, label: t.label, icon: t.icon }))} activeTab={tab} onChange={handleTabChange} />
+
+      {/* ── Sub-pills for the active tab ── */}
+      <SubPills active={subTab} onChange={setSubTab} pills={activeTab?.sub || []} />
 
       {/* ── Tab Content — all gated by SafetyCulture connection status ── */}
-      {tab === 'safety-hub' && (
-        <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
-          <SafetyCultureCheckHub onNavigate={navToAdmin} />
-        </SafetyCultureGate>
+      {tab === 'safety' && (
+        <>
+          {subTab === 'safety-hub' && (
+            <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
+              <SafetyCultureCheckHub onNavigate={navToAdmin} />
+            </SafetyCultureGate>
+          )}
+          {subTab === 'incidents' && (
+            <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
+              <IncidentReporter />
+            </SafetyCultureGate>
+          )}
+          {subTab === 'stats' && (
+            <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
+              <RIDDORStatsPanel />
+            </SafetyCultureGate>
+          )}
+        </>
       )}
 
       {tab === 'readiness' && (
-        <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <SiteReadinessGateWidget onNavigate={navToAdmin} />
-            <CrewCertificationPulseWidget onNavigate={navToAdmin} />
-          </div>
-        </SafetyCultureGate>
+        <>
+          {subTab === 'readiness' && (
+            <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <SiteReadinessGateWidget onNavigate={navToAdmin} />
+                <CrewCertificationPulseWidget onNavigate={navToAdmin} />
+              </div>
+            </SafetyCultureGate>
+          )}
+          {subTab === 'calendar' && (
+            <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
+              <ComplianceCalendar />
+            </SafetyCultureGate>
+          )}
+        </>
       )}
 
-      {tab === 'incidents' && (
-        <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
-          <IncidentReporter />
-        </SafetyCultureGate>
-      )}
-
-      {tab === 'stats' && (
-        <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
-          <RIDDORStatsPanel />
-        </SafetyCultureGate>
-      )}
-
-      {tab === 'toolbox' && (
-        <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
-          <ToolboxTalkManager />
-        </SafetyCultureGate>
-      )}
-
-      {tab === 'environmental' && (
-        <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
-          <CarbonFootprintWidget onNavigate={navToAdmin} />
-        </SafetyCultureGate>
-      )}
-
-      {tab === 'calendar' && (
-        <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
-          <ComplianceCalendar />
-        </SafetyCultureGate>
+      {tab === 'training-env' && (
+        <>
+          {subTab === 'toolbox' && (
+            <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
+              <ToolboxTalkManager />
+            </SafetyCultureGate>
+          )}
+          {subTab === 'environmental' && (
+            <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
+              <CarbonFootprintWidget onNavigate={navToAdmin} />
+            </SafetyCultureGate>
+          )}
+        </>
       )}
     </div>
   );

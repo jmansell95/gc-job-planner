@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Truck, Wrench, Search, ExternalLink, PhoneCall,
+  Truck, Wrench, Search, ExternalLink, PhoneCall, Navigation,
 } from 'lucide-react';
 import FleetQuickStats from '@/components/vehicles/FleetQuickStats';
 import FleetVehicleCard from '@/components/vehicles/FleetVehicleCard';
@@ -13,6 +13,7 @@ import MaintenanceBookingModal from '@/components/vehicles/MaintenanceBookingMod
 import UsefulNumbersModal from '@/components/UsefulNumbersModal';
 import VehicleDetailDrawer from '@/components/vehicles/VehicleDetailDrawer';
 import GeotabReportModal from '@/components/vehicles/GeotabReportModal';
+import LiveFleetPanel from '@/components/vehicles/LiveFleetPanel';
 import FleetSyncButtons from '@/components/vehicles/FleetSyncButtons';
 import TabBar from '@/components/TabBar';
 import { Skeleton } from '@/components/StateViews';
@@ -158,13 +159,16 @@ export default function Vehicles() {
   const fleetTabs = [
     { id: 'fleet', label: 'Fleet', icon: Truck },
     { id: 'maintenance', label: 'Maintenance', icon: Wrench, badge: stats.activeBookings || undefined },
+    { id: 'live', label: 'Live', icon: Navigation },
   ];
 
   return (
     <div className="space-y-4">
       <TabBar tabs={fleetTabs} activeTab={view} onChange={setView} />
 
-      {view === 'maintenance' ? (
+      {view === 'live' ? (
+        <LiveFleetPanel />
+      ) : view === 'maintenance' ? (
         <VehicleMaintenanceManager />
       ) : (
         <>

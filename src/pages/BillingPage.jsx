@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  PoundSterling, Receipt, FileBarChart, FileText, Banknote, TrendingDown,
+  PoundSterling, Receipt, FileBarChart, Banknote, TrendingDown,
   FileCheck, ArrowRight, CheckCircle2, Lock, TrendingUp, Shield, ScrollText,
 } from 'lucide-react';
+import HubShell from '@/components/HubShell';
+import SubPills from '@/components/SubPills';
 import SettingsPage from '@/components/SettingsPage';
 import InvoiceDiscrepancyWidget from '@/components/billing/InvoiceDiscrepancyWidget';
 import AgedDebtorsDashboard from '@/components/billing/AgedDebtorsDashboard';
@@ -15,18 +17,16 @@ import ContractsAndOrdersTab from '@/components/billing/ContractsAndOrdersTab';
 import MarginGuardTab from '@/components/billing/MarginGuardTab';
 import AfPPipelineWidget from '@/components/billing/AfPPipelineWidget';
 import GenerateInvoiceModal from '@/components/billing/GenerateInvoiceModal';
-import PageHeader from '@/components/PageHeader';
-import TabBar from '@/components/TabBar';
 
-// ─── 3-step billing pipeline ──────────────────────────────────────────────
+// ─── 3-step billing pipeline (now inline within the Pipeline tab) ──────────
 const PIPELINE_STEPS = [
   { id: 'billing-readiness', step: 1, label: 'Ready to Bill', icon: FileCheck, desc: 'Unbilled work' },
   { id: 'invoicing', step: 2, label: 'Raise & Check', icon: PoundSterling, desc: 'Invoicing' },
   { id: 'aged-debtors', step: 3, label: 'Aged Debtors', icon: TrendingDown, desc: 'Chase overdue' },
 ];
 
-function PipelineFlow({ activeTab, onSelect }) {
-  const activeIdx = PIPELINE_STEPS.findIndex((s) => s.id === activeTab);
+function PipelineFlow({ activeStep, onSelect }) {
+  const activeIdx = PIPELINE_STEPS.findIndex((s) => s.id === activeStep);
   return (
     <div className="insight-card rounded-2xl p-2.5 sm:p-3">
       <div className="flex items-center gap-2 mb-2">
@@ -36,11 +36,10 @@ function PipelineFlow({ activeTab, onSelect }) {
         <h3 className="text-sm font-bold text-slate-900">Billing Workflow</h3>
         <span className="text-xs text-slate-400 hidden sm:inline">— follow these 3 steps in order</span>
       </div>
-      {/* Mobile: vertical stack, Desktop: horizontal flow */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 sm:overflow-x-auto">
         {PIPELINE_STEPS.map((step, i) => {
           const Icon = step.icon;
-          const isActive = step.id === activeTab;
+          const isActive = step.id === activeStep;
           const isPast = activeIdx > i;
           return (
             <React.Fragment key={step.id}>
@@ -71,7 +70,6 @@ function PipelineFlow({ activeTab, onSelect }) {
                     {step.desc}
                   </p>
                 </div>
-                {/* Arrow: right on desktop, down on mobile */}
                 {i < PIPELINE_STEPS.length - 1 && (
                   <ArrowRight className={`hidden sm:block w-4 h-4 flex-shrink-0 ${isPast ? 'text-emerald-400' : 'text-slate-300'}`} />
                 )}
@@ -89,79 +87,92 @@ function PipelineFlow({ activeTab, onSelect }) {
   );
 }
 
-// ─── Main page ────────────────────────────────────────────────────────────
+// ─── Main page — 3 consolidated tabs ───────────────────────────────────────
 export default function BillingPage() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState('billing-readiness');
-
-  // Consolidated config tabs — merged from 9 down to 7:
-  // • Contracts & POs = billing-contracts + purchase-orders
-  // • Margin Guard = subcon-markup + job-alerts
-  const tabs = [
-    { id: 'rate-card', label: 'Price List', icon: Receipt },
-    { id: 'poa-lock', label: 'POA Locks', icon: Lock },
-    { id: 'billing', label: 'Billing Rules', icon: Banknote },
-    { id: 'contracts-orders', label: 'Contracts & POs', icon: ScrollText },
-    { id: 'margin-guard', label: 'Margin Guard', icon: Shield },
-    { id: 'financial-audit', label: 'Audit Log', icon: FileCheck },
-    { id: 'insights', label: 'Insights', icon: TrendingUp },
-  ];
-
-  const isPipelineTab = PIPELINE_STEPS.some((s) => s.id === tab);
-  const goToJob = (job) => navigate('/admin', { state: { section: 'job-detail', job } });
+  const [tab, setTab] = useState('pipeline');
+  const [pipelineStep, setPipelineStep] = useState('billing-readiness');
+  const [priceSub, setPriceSub] = useState('rate-card');
+  const [controlSub, setControlSub] = useState('contracts-orders');
   const [invoiceJob, setInvoiceJob] = useState(null);
 
+  const tabs = [
+    { id: 'pipeline', label: 'Pipeline', icon: FileBarChart },
+    { id: 'price-rates', label: 'Price & Rates', icon: Receipt },
+    { id: 'control', label: 'Control', icon: Shield },
+  ];
+
+  const goToJob = (job) => navigate('/admin', { state: { section: 'job-detail', job } });
+
+  // Map FinancialOverviewWidget's legacy tab ids onto the new 3-tab structure
+  const handleOverviewSelect = (t) => {
+    if (PIPELINE_STEPS.some(s => s.id === t)) {
+      setTab('pipeline'); setPipelineStep(t);
+    } else if (['rate-card', 'poa-lock', 'billing'].includes(t)) {
+      setTab('price-rates'); setPriceSub(t);
+    } else if (['contracts-orders', 'margin-guard', 'financial-audit', 'insights'].includes(t)) {
+      setTab('control'); setControlSub(t);
+    } else {
+      setTab(t);
+    }
+  };
+
   return (
-    <div className="space-y-3 sm:space-y-4">
-      <PageHeader
-        icon={PoundSterling}
-        title="Financial Control"
-        subtitle="Invoicing, debtors, billing rules, rate cards & financial reports"
-      />
-
-      {/* Financial overview — always visible */}
-      <FinancialOverviewWidget onSelectTab={setTab} />
-
-      {/* 3-step billing workflow */}
-      <PipelineFlow activeTab={tab} onSelect={setTab} />
-
-      {/* Settings & configuration tabs */}
-      <TabBar tabs={tabs} activeTab={tab} onChange={setTab} />
-
-      {/* Pipeline step content */}
-      {tab === 'billing-readiness' && (
+    <HubShell
+      icon={PoundSterling}
+      title="Financial Control"
+      subtitle="Invoicing, debtors, billing rules, rate cards & financial reports"
+      tabs={tabs}
+      activeTab={tab}
+      onTabChange={setTab}
+      kpiStrip={<FinancialOverviewWidget onSelectTab={handleOverviewSelect} />}
+    >
+      {/* ── Pipeline tab: the 3-step flow as one continuous view ── */}
+      {tab === 'pipeline' && (
         <>
-          <AfPPipelineWidget onSelectJob={setInvoiceJob} />
-          <BillingReadinessReport onSelectJob={goToJob} />
+          <PipelineFlow activeStep={pipelineStep} onSelect={setPipelineStep} />
+          {pipelineStep === 'billing-readiness' && (
+            <>
+              <AfPPipelineWidget onSelectJob={setInvoiceJob} />
+              <BillingReadinessReport onSelectJob={goToJob} />
+            </>
+          )}
+          {pipelineStep === 'invoicing' && <InvoiceDiscrepancyWidget />}
+          {pipelineStep === 'aged-debtors' && <AgedDebtorsDashboard />}
         </>
       )}
-      {tab === 'invoicing' && (
-        <InvoiceDiscrepancyWidget />
+
+      {/* ── Price & Rates tab: Price List + POA Locks + Billing Rules ── */}
+      {tab === 'price-rates' && (
+        <>
+          <SubPills active={priceSub} onChange={setPriceSub} pills={[
+            { id: 'rate-card', label: 'Price List', icon: Receipt },
+            { id: 'poa-lock', label: 'POA Locks', icon: Lock },
+            { id: 'billing', label: 'Billing Rules', icon: Banknote },
+          ]} />
+          {priceSub === 'poa-lock' && <POAWorklist />}
+          {['rate-card', 'billing'].includes(priceSub) && (
+            <SettingsPage key={priceSub} initialTab={priceSub} standalone onSelectJob={goToJob} />
+          )}
+        </>
       )}
-      {tab === 'aged-debtors' && (
-        <AgedDebtorsDashboard />
-      )}
 
-      {/* Insights dashboard */}
-      {tab === 'insights' && <BillingInsightsTab />}
-
-      {/* POA worklist */}
-      {tab === 'poa-lock' && <POAWorklist />}
-
-      {/* Merged: Contracts & Purchase Orders */}
-      {tab === 'contracts-orders' && <ContractsAndOrdersTab />}
-
-      {/* Merged: Sub-Con Markup & Budget Alerts */}
-      {tab === 'margin-guard' && <MarginGuardTab />}
-
-      {/* Settings-backed config tabs (Price List, Billing Rules, Audit Log) */}
-      {['rate-card', 'billing', 'financial-audit'].includes(tab) && (
-        <SettingsPage
-          key={tab}
-          initialTab={tab}
-          standalone
-          onSelectJob={goToJob}
-        />
+      {/* ── Control tab: Contracts & POs + Margin Guard + Audit Log + Insights ── */}
+      {tab === 'control' && (
+        <>
+          <SubPills active={controlSub} onChange={setControlSub} pills={[
+            { id: 'contracts-orders', label: 'Contracts & POs', icon: ScrollText },
+            { id: 'margin-guard', label: 'Margin Guard', icon: Shield },
+            { id: 'financial-audit', label: 'Audit Log', icon: FileCheck },
+            { id: 'insights', label: 'Insights', icon: TrendingUp },
+          ]} />
+          {controlSub === 'contracts-orders' && <ContractsAndOrdersTab />}
+          {controlSub === 'margin-guard' && <MarginGuardTab />}
+          {controlSub === 'financial-audit' && (
+            <SettingsPage key="financial-audit" initialTab="financial-audit" standalone onSelectJob={goToJob} />
+          )}
+          {controlSub === 'insights' && <BillingInsightsTab />}
+        </>
       )}
 
       {/* AfP pipeline → Raise invoice popup (self-sufficient: fetches its own data) */}
@@ -170,6 +181,6 @@ export default function BillingPage() {
         onClose={() => setInvoiceJob(null)}
         job={invoiceJob}
       />
-    </div>
+    </HubShell>
   );
 }
