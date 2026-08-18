@@ -16,6 +16,10 @@
       "type": "string",
       "description": "Rule name. For task rules, this must match the task description staff enter (e.g. 'Setting up the rig'). For consumables, this is the item name (e.g. 'Cable Ties (bag)')."
     },
+    "division_id": {
+      "type": "string",
+      "description": "The division this billing rule belongs to. Set automatically from the active division when the rule is created. Drives division-scoped filtering \u2014 a division only sees its own billing rules. Blank = unassigned (visible to enterprise admins only)."
+    },
     "description": {
       "type": "string",
       "description": "Optional description or internal notes about this billing rule"
@@ -89,7 +93,28 @@
     "charge_method"
   ],
   "rls": {
-    "read": {},
+    "read": {
+      "$or": [
+        {
+          "data.division_id": "{{user.data.division_id}}"
+        },
+        {
+          "data.division_id": {
+            "$in": "{{user.data.managed_division_ids}}"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        }
+      ]
+    },
     "create": {
       "user_condition": {
         "role": "admin"
