@@ -147,10 +147,6 @@ export default function AdminDashboard() {
       <AdminNav activeSection={activeSection} setActiveSection={handleSetActiveSection} onSettingsTabClick={(tab) => { setSettingsTab(tab); setActiveSection('settings'); }} />
       <div className="flex-1 flex flex-col min-h-0">
       <main className="flex-1 overflow-auto xl:pt-3">
-        {/* Dark spacer matching the fixed mobile header height. It sits behind
-            the header (same sidebar-modern background) so any sub-pixel mismatch
-            is invisible — the DivisionIdentityBar follows immediately, flush. */}
-        <div className="xl:hidden sidebar-modern" style={{ height: 'calc(3.5rem + env(safe-area-inset-top))' }} />
         <RedAlertBanner />
         <DivisionIdentityBar />
         <div className="px-3 sm:px-4 pb-24 md:px-6 xl:pb-4 xl:pt-6 w-full">
