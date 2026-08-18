@@ -33,6 +33,7 @@ import DrillingWeatherWidget from '@/components/DrillingWeatherWidget';
 import DivisionIdentityBar from '@/components/DivisionIdentityBar';
 import { useDivision } from '@/contexts/DivisionContext';
 import RigSignInScanner from '@/components/staff/RigSignInScanner';
+import WeeklyRotaView from '@/components/staff/WeeklyRotaView';
 
 
 export default function StaffDashboard() {
@@ -744,7 +745,7 @@ export default function StaffDashboard() {
         </div>
       )}
 
-      {/* Upcoming Tab */}
+      {/* Upcoming Tab — responsive weekly rota view */}
       {activeTab === 'upcoming' && (
         <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-4 space-y-3">
           {assignmentsLoading ? (
@@ -757,34 +758,19 @@ export default function StaffDashboard() {
                 </div>
               ))}
             </div>
-          ) : upcomingDates.length > 0 ? (
-            <div className="space-y-4">
-              {upcomingDates.slice(0, 20).map(date => {
-                const dayAssignments = upcomingGrouped[date].sort((a, b) => (a.start_time || '23:59').localeCompare(b.start_time || '23:59'));
-                const d = new Date(date + 'T00:00:00');
-                return (
-                  <div key={date}>
-                    <div className="flex items-center gap-2 mb-2.5">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/80 backdrop-blur-sm border border-slate-200/70 text-xs font-bold text-slate-700 uppercase tracking-wide shadow-sm">
-                        {format(d, 'EEEE')}
-                      </span>
-                      <span className="text-xs text-slate-400">{format(d, 'dd MMM yyyy')}</span>
-                      <span className="text-xs text-slate-300">·</span>
-                      <span className="text-xs text-slate-400 font-medium">{dayAssignments.length} {dayAssignments.length === 1 ? 'job' : 'jobs'}</span>
-                    </div>
-                    <div className="space-y-3">
-                      {dayAssignments.map(a => (
-                        <AssignmentCard key={a.id} {...cardProps(a)} />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+          ) : visibleAssignments.length === 0 ? (
+            <div className="insight-card rounded-3xl">
+              <EmptyState icon={CalendarDays} title="No shifts scheduled" message="Check back later — your manager will assign you to upcoming jobs." />
             </div>
           ) : (
-            <div className="insight-card rounded-3xl">
-              <EmptyState icon={CalendarDays} title="No upcoming jobs" message="Check back later — your manager will assign you to upcoming jobs." />
-            </div>
+            <WeeklyRotaView
+              assignments={visibleAssignments}
+              jobs={jobs}
+              vehicles={vehicles}
+              staff={staff}
+              onConfirm={handleConfirmShift}
+              onDecline={handleDeclineShift}
+            />
           )}
         </div>
       )}

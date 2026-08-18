@@ -1,0 +1,188 @@
+import React, { useState, useMemo } from 'react';
+import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
+import { ChevronLeft, ChevronRight, Clock, MapPin, Check, X } from 'lucide-react';
+
+// WeeklyRotaView — responsive weekly schedule for field staff.
+// Mobile: a horizontal day picker + the selected day's shift cards.
+// Tablet (md+): a full 7-column week grid showing every day at a glance.
+// Each shift card has one-tap confirm/decline. Replaces the old day-grouped
+// list with a touch-first rota that scales to tablet.
+export default function WeeklyRotaView({ assignments = [], jobs = [], vehicles = [], staff, onConfirm, onDecline }) {
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [selectedDay, setSelectedDay] = useState(() => new Date());
+
+  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
+
+  const assignmentsByDate = useMemo(() => {
+    const map = {};
+    for (const a of assignments) {
+      if (!map[a.assigned_date]) map[a.assigned_date] = [];
+      map[a.assigned_date].push(a);
+    }
+    for (const k of Object.keys(map)) {
+      map[k].sort((a, b) => (a.start_time || '23:59').localeCompare(b.start_time || '23:59'));
+    }
+    return map;
+  }, [assignments]);
+
+  const jobFor = (id) => jobs.find((j) => j.id === id);
+  const today = new Date();
+  const shiftWeek = (delta) => setWeekStart(addDays(weekStart, delta * 7));
+
+  return (
+    <div className="space-y-3">
+      {/* Week header */}
+      <div className="flex items-center justify-between px-1">
+        <button onClick={() => shiftWeek(-1)} type="button" className="p-2 rounded-xl hover:bg-slate-100 active:scale-95 transition">
+          <ChevronLeft className="w-5 h-5 text-slate-600" />
+        </button>
+        <div className="text-center">
+          <p className="text-sm font-extrabold text-slate-900">
+            {format(weekStart, 'MMM d')} – {format(addDays(weekStart, 6), 'MMM d, yyyy')}
+          </p>
+          <p className="text-[11px] text-slate-400">Week {format(weekStart, 'I')}</p>
+        </div>
+        <button onClick={() => shiftWeek(1)} type="button" className="p-2 rounded-xl hover:bg-slate-100 active:scale-95 transition">
+          <ChevronRight className="w-5 h-5 text-slate-600" />
+        </button>
+      </div>
+
+      {/* Mobile: horizontal day picker */}
+      <div className="md:hidden flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+        {days.map((d) => {
+          const dateStr = format(d, 'yyyy-MM-dd');
+          const count = (assignmentsByDate[dateStr] || []).length;
+          const isToday = isSameDay(d, today);
+          const isSelected = isSameDay(d, selectedDay);
+          return (
+            <button
+              key={dateStr}
+              onClick={() => setSelectedDay(d)}
+              type="button"
+              className={`flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition active:scale-95 ${
+                isSelected
+                  ? 'bg-[#2E5A1A] text-white shadow-md'
+                  : isToday
+                  ? 'bg-emerald-50 text-[#2E5A1A] border border-emerald-200'
+                  : 'bg-white border border-slate-200 text-slate-600'
+              }`}
+            >
+              <span className="text-[10px] font-bold uppercase">{format(d, 'EEE')}</span>
+              <span className="text-base font-extrabold leading-none">{format(d, 'd')}</span>
+              <span className={`w-1.5 h-1.5 rounded-full ${count > 0 ? (isSelected ? 'bg-white' : 'bg-[#2E5A1A]') : 'bg-transparent'}`} />
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Mobile: selected day shifts */}
+      <div className="md:hidden space-y-2.5">
+        <DayColumn
+          date={selectedDay}
+          assignments={assignmentsByDate[format(selectedDay, 'yyyy-MM-dd')] || []}
+          jobFor={jobFor}
+          onConfirm={onConfirm}
+          onDecline={onDecline}
+          isToday={isSameDay(selectedDay, today)}
+        />
+      </div>
+
+      {/* Tablet: full week grid */}
+      <div className="hidden md:grid grid-cols-7 gap-2">
+        {days.map((d) => (
+          <DayColumn
+            key={format(d, 'yyyy-MM-dd')}
+            date={d}
+            assignments={assignmentsByDate[format(d, 'yyyy-MM-dd')] || []}
+            jobFor={jobFor}
+            onConfirm={onConfirm}
+            onDecline={onDecline}
+            isToday={isSameDay(d, today)}
+            grid
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DayColumn({ date, assignments, jobFor, onConfirm, onDecline, isToday, grid }) {
+  return (
+    <div
+      className={`rounded-2xl ${grid ? 'min-h-[220px]' : ''} ${
+        isToday ? 'bg-emerald-50/50 border border-emerald-200' : 'bg-white border border-slate-200'
+      }`}
+    >
+      {grid && (
+        <div className={`px-2.5 py-2 border-b ${isToday ? 'border-emerald-200' : 'border-slate-100'}`}>
+          <p className={`text-[11px] font-bold uppercase ${isToday ? 'text-[#2E5A1A]' : 'text-slate-500'}`}>
+            {format(date, 'EEE')}
+          </p>
+          <p className="text-sm font-extrabold text-slate-900">{format(date, 'd MMM')}</p>
+        </div>
+      )}
+      <div className="p-2 space-y-2">
+        {assignments.length === 0 ? (
+          grid && <p className="text-[11px] text-slate-300 text-center py-4">No shifts</p>
+        ) : (
+          assignments.map((a) => (
+            <RotaShiftCard key={a.id} assignment={a} job={jobFor(a.job_id)} onConfirm={onConfirm} onDecline={onDecline} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RotaShiftCard({ assignment, job, onConfirm, onDecline }) {
+  const status = assignment.shift_status || 'pending';
+  return (
+    <div
+      className={`rounded-xl p-2.5 ${
+        status === 'confirmed'
+          ? 'bg-emerald-50 border border-emerald-200'
+          : status === 'declined'
+          ? 'bg-rose-50 border border-rose-200 opacity-60'
+          : 'bg-slate-50 border border-slate-200'
+      }`}
+    >
+      <p className="text-xs font-bold text-slate-900 truncate">{job?.name || 'Shift'}</p>
+      <div className="flex items-center gap-1.5 mt-1 text-[10px] text-slate-500">
+        {assignment.start_time && (
+          <span className="flex items-center gap-0.5">
+            <Clock className="w-3 h-3" /> {assignment.start_time}
+          </span>
+        )}
+        {job?.location && (
+          <span className="flex items-center gap-0.5 truncate">
+            <MapPin className="w-3 h-3" /> <span className="truncate">{job.location.split(',')[0]}</span>
+          </span>
+        )}
+      </div>
+      {status === 'pending' && onConfirm && (
+        <div className="flex gap-1.5 mt-2">
+          <button
+            onClick={() => onConfirm(assignment.id)}
+            type="button"
+            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-[#2E5A1A] text-white text-[11px] font-bold active:scale-95 transition"
+          >
+            <Check className="w-3 h-3" /> Confirm
+          </button>
+          <button
+            onClick={() => onDecline(assignment.id)}
+            type="button"
+            className="flex items-center justify-center px-2 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 text-[11px] font-bold active:scale-95 transition"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+      {status === 'confirmed' && (
+        <p className="text-[10px] font-bold text-emerald-600 mt-1.5 flex items-center gap-1">
+          <Check className="w-3 h-3" /> Confirmed
+        </p>
+      )}
+      {status === 'declined' && <p className="text-[10px] font-bold text-rose-600 mt-1.5">Declined</p>}
+    </div>
+  );
+}

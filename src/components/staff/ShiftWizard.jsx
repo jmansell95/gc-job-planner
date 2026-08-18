@@ -13,6 +13,8 @@ import EndOfShiftWizard from '@/components/staff/EndOfShiftWizard';
 import WorkingStep from '@/components/staff/WorkingStep';
 import WeatherCard from '@/components/staff/WeatherCard';
 import JobContextCard from '@/components/staff/JobContextCard';
+import ShiftStepRail from '@/components/staff/ShiftStepRail';
+import { useGeolocation } from '@/hooks/useGeolocation';
 
 const fmtDur = (mins) => {
   const m = Math.round(Number(mins) || 0);
@@ -50,6 +52,26 @@ function ArriveStep({ job, jobLocation, inductionRequired, saving, staffId }) {
     }
   }, [geotabEntries, gpsPrefilled]);
 
+  // Browser GPS auto-arrival — if the crew is within the job's geofence
+  // radius, show an "on site" banner so they know arrival was auto-detected.
+  const { position } = useGeolocation({ watch: true, enabled: !!job?.site_lat && !!job?.site_lng });
+  const onSiteDetected = (() => {
+    if (!position || !job?.site_lat || !job?.site_lng) return false;
+    const R = 6371000;
+    const toRad = (d) => (d * Math.PI) / 180;
+    const dLat = toRad(position.lat - job.site_lat);
+    const dLng = toRad(position.lng - job.site_lng);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(job.site_lat)) * Math.cos(toRad(position.lat)) * Math.sin(dLng / 2) ** 2;
+    const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return dist < (job.geofence_radius_override || 200);
+  })();
+  const useMyLocation = () => {
+    const now = new Date();
+    setArriveSite(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+  };
+
   const travelMins = departHome && arriveSite
     ? (() => {
         const [dh, dm] = departHome.split(':').map(Number);
@@ -79,6 +101,17 @@ function ArriveStep({ job, jobLocation, inductionRequired, saving, staffId }) {
             : "Log your travel time to site. If your vehicle GPS (Geotab) data arrives later, it will update automatically. You can change these times if needed — your manager will review any changes."}
         </p>
       </div>
+
+      {/* On-site auto-detection — browser GPS confirms the crew is at the job */}
+      {onSiteDetected && (
+        <div className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl px-3.5 py-3">
+          <MapPin className="w-4 h-4 text-[#2E5A1A] flex-shrink-0" />
+          <p className="text-xs text-[#2E5A1A] font-semibold flex-1">You're on site — arrival time auto-filled.</p>
+          <button type="button" onClick={useMyLocation} className="text-[11px] font-bold text-[#2E5A1A] underline flex-shrink-0">
+            Re-sync now
+          </button>
+        </div>
+      )}
 
       {/* Weather */}
       <WeatherCard lat={job?.site_lat} lng={job?.site_lng} locationName={job?.location} />
@@ -284,78 +317,83 @@ export default function ShiftWizard({
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 bg-white flex flex-col"
         >
-          {/* Header with progress */}
-          <div className="hero-gradient px-5 py-4 text-white flex-shrink-0">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-white/15 ring-1 ring-white/20 flex items-center justify-center flex-shrink-0">
-                  {step === 'arrive' ? <MapPin className="w-5 h-5 text-white" /> : <Briefcase className="w-5 h-5 text-white" />}
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-lg font-bold leading-tight">
-                    {step === 'arrive' ? 'Arrived on Site' : "Today's Tasks"}
-                  </h2>
-                  <p className="text-white/70 text-xs truncate">{job?.name || 'Shift'}</p>
-                </div>
+          {/* Top bar — job title + close */}
+          <div className="hero-gradient px-5 py-3.5 text-white flex-shrink-0 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-white/15 ring-1 ring-white/20 flex items-center justify-center flex-shrink-0">
+                {step === 'arrive' ? <MapPin className="w-5 h-5 text-white" /> : <Briefcase className="w-5 h-5 text-white" />}
               </div>
-              <button onClick={onClose} disabled={saving}
-                className="p-1.5 rounded-lg hover:bg-white/15 transition flex-shrink-0">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold leading-tight">
+                  {step === 'arrive' ? 'Arrived on Site' : "Today's Tasks"}
+                </h2>
+                <p className="text-white/70 text-xs truncate">{job?.name || 'Shift'}</p>
+              </div>
             </div>
-            {/* Progress dots */}
+            <button onClick={onClose} disabled={saving}
+              className="p-1.5 rounded-lg hover:bg-white/15 transition flex-shrink-0">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Mobile progress dots — hidden on tablet (rail replaces them) */}
+          <div className="md:hidden hero-gradient px-5 pb-3 text-white flex-shrink-0">
             <div className="flex items-center gap-1.5">
-              {steps.map((s, i) => {
-                const SIcon = stepIcons[s];
-                return (
-                  <React.Fragment key={s}>
-                    <div className={`flex items-center gap-1.5 ${i <= currentStepIndex ? 'text-white' : 'text-white/40'}`}>
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${i < currentStepIndex ? 'bg-white text-[#2E5A1A]' : i === currentStepIndex ? 'bg-white/25 ring-1 ring-white/40' : 'bg-white/10'}`}>
-                        {i < currentStepIndex ? <CheckCircle2 className="w-3.5 h-3.5" /> : i + 1}
-                      </div>
-                      <span className="text-[11px] font-medium hidden sm:inline">{stepLabels[s]}</span>
+              {steps.map((s, i) => (
+                <React.Fragment key={s}>
+                  <div className={`flex items-center gap-1.5 ${i <= currentStepIndex ? 'text-white' : 'text-white/40'}`}>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${i < currentStepIndex ? 'bg-white text-[#2E5A1A]' : i === currentStepIndex ? 'bg-white/25 ring-1 ring-white/40' : 'bg-white/10'}`}>
+                      {i < currentStepIndex ? <CheckCircle2 className="w-3.5 h-3.5" /> : i + 1}
                     </div>
-                    {i < steps.length - 1 && (
-                      <div className={`h-0.5 flex-1 rounded-full ${i < currentStepIndex ? 'bg-white' : 'bg-white/20'}`} />
-                    )}
-                  </React.Fragment>
-                );
-              })}
+                    <span className="text-[11px] font-medium">{stepLabels[s]}</span>
+                  </div>
+                  {i < steps.length - 1 && (
+                    <div className={`h-0.5 flex-1 rounded-full ${i < currentStepIndex ? 'bg-white' : 'bg-white/20'}`} />
+                  )}
+                </React.Fragment>
+              ))}
             </div>
             <p className="text-[11px] text-white/70 mt-2">
               Step {currentStepIndex + 1} of {steps.length} — {stepLabels[step]}
             </p>
           </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={step}
-                initial={{ x: 30, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: -30, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                {step === 'arrive' && (
-                  <ArriveStep
-                    job={job}
-                    jobLocation={job?.location}
-                    inductionRequired={needsBriefing}
-                    saving={saving}
-                    staffId={staffId}
-                  />
-                )}
-                {step === 'working' && (
-                  <WorkingStep
-                    staffId={staffId}
-                    job={job}
-                    assignment={assignment}
-                    onGoToEndOfShift={() => setStep('end_of_shift')}
-                  />
-                )}
-              </motion.div>
-            </AnimatePresence>
+          {/* Body — two-pane on tablet, single on mobile */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* Left rail — tablet only */}
+            <div className="hidden md:block w-72 lg:w-80 border-r border-slate-100 flex-shrink-0 bg-slate-50/50">
+              <ShiftStepRail steps={steps} currentStep={step} currentStepIndex={currentStepIndex} onJump={setStep} />
+            </div>
+            {/* Right content */}
+            <div className="flex-1 overflow-y-auto">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={step}
+                  initial={{ x: 30, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: -30, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {step === 'arrive' && (
+                    <ArriveStep
+                      job={job}
+                      jobLocation={job?.location}
+                      inductionRequired={needsBriefing}
+                      saving={saving}
+                      staffId={staffId}
+                    />
+                  )}
+                  {step === 'working' && (
+                    <WorkingStep
+                      staffId={staffId}
+                      job={job}
+                      assignment={assignment}
+                      onGoToEndOfShift={() => setStep('end_of_shift')}
+                    />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* Footer */}
