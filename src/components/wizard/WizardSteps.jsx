@@ -22,6 +22,7 @@ function inputClass(hasError) {
 export function StepIdentity({ form, setForm, divisions, divisionsLoading, applyTemplate, selectedTemplateId }) {
   return (
     <div className="space-y-4">
+      <BlankSlateBanner stepLabel="Identity" />
       <div>
         <label className={labelCls}>Division Name{requiredMark}</label>
         <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Geotechnical Site Investigation"
@@ -90,6 +91,7 @@ export function StepHubs({ form, setForm }) {
 
   return (
     <div className="space-y-3">
+      <BlankSlateBanner stepLabel="Hubs & Tabs" />
       <label className={labelCls + ' flex items-center gap-1.5'}><Layers className="w-3.5 h-3.5" /> Choose Hubs & Tabs</label>
       <p className="text-[11px] text-slate-400">Enable hubs, then choose which tabs within each hub you need. Disabled tabs are hidden from your team's workspace.</p>
       <div className="space-y-2 max-h-[calc(100dvh-22rem)] overflow-y-auto pr-1">
@@ -150,6 +152,7 @@ export function StepHubs({ form, setForm }) {
 export function StepIntegrations({ form, setForm }) {
   return (
     <div className="space-y-3">
+      <BlankSlateBanner stepLabel="Connect" />
       <label className={labelCls + ' flex items-center gap-1.5'}><Plug className="w-3.5 h-3.5" /> Integrations</label>
       <div className="insight-card rounded-2xl p-5 text-center space-y-3">
         <div className="w-14 h-14 rounded-2xl command-gradient flex items-center justify-center shadow-md mx-auto">
@@ -177,6 +180,7 @@ export function StepReview({ form }) {
   const typeLabel = DIVISION_TYPE_LABELS[form.division_type] || form.division_type;
   return (
     <div className="space-y-3">
+      <BlankSlateBanner stepLabel="Launch" />
       <label className={labelCls + ' flex items-center gap-1.5'}><Sparkles className="w-3.5 h-3.5" /> Ready to Launch</label>
       <p className="text-[11px] text-slate-400">Review your workspace configuration below.</p>
       <div className="insight-card rounded-2xl p-4 space-y-3">
