@@ -14,6 +14,8 @@ import EnterpriseHeader from '@/components/EnterpriseHeader';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 import DivisionWizard from '@/components/wizard/DivisionWizard';
 import DivisionCard from '@/components/enterprise/DivisionCard';
+import DivisionLoadingScreen from '@/components/DivisionLoadingScreen';
+import { AnimatePresence } from 'framer-motion';
 
 import { STATUS_STYLES, WIDGET_STORAGE_KEY, DEFAULT_WIDGETS } from '@/components/enterprise/enterpriseConstants';
 
@@ -24,6 +26,7 @@ export default function EnterpriseDashboard() {
   const [customising, setCustomising] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+  const [enteringDivision, setEnteringDivision] = useState(null);
 
   const { data: myProfile } = useQuery({ queryKey: ['ent-my-profile'], queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; } });
 
@@ -83,8 +86,21 @@ export default function EnterpriseDashboard() {
   const gbp = (n) => n ? '\u00A3' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '\u00A30';
 
   const enterDivision = (d) => {
-    setActiveDivision(d.id);
-    navigate(d.landing_page || '/admin', { state: { section: 'overview' } });
+    if (d.division_type === 'geotechnical') {
+      setEnteringDivision(d);
+    } else {
+      setActiveDivision(d.id);
+      navigate(d.landing_page || '/admin', { state: { section: 'overview' } });
+    }
+  };
+
+  const handleLoadingComplete = () => {
+    if (enteringDivision) {
+      const d = enteringDivision;
+      setEnteringDivision(null);
+      setActiveDivision(d.id);
+      navigate(d.landing_page || '/admin', { state: { section: 'overview' } });
+    }
   };
 
   const goToSettings = (tab) => navigate('/enterprise/settings', { state: { tab: tab || 'divisions' } });
@@ -313,6 +329,13 @@ export default function EnterpriseDashboard() {
         )}
 
       </div>
+
+      {/* Division loading screen */}
+      <AnimatePresence>
+        {enteringDivision && (
+          <DivisionLoadingScreen division={enteringDivision} onComplete={handleLoadingComplete} />
+        )}
+      </AnimatePresence>
 
       {/* Wizard */}
       {showWizard && <DivisionWizard onClose={() => setShowWizard(false)} onCreated={() => setShowWizard(false)} />}
