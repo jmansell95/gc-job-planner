@@ -5,6 +5,8 @@ import { Plus, Trash2, Edit2, HardHat, Mail, Phone, ShieldCheck, ShieldAlert, Ch
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import SearchFilterBar from '@/components/SearchFilterBar';
 import CISBatchVerifyWidget from '@/components/contractors/CISBatchVerifyWidget';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
+import { useDivision } from '@/contexts/DivisionContext';
 
 const ACCENT = '#2E5A1A';
 
@@ -59,7 +61,8 @@ export default function ContractorManager() {
   const [cisMsg, setCisMsg] = useState({});
 
   const queryClient = useQueryClient();
-  const { data: contractors = [], isLoading } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list() });
+  const { activeDivisionId } = useDivision();
+  const { data: contractors = [], isLoading } = useScopedEntity('Contractor', { queryKey: ['contractors'] });
 
   const filtered = contractors.filter((c) => {
     const q = searchQuery.trim().toLowerCase();
@@ -74,7 +77,7 @@ export default function ContractorManager() {
       const res = await base44.functions.invoke('verifyCIS', { contractor_id: contractorId });
       const d = res.data || {};
       setCisMsg({ [contractorId]: { ok: !!d.ok, msg: d.message || d.error || 'Unknown' } });
-      queryClient.invalidateQueries({ queryKey: ['contractors'] });
+      queryClient.invalidateQueries({ queryKey: ['scoped', 'Contractor'] });
     } catch (e) {
       setCisMsg({ [contractorId]: { ok: false, msg: e.message } });
     }
@@ -93,8 +96,8 @@ export default function ContractorManager() {
       default_daily_rate: formData.default_daily_rate ? Number(formData.default_daily_rate) : null,
     };
     if (editingId) { await base44.entities.Contractor.update(editingId, payload); }
-    else { await base44.entities.Contractor.create(payload); }
-    queryClient.invalidateQueries({ queryKey: ['contractors'] });
+    else { await base44.entities.Contractor.create({ ...payload, division_id: activeDivisionId }); }
+    queryClient.invalidateQueries({ queryKey: ['scoped', 'Contractor'] });
     setFormData(emptyForm); setShowForm(false); setEditingId(null);
   };
 
@@ -113,7 +116,7 @@ export default function ContractorManager() {
   const handleDelete = async (id) => {
     if (confirm('Delete this sub-contractor? This cannot be undone.')) {
       await base44.entities.Contractor.delete(id);
-      queryClient.invalidateQueries({ queryKey: ['contractors'] });
+      queryClient.invalidateQueries({ queryKey: ['scoped', 'Contractor'] });
     }
   };
 
@@ -132,7 +135,7 @@ export default function ContractorManager() {
       });
       const data = res.data || {};
       if (data.ok) {
-        queryClient.invalidateQueries({ queryKey: ['contractors'] });
+        queryClient.invalidateQueries({ queryKey: ['scoped', 'Contractor'] });
       } else {
         alert(data.error || 'Failed to send onboarding email');
       }
@@ -144,7 +147,7 @@ export default function ContractorManager() {
         onboarding_status: c.onboarding_status === 'pending' ? 'documents_requested' : c.onboarding_status,
         onboarding_sent_at: new Date().toISOString(),
       });
-      queryClient.invalidateQueries({ queryKey: ['contractors'] });
+      queryClient.invalidateQueries({ queryKey: ['scoped', 'Contractor'] });
       const link = window.location.origin + '/subcontractor-onboarding/' + token;
       const subject = 'Sub-contractor onboarding — ' + c.name;
       const body = [
@@ -172,7 +175,7 @@ export default function ContractorManager() {
       if (status === 'approved') { patch.approved_at = new Date().toISOString(); patch.approved_by_name = 'Me'; }
       if (status === 'rejected' && !extra.rejection_reason) { const reason = prompt('Reason for rejection:'); if (!reason) { setBusyId(null); return; } patch.rejection_reason = reason; }
       await base44.entities.Contractor.update(c.id, patch);
-      queryClient.invalidateQueries({ queryKey: ['contractors'] });
+      queryClient.invalidateQueries({ queryKey: ['scoped', 'Contractor'] });
     } finally {
       setBusyId(null);
     }

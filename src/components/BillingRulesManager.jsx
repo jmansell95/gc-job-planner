@@ -14,6 +14,8 @@ import ChargeCalculator from '@/components/billing/ChargeCalculator';
 import {
   fmt, ruleTypeConfig, chargeMethodConfig, blankForm, inputCls,
 } from '@/components/billing/shared';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
+import { useDivision } from '@/contexts/DivisionContext';
 
 function ChargePreview({ form, linkedRateCard }) {
   const method = chargeMethodConfig[form.charge_method];
@@ -145,15 +147,10 @@ export default function BillingRulesManager() {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
 
-  const { data: rules = [], isLoading } = useQuery({
-    queryKey: ['billing-rules'],
-    queryFn: () => base44.entities.BillingRule.list('-sort_order', 200),
-  });
+  const { activeDivisionId } = useDivision();
+  const { data: rules = [], isLoading } = useScopedEntity('BillingRule', { queryKey: ['billing-rules'], sort: '-sort_order', limit: 200 });
 
-  const { data: rateCardItems = [] } = useQuery({
-    queryKey: ['rate-card-items-for-linking'],
-    queryFn: () => base44.entities.RateCardItem.filter({ is_active: true }, '-sort_order', 500),
-  });
+  const { data: rateCardItems = [] } = useScopedEntity('RateCardItem', { queryKey: ['rate-card-items-for-linking'], filter: { is_active: true }, sort: '-sort_order', limit: 500 });
 
   const filtered = rules.filter(r => {
     if (filter !== 'all' && r.rule_type !== filter) return false;
@@ -197,10 +194,10 @@ export default function BillingRulesManager() {
         await base44.entities.BillingRule.update(editingId, payload);
         toast({ title: 'Rule updated' });
       } else {
-        await base44.entities.BillingRule.create(payload);
+        await base44.entities.BillingRule.create({ ...payload, division_id: activeDivisionId });
         toast({ title: 'Rule created' });
       }
-      queryClient.invalidateQueries({ queryKey: ['billing-rules'] });
+      queryClient.invalidateQueries({ queryKey: ['scoped', 'BillingRule'] });
       setShowForm(false); setEditingId(null); setForm(blankForm());
     } catch (err) {
       toast({ title: 'Error saving rule', description: err.message, variant: 'destructive' });
@@ -233,7 +230,7 @@ export default function BillingRulesManager() {
     if (!confirm('Delete this billing rule? Existing charges keep their amounts.')) return;
     try {
       await base44.entities.BillingRule.delete(id);
-      queryClient.invalidateQueries({ queryKey: ['billing-rules'] });
+      queryClient.invalidateQueries({ queryKey: ['scoped', 'BillingRule'] });
       toast({ title: 'Rule deleted' });
     } catch (err) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -242,7 +239,7 @@ export default function BillingRulesManager() {
 
   const toggleActive = async (r) => {
     await base44.entities.BillingRule.update(r.id, { is_active: !r.is_active });
-    queryClient.invalidateQueries({ queryKey: ['billing-rules'] });
+    queryClient.invalidateQueries({ queryKey: ['scoped', 'BillingRule'] });
   };
 
   const rateLabel = (r) => {

@@ -11,6 +11,8 @@ import { formatWorkerType } from '@/utils/format';
 import { useConfigLists } from '@/hooks/useConfigLists';
 import { useAuth } from '@/lib/AuthContext';
 import { TEAM_CATEGORIES, LANDING_PAGES, CAPABILITY_KEYS, DEFAULT_CAPABILITIES, DEFAULT_LANDING_PAGE } from '@/utils/teamAccess';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
+import { useDivision } from '@/contexts/DivisionContext';
 
 const workerBadge = {
   direct_employee: 'bg-emerald-100 text-emerald-700',
@@ -34,8 +36,9 @@ export default function TeamManager() {
 
   const queryClient = useQueryClient();
 
-  const { data: teams = [], isLoading: teamsLoading } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
-  const { data: staff = [], isLoading: staffLoading } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
+  const { activeDivisionId } = useDivision();
+  const { data: teams = [], isLoading: teamsLoading } = useScopedEntity('Team', { queryKey: ['teams'] });
+  const { data: staff = [], isLoading: staffLoading } = useScopedEntity('Staff', { queryKey: ['staff'] });
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const { data: users = [] } = useQuery({ queryKey: ['users-list'], queryFn: () => base44.entities.User.list().catch(() => []), enabled: !!isAdmin });
@@ -79,9 +82,9 @@ export default function TeamManager() {
       if (editingId) {
         await base44.entities.Team.update(editingId, payload);
       } else {
-        await base44.entities.Team.create(payload);
+        await base44.entities.Team.create({ ...payload, division_id: activeDivisionId });
       }
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: ['scoped', 'Team'] });
       setFormData(blankForm());
       closeForm();
     } catch (error) {
@@ -106,8 +109,8 @@ export default function TeamManager() {
     if (confirm(msg)) {
       try {
         await base44.entities.Team.delete(team.id);
-        queryClient.invalidateQueries({ queryKey: ['teams'] });
-        queryClient.invalidateQueries({ queryKey: ['staff'] });
+        queryClient.invalidateQueries({ queryKey: ['scoped', 'Team'] });
+        queryClient.invalidateQueries({ queryKey: ['scoped', 'Staff'] });
       } catch (error) {
         console.error('Error deleting team:', error);
       }

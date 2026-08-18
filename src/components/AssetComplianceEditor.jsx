@@ -11,6 +11,8 @@ import {
   COMMON_STORAGE_LOCATIONS, COMMON_COLOURS, autoComplianceStatus, autoNextServiceDate,
   autoMaintenanceStatus, findDuplicateSerial,
 } from '@/utils/assetSmartDefaults';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
+import { useDivision } from '@/contexts/DivisionContext';
 
 const ASSET_TYPES = [
   { value: 'rig', label: 'Rig', icon: Cog },
@@ -49,12 +51,10 @@ export default function AssetComplianceEditor({ asset, onClose }) {
   const [autoNextService, setAutoNextService] = useState(true);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { activeDivisionId } = useDivision();
 
   // Load all assets for duplicate serial detection + linked equipment selection
-  const { data: allAssets = [] } = useQuery({
-    queryKey: ['site-assets'],
-    queryFn: () => base44.entities.SiteAsset.list('-created_date', 500),
-  });
+  const { data: allAssets = [] } = useScopedEntity('SiteAsset', { queryKey: ['site-assets'], sort: '-created_date', limit: 500 });
 
   useEffect(() => {
     if (asset) {
@@ -160,6 +160,7 @@ export default function AssetComplianceEditor({ asset, onClose }) {
       }
 
       const payload = {
+        division_id: activeDivisionId,
         name: form.name.trim(),
         asset_type: form.asset_type,
         is_rig: form.asset_type === 'rig',
@@ -201,7 +202,7 @@ export default function AssetComplianceEditor({ asset, onClose }) {
         await base44.entities.SiteAsset.create(payload);
         toast({ title: 'Asset added', description: `${payload.name} created.` });
       }
-      queryClient.invalidateQueries({ queryKey: ['site-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['scoped', 'SiteAsset'] });
       queryClient.invalidateQueries({ queryKey: ['job-asset-assignments'] });
       onClose();
     } catch (e) {
@@ -215,7 +216,7 @@ export default function AssetComplianceEditor({ asset, onClose }) {
     try {
       await base44.entities.SiteAsset.delete(asset.id);
       toast({ title: 'Asset deleted', description: `${asset.name} removed.` });
-      queryClient.invalidateQueries({ queryKey: ['site-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['scoped', 'SiteAsset'] });
       queryClient.invalidateQueries({ queryKey: ['job-asset-assignments'] });
       onClose();
     } catch (e) {

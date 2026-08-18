@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/components/ui/use-toast';
 import { format, parseISO } from 'date-fns';
 import { getJobPrimaryType, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
+import { useDivision } from '@/contexts/DivisionContext';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
 const fmtDate = (d) => { try { return d ? format(parseISO(d), 'dd MMM yyyy') : '—'; } catch { return d || '—'; } };
@@ -38,7 +40,8 @@ export default function ProjectManager({ jobs = [], teams = [], jobTypes = [], c
   const [editing, setEditing] = useState(null); // project being created/edited
   const [showForm, setShowForm] = useState(false);
 
-  const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 200) });
+  const { activeDivisionId } = useDivision();
+  const { data: projects = [] } = useScopedEntity('Project', { queryKey: ['projects'], sort: '-created_date', limit: 200 });
 
   // Jobs grouped by project
   const jobsByProject = {};
@@ -67,10 +70,10 @@ export default function ProjectManager({ jobs = [], teams = [], jobTypes = [], c
         await base44.entities.Project.update(editing.id, { name: editing.name, reference: editing.reference, client_id: editing.client_id, status: editing.status, notes: editing.notes });
         toast({ title: 'Project updated' });
       } else {
-        await base44.entities.Project.create({ name: editing.name.trim(), reference: editing.reference, client_id: editing.client_id, status: editing.status || 'active', notes: editing.notes });
+        await base44.entities.Project.create({ name: editing.name.trim(), reference: editing.reference, client_id: editing.client_id, status: editing.status || 'active', notes: editing.notes, division_id: activeDivisionId });
         toast({ title: 'Project created' });
       }
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['scoped', 'Project'] });
       setShowForm(false); setEditing(null);
     } catch (err) { toast({ title: 'Could not save project', description: err?.message, variant: 'destructive' }); }
   };
@@ -80,7 +83,7 @@ export default function ProjectManager({ jobs = [], teams = [], jobTypes = [], c
     if (!confirm(`Delete project "${p.name}"?${count > 0 ? `\n\n${count} job(s) will become standalone (not deleted).` : ''}`)) return;
     try {
       await base44.entities.Project.delete(p.id);
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['scoped', 'Project'] });
       toast({ title: 'Project deleted' });
     } catch (err) { toast({ title: 'Could not delete', description: err?.message, variant: 'destructive' }); }
   };

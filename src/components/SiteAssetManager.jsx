@@ -10,6 +10,7 @@ import FleetCommandGrid from '@/components/assetcommand/FleetCommandGrid';
 import AssetPassportDrawer from '@/components/assetcommand/AssetPassportDrawer';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
 
 /**
  * Asset Command Centre — the comprehensive fleet management system.
@@ -26,14 +27,11 @@ export default function SiteAssetManager() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  const { data: assets = [], isLoading } = useQuery({
-    queryKey: ['site-assets'],
-    queryFn: () => base44.entities.SiteAsset.list('-created_date', 500),
-  });
+  const { data: assets = [], isLoading } = useScopedEntity('SiteAsset', { queryKey: ['site-assets'], sort: '-created_date', limit: 500 });
 
   const openAdd = () => { setEditorAsset(null); setEditorOpen(true); };
   const openEdit = (asset) => { setEditorAsset(asset); setEditorOpen(true); };
-  const refresh = () => { queryClient.invalidateQueries({ queryKey: ['site-assets'] }); queryClient.invalidateQueries({ queryKey: ['job-asset-assignments'] }); };
+  const refresh = () => { queryClient.invalidateQueries({ queryKey: ['scoped', 'SiteAsset'] }); queryClient.invalidateQueries({ queryKey: ['job-asset-assignments'] }); };
 
   const handleBulkToggleActive = async (list, active) => {
     try {

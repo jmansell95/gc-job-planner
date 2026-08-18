@@ -8,6 +8,8 @@ import {
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
+import { useDivision } from '@/contexts/DivisionContext';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
@@ -37,7 +39,8 @@ export default function SupplierManager() {
   const fileRef = useRef(null);
   const [uploadTargetId, setUploadTargetId] = useState(null);
 
-  const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: () => base44.entities.Supplier.list() });
+  const { activeDivisionId } = useDivision();
+  const { data: suppliers = [] } = useScopedEntity('Supplier', { queryKey: ['suppliers'] });
 
   const filtered = suppliers.filter(s =>
     s.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -63,9 +66,9 @@ export default function SupplierManager() {
       if (editingId) {
         await base44.entities.Supplier.update(editingId, form);
       } else {
-        await base44.entities.Supplier.create(form);
+        await base44.entities.Supplier.create({ ...form, division_id: activeDivisionId });
       }
-      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['scoped', 'Supplier'] });
       setAdding(false); setEditingId(null); setForm(blank);
     } catch (err) { console.error(err); }
     setSaving(false);
@@ -77,8 +80,8 @@ export default function SupplierManager() {
       await base44.entities.RateCardItem.deleteMany({ rate_card_source: 'supplier', supplier_id: id });
     } catch (e) { console.error(e); }
     await base44.entities.Supplier.delete(id);
-    queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-    queryClient.invalidateQueries({ queryKey: ['rate-card-items'] });
+    queryClient.invalidateQueries({ queryKey: ['scoped', 'Supplier'] });
+    queryClient.invalidateQueries({ queryKey: ['scoped', 'RateCardItem'] });
   };
 
   const handleUploadClick = (supplierId) => {
@@ -107,8 +110,8 @@ export default function SupplierManager() {
       } else {
         toast({ title: 'Ingest failed', description: data?.error || 'Could not read the rate card file', variant: 'destructive' });
       }
-      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-card-items'] });
+      queryClient.invalidateQueries({ queryKey: ['scoped', 'Supplier'] });
+      queryClient.invalidateQueries({ queryKey: ['scoped', 'RateCardItem'] });
     } catch (err) {
       console.error(err);
       toast({ title: 'Ingest failed', description: err.message, variant: 'destructive' });

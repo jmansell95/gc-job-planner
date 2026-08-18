@@ -12,6 +12,8 @@ import SORRateCardManager from '@/components/SORRateCardManager';
 import ProjectRateCardManager from '@/components/ProjectRateCardManager';
 import SupplierRateCardUploader from '@/components/billing/SupplierRateCardUploader';
 import RateCardSummaryDashboard from '@/components/billing/RateCardSummaryDashboard';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
+import { useDivision } from '@/contexts/DivisionContext';
 
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -214,6 +216,7 @@ function RateItemRow({ item, subcategory, onUpdate, viewMode = 'chargeable' }) {
 }
 
 function AddRateForm({ category, subcategory, source, supplierId, onAdded, viewMode = 'chargeable' }) {
+  const { activeDivisionId } = useDivision();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ description: '', price: '', cost_price: '', unit: 'day', notes: '' });
   const [saving, setSaving] = useState(false);
@@ -224,6 +227,7 @@ function AddRateForm({ category, subcategory, source, supplierId, onAdded, viewM
     try {
       await base44.entities.RateCardItem.create({
         category,
+        division_id: activeDivisionId,
         subcategory: subcategory || null,
         description: form.description.trim(),
         price: form.price === '' ? null : Number(form.price),
@@ -403,15 +407,13 @@ export default function RateCardManager() {
     if (masterFileInputRef.current) masterFileInputRef.current.value = '';
   };
 
-  const { data: items = [], isLoading } = useQuery({
-    queryKey: ['rate-card-items'],
-    queryFn: () => base44.entities.RateCardItem.list('-created_date', 500)
-  });
-  const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: () => base44.entities.Supplier.list() });
+  const { activeDivisionId } = useDivision();
+  const { data: items = [], isLoading } = useScopedEntity('RateCardItem', { queryKey: ['rate-card-items'], sort: '-created_date', limit: 500 });
+  const { data: suppliers = [] } = useScopedEntity('Supplier', { queryKey: ['suppliers'] });
 
   const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['rate-card-items'] });
-    queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+    queryClient.invalidateQueries({ queryKey: ['scoped', 'RateCardItem'] });
+    queryClient.invalidateQueries({ queryKey: ['scoped', 'Supplier'] });
   };
 
   const isInternalCosts = activeView === 'internal';
@@ -575,9 +577,10 @@ export default function RateCardManager() {
       }
       let draftSupplier = suppliers.find(s => s.name === draftName);
       if (!draftSupplier) {
-        draftSupplier = await base44.entities.Supplier.create({ name: draftName, notes: 'Draft rate card clone — edit prices here before going live.' });
+        draftSupplier = await base44.entities.Supplier.create({ name: draftName, notes: 'Draft rate card clone — edit prices here before going live.', division_id: activeDivisionId });
       }
       const clones = sourceItems.map(i => ({
+        division_id: activeDivisionId,
         category: i.category,
         subcategory: i.subcategory || null,
         description: i.description,

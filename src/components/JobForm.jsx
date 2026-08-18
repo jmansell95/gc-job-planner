@@ -8,6 +8,7 @@ import FormSection from '@/components/forms/FormSection';
 import ChipMultiSelect from '@/components/forms/ChipMultiSelect';
 import ProjectSelect from '@/components/ProjectSelect';
 import DisciplineBuilder from '@/components/disciplines/DisciplineBuilder';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
@@ -27,9 +28,9 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
   const [step, setStep] = useState(1);
   const num = (key) => formData[key] === undefined || formData[key] === null ? '' : formData[key];
   const setNum = (key, v) => setFormData({ ...formData, [key]: v === '' ? '' : parseFloat(v) });
-  const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
+  const { data: teams = [] } = useScopedEntity('Team', { queryKey: ['teams'] });
   const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order') });
-  const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 200) });
+  const { data: projects = [] } = useScopedEntity('Project', { queryKey: ['projects'], sort: '-created_date', limit: 200 });
 
   const disciplines = getJobDisciplines(formData);
   const showMeterage = disciplines.some(d => d.type === 'drilling');

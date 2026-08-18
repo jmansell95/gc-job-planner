@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Building2, Mail, Phone, User, MapPin, Loader2, Star } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import SearchFilterBar from '@/components/SearchFilterBar';
+import { useScopedEntity } from '@/hooks/useScopedEntity';
+import { useDivision } from '@/contexts/DivisionContext';
 
 const inputCls = 'w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm';
 const blank = { name: '', parent_client_id: '', is_holding: false, contact_name: '', contact_email: '', contact_phone: '', yard_address: '', lat: '', lng: '', geofence_radius_override: '', is_partner: false, partner_color: '' };
@@ -15,7 +17,8 @@ export default function ClientManager() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const queryClient = useQueryClient();
-  const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
+  const { activeDivisionId } = useDivision();
+  const { data: clients = [] } = useScopedEntity('Client', { queryKey: ['clients'] });
 
   const filteredClients = clients.filter(c => {
     const q = searchQuery.trim().toLowerCase();
@@ -26,8 +29,8 @@ export default function ClientManager() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (editingId) { await base44.entities.Client.update(editingId, formData); }
-    else { await base44.entities.Client.create(formData); }
-    queryClient.invalidateQueries({ queryKey: ['clients'] });
+    else { await base44.entities.Client.create({ ...formData, division_id: activeDivisionId }); }
+    queryClient.invalidateQueries({ queryKey: ['scoped', 'Client'] });
     setFormData(blank);
     setShowForm(false); setEditingId(null);
   };
@@ -45,7 +48,7 @@ export default function ClientManager() {
   const handleDelete = async (id) => {
     if (confirm('Delete this client?')) {
       await base44.entities.Client.delete(id);
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['scoped', 'Client'] });
     }
   };
 
