@@ -284,17 +284,21 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
   };
 
   const SectionHeader = ({ children }) => (
-    <div className="mb-4 rounded-2xl bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] px-5 py-4 shadow-md overflow-hidden relative">
+    <div className="mb-4 rounded-2xl bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] px-4 sm:px-5 py-4 shadow-md overflow-hidden relative">
       <div className="absolute right-0 top-0 bottom-0 w-32 opacity-10" style={{ background: 'radial-gradient(circle at 80% 50%, rgba(141,198,63,0.4), transparent 70%)' }} />
-      <div className="flex items-center gap-3 relative z-10">
-        <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0 ring-1 ring-white/20">
-          <Radio className="w-5 h-5 text-white" />
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 relative z-10">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0 ring-1 ring-white/20">
+            <Radio className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg font-bold text-white tracking-tight leading-tight">Top 3 Active Sites</h2>
+            <p className="text-xs text-white/70 mt-0.5 hidden sm:block">Live snapshot of your in-progress jobs — rigs, crew, gear and risk flags at a glance</p>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-bold text-white tracking-tight leading-tight">Top 3 Active Sites</h2>
-          <p className="text-xs text-white/70 mt-0.5">Live snapshot of your in-progress jobs — rigs, crew, gear and risk flags at a glance</p>
-        </div>
-        {children}
+        {children && (
+          <div className="sm:ml-auto flex-shrink-0">{children}</div>
+        )}
       </div>
     </div>
   );

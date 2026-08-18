@@ -68,10 +68,12 @@ export default function BusinessUnitPage() {
   };
 
   if (isLoading) {
+    const buName = bu?.name || 'Business Unit';
+    const buColor = bu?.color || '#2E5A1A';
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <div className="w-10 h-10 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
-        <p className="text-sm font-bold text-slate-500">Loading Divisions</p>
+        <div className="w-10 h-10 border-4 rounded-full animate-spin" style={{ borderColor: `${buColor}33`, borderTopColor: buColor }} />
+        <p className="text-sm font-bold text-slate-500">Loading {buName}</p>
       </div>
     );
   }
