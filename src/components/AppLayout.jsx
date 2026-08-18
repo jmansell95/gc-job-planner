@@ -54,7 +54,7 @@ export default function AppLayout() {
       <div className="flex-1 flex flex-col min-h-0">
         <RedAlertBanner />
         <main
-          className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] xl:pt-0"
+          className="flex-1 overflow-auto xl:pt-0"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
           <DivisionIdentityBar />

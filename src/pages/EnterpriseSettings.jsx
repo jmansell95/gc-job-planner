@@ -41,7 +41,7 @@ export default function EnterpriseSettings() {
   return (
     <div className="min-h-screen page-bg-vibrant">
       <EnterpriseHeader />
-      <div className="px-4 pb-24 pt-[calc(3.5rem+env(safe-area-inset-top)+0.5rem)] xl:pt-6 xl:px-6 xl:pb-6 space-y-4">
+      <div className="px-4 pb-24 xl:pt-6 xl:px-6 xl:pb-6 space-y-4">
         {/* Back link + title */}
         <div className="flex items-center gap-3 mb-2">
           <button onClick={() => navigate('/enterprise')} type="button"

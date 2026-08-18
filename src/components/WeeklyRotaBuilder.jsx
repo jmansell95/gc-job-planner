@@ -486,10 +486,10 @@ export default function WeeklyRotaBuilder() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-2.5 mb-3">
         {/* Row 1: week nav + stat pills */}
         {/* Row 1: date picker + filters — all on one line */}
-        <div className="flex flex-wrap items-center gap-2 mb-2">
-          <div className="flex items-center gap-1 bg-slate-50 rounded-lg border border-slate-200 px-1.5 py-1 flex-shrink-0">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 mb-2">
+          <div className="flex items-center gap-1 bg-slate-50 rounded-lg border border-slate-200 px-1.5 py-1 w-full sm:w-auto sm:flex-shrink-0">
             <button onClick={goToPrevWeek} className="p-1 hover:bg-slate-200 rounded-md transition"><ChevronLeft className="w-4 h-4 text-slate-600" /></button>
-            <div className="text-sm font-semibold text-slate-900 min-w-[140px] text-center">
+            <div className="text-sm font-semibold text-slate-900 flex-1 sm:min-w-[140px] text-center">
               {format(weekStart, 'dd MMM')} — {format(addDays(weekStart, 6), 'dd MMM yyyy')}
             </div>
             <button onClick={goToNextWeek} className="p-1 hover:bg-slate-200 rounded-md transition"><ChevronRight className="w-4 h-4 text-slate-600" /></button>
@@ -499,11 +499,11 @@ export default function WeeklyRotaBuilder() {
               Today
             </button>
             <input type="date" value={weekStartStr} onChange={(e) => setSelectedWeek(new Date(e.target.value))}
-              className="text-xs px-1.5 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-emerald-600 text-slate-600 w-[120px]" />
+              className="text-xs px-1.5 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-emerald-600 text-slate-600 w-full sm:w-[120px]" />
           </div>
 
           {/* Stat pills — centered in the middle */}
-          <div className="flex items-center gap-1.5 flex-wrap flex-1 justify-center">
+          <div className="flex items-center gap-1.5 flex-wrap w-full sm:flex-1 justify-center">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs">
               <Calendar className="w-3.5 h-3.5 text-emerald-600" />
               <span className="font-bold text-slate-900 tabular-nums">{totalAssignments}</span>
@@ -528,12 +528,12 @@ export default function WeeklyRotaBuilder() {
           </div>
 
           {/* Filters — right side */}
-          <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
-            <div className="flex items-center gap-2 bg-slate-50 rounded-lg border border-slate-200 px-2.5 py-1.5 min-w-[160px]">
+          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto sm:flex-shrink-0">
+            <div className="flex items-center gap-2 bg-slate-50 rounded-lg border border-slate-200 px-2.5 py-1.5 flex-1 sm:min-w-[160px]">
               <Search className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
               <input type="text" value={staffSearch} onChange={(e) => setStaffSearch(e.target.value)}
                 placeholder="Search staff..."
-                className="flex-1 text-sm focus:outline-none bg-transparent text-slate-700 placeholder:text-slate-400 w-[120px]" />
+                className="flex-1 text-sm focus:outline-none bg-transparent text-slate-700 placeholder:text-slate-400 w-full sm:w-[120px]" />
               {staffSearch && (
                 <button onClick={() => setStaffSearch('')} className="text-slate-400 hover:text-slate-600">
                   <X className="w-3.5 h-3.5" />

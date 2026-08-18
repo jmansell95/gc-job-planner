@@ -97,7 +97,7 @@ export default function BusinessUnitPage() {
       <div className="relative">
         <div className="absolute inset-0 overflow-hidden" style={{ background: `linear-gradient(135deg, ${divColor} 0%, ${divColor}dd 50%, #0a120a 100%)` }} />
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 85% 20%, rgba(141,198,63,0.4) 0%, transparent 50%)' }} />
-        <div className="relative px-4 xl:px-6 pt-[calc(3.5rem+env(safe-area-inset-top)+0.5rem)] xl:pt-8 pb-6">
+        <div className="relative px-4 xl:px-6 xl:pt-8 pb-6">
           <div className="max-w-7xl mx-auto">
             {/* Back button */}
             <button
