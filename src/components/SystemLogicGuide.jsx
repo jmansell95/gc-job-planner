@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Loader2, BookOpen, ShieldCheck, TrendingUp, Sparkles, HardHat, FileClock, Clock, Activity, Zap, FileText, Radar, Users, MessageSquare, Camera, Mic, MapPin, CalendarClock } from 'lucide-react';
+import { Download, Loader2, BookOpen, ShieldCheck, TrendingUp, Sparkles, HardHat, FileClock, Clock, Activity, Zap, FileText, Radar, Users, MessageSquare, Camera, Mic, MapPin, CalendarClock, Layers, Boxes } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { EMBLEM_URL } from '@/components/Logo';
 
@@ -13,6 +13,35 @@ const SLATE_100 = '#f1f5f9';
 const WHITE = '#ffffff';
 
 const SECTIONS = [
+  {
+    id: 'architecture',
+    icon: Layers,
+    title: 'Architecture & Data Isolation',
+    desc: 'How division_id keeps every division\'s data in its own silo',
+    items: [
+      { stat: 'One Database, Many Divisions', meaning: 'The platform uses a single shared database — not a separate database per division. Every operational record (Job, Staff, Timesheet, RotaAssignment, Vehicle, ShiftSwap, StaffMessage, etc.) carries a division_id field that tags which division it belongs to. This acts as a logical partition: functionally equivalent to each division having its own folder, without the cost and complexity of running separate databases.' },
+      { stat: 'Row-Level Security (RLS)', meaning: 'Each entity has RLS rules that automatically filter every query at the database level. A user in the Geotechnical division physically cannot read, create or see a Job belonging to Land & Water — the database blocks it before any data reaches the screen. Admins and enterprise admins can see across all divisions; directors see only their managed divisions; standard users are locked to their own division_id. This is enforced server-side, not just hidden in the UI.' },
+      { stat: 'Blank Slate Creation', meaning: 'When a new division is launched via the Division Wizard, only a single Division configuration record is created — its identity (name, code, type, colour), structure (enabled hubs, tabs, navigation) and settings (VAT rate, markup, briefing rules). No jobs, staff, rotas, timesheets or vehicles are copied or seeded. The division starts completely empty and is filled in by admins working within it after launch. The wizard warns you of this at every step.' },
+      { stat: 'Child Records Inherit Scope', meaning: 'Records that belong to a job or staff member (JobCostItem, Invoice, Absence, JobComment, JobMilestone, DeliveryLog, BriefingSignature, etc.) do not carry their own division_id — they are scoped through their parent job_id or staff_id. Because the parent is division-tagged and RLS-protected, the child records are effectively isolated too: a user who cannot see a division\'s jobs cannot see that division\'s cost items, invoices or deliveries.' },
+      { stat: 'Enterprise-Wide Visibility', meaning: 'Enterprise admins and super admins bypass the division filter, giving them a cross-division view for the Enterprise Dashboard, business-unit rollups and global settings. Directors see only their managed_division_ids. This tiered access — locked user, scoped director, global admin — is what makes the single-database model safe while still allowing enterprise oversight.' },
+      { stat: 'Division Backups', meaning: 'Because each division\'s data is tagged with division_id, the backup system can snapshot and restore a single division without touching any other. The DivisionSnapshot captures every record matching that division_id, plus the division\'s configuration, into a single restorable file. A failed change in one division can be rolled back independently.' },
+    ],
+  },
+  {
+    id: 'assets',
+    icon: Boxes,
+    title: 'Assets Hub',
+    desc: 'How rigs, plant, lifting gear and PAT equipment are managed',
+    items: [
+      { stat: 'Asset Passport', meaning: 'Every asset (rig, machinery, trailer, lifting gear, portable appliance) has a full-page Asset Passport at /assets/:id. It brings together the asset\'s identity, live compliance status, maintenance timeline, deployment history, linked equipment, and financial lifecycle (revenue vs cost ROI) in one place. It is the single source of truth for everything about that piece of equipment.' },
+      { stat: 'Asset Types', meaning: 'Six asset types: rig (drilling rigs — CP or rotary), machinery (excavators, mixers), trailer, vehicle, lifting (shackles, slings, chains, hooks linked to rigs), and portable_appliance (110V transformers, power tools, leads requiring PAT). Each type drives which compliance rules and maintenance logic apply.' },
+      { stat: 'Compliance Rollup', meaning: 'A rig\'s overall compliance status is a rollup of its own LOLER/PUWER/PAT status plus the status of every linked lifting gear and portable appliance. If any linked item is expired, the rig is flagged non-compliant and cannot be assigned to a job. This prevents a rig passing inspection while its slings are out of date.' },
+      { stat: 'Stock Levels (Asset Panda)', meaning: 'Live stock levels and warehouse locations are pulled from Asset Panda on a scheduled sync. Items reported "out of stock" or "needs service" are automatically deactivated so they cannot be added to jobs. Demo assets are skipped so showcase data is never pushed to or purged from external systems.' },
+      { stat: 'Usage-Based Maintenance', meaning: 'For rigs and plant, maintenance is driven by accumulated engine hours (calculated from approved drilling logs), not just calendar dates. When hours_since_last_service crosses the service_interval_hours threshold (default 250h for rigs), the asset is flagged "due_soon" and a maintenance slot is auto-booked. Logging a service resets the hour counter.' },
+      { stat: 'Financial Lifecycle', meaning: 'The Financial tab on each Asset Passport shows the full ROI: total revenue earned from approved billing records vs total cost (maintenance + servicing + straight-line depreciation from acquisition_cost). Net profit and ROI percentage update in real time as new billing and service records are added, giving finance a live view of whether each asset is paying for itself.' },
+      { stat: 'QR Scanning', meaning: 'Every asset has a QR code. Field crews scan the QR to sign equipment out to a job, sign it back in on return, or report a fault — all from the Asset Scanner page (/scanner) or the mobile app. Scans update the asset\'s current_location (yard → in_transit → site → returned) and push stock-level updates to Asset Panda.' },
+    ],
+  },
   {
     id: 'dashboard',
     icon: Activity,
