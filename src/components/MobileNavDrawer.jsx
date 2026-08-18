@@ -1,10 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, LogOut, HelpCircle, User, CalendarDays, HardHat, Truck, Bell, Crown } from 'lucide-react';
+import { X, LogOut, HelpCircle, User, CalendarDays, Truck, Bell, Crown } from 'lucide-react';
 import Logo from '@/components/Logo';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 
-export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant, onHelp, onProfile, onDrillingIntelligence, onDeliveries, onNotifications, notifCount = 0, profile, onEnterprise }) {
+export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onHelp, onProfile, onDeliveries, onNotifications, notifCount = 0, profile, onEnterprise }) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -43,27 +43,6 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
                 className="h-9 w-9 flex items-center justify-center text-white/80 hover:bg-white/15 hover:text-white rounded-lg transition flex-shrink-0 touch-manipulation">
                 <X className="w-5 h-5" />
               </button>
-            </div>
-
-            {/* Power Tools — mobile parity with the desktop sidebar action cluster */}
-            <div className="px-3 pt-4 pb-1">
-              <p className="px-1 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Power Tools</p>
-              <div className="grid grid-cols-2 gap-2">
-                {onDrillingIntelligence && (
-                  <button onClick={onDrillingIntelligence} type="button"
-                    className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition touch-manipulation select-none ring-1 ring-white/15">
-                    <HardHat className="w-4 h-4" />
-                    <span className="text-[10px] font-medium leading-tight text-center">Drilling AI</span>
-                  </button>
-                )}
-                {onAssistant && (
-                  <button onClick={onAssistant} type="button"
-                    className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition touch-manipulation select-none ring-1 ring-white/15">
-                    <Sparkles className="w-4 h-4" />
-                    <span className="text-[10px] font-medium leading-tight text-center">Assistant</span>
-                  </button>
-                )}
-              </div>
             </div>
 
             <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto overscroll-contain">

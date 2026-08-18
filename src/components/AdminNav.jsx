@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, User, Truck, Boxes, Car, Clock, ShieldCheck, PoundSterling, ShieldAlert, ChevronRight, ChevronDown, PanelLeftClose, PanelLeftOpen, Wrench, Warehouse, Users, Contact, Zap, FileBarChart, FileUp, ClipboardCheck, FlaskConical, Crown, ArrowLeftRight } from 'lucide-react';
+import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, Sparkles, Menu, HelpCircle, Receipt, User, Truck, Boxes, Car, Clock, ShieldCheck, PoundSterling, ShieldAlert, ChevronRight, ChevronDown, PanelLeftClose, PanelLeftOpen, Wrench, Warehouse, Users, Contact, Zap, FileBarChart, FileUp, ClipboardCheck, FlaskConical, Crown, ArrowLeftRight } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useStaffAssistant } from '@/components/StaffAssistantChat';
-import { useDrillingIntelligence } from '@/components/DrillingIntelligenceChat';
+import { useAIHub } from '@/components/ai/AIHub';
 import { useNavigate } from 'react-router-dom';
 import MobileNavDrawer from '@/components/MobileNavDrawer';
 import GlobalSearch from '@/components/GlobalSearch';
@@ -31,8 +30,7 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
   });
   const notifications = useNotifications();
   const notifCount = notifications.count;
-  const { openChat } = useStaffAssistant();
-  const { openChat: openDrillingIntelligence } = useDrillingIntelligence();
+  const { openHub } = useAIHub();
   const { isComingSoon, isLocked } = useReadiness();
   const { isHubEnabled, activeDivision, isSuperAdmin, permittedDivisions } = useDivision();
 
@@ -175,18 +173,11 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
       {/* Action cluster — bigger search, 2 assistant buttons, full-width collapse */}
       <div className={`${collapsed ? 'px-1.5' : 'px-3'} pt-2 pb-2 border-t border-white/10 space-y-2`}>
         {!collapsed && <GlobalSearch />}
-        <div className={`grid ${collapsed ? 'grid-cols-1 gap-1.5' : 'grid-cols-2 gap-2'}`}>
-          <button onClick={openDrillingIntelligence} type="button" title="Drilling AI"
-            className="h-11 flex items-center justify-center gap-1.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
-            <HardHat className="w-4 h-4 flex-shrink-0" />
-            {!collapsed && <span className="text-xs font-semibold">Drilling AI</span>}
-          </button>
-          <button onClick={openChat} type="button" title="AI Assistant"
-            className="h-11 flex items-center justify-center gap-1.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
-            <Sparkles className="w-4 h-4 flex-shrink-0" />
-            {!collapsed && <span className="text-xs font-semibold">AI Assistant</span>}
-          </button>
-        </div>
+        <button onClick={openHub} type="button" title="AI Hubs"
+          className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] text-white hover:opacity-90 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none shadow-lg glow-brand">
+          <Sparkles className="w-4 h-4 flex-shrink-0" />
+          {!collapsed && <span className="text-xs font-bold">AI Hubs</span>}
+        </button>
         <button onClick={toggleCollapsed} type="button" title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           className="w-full h-10 flex items-center justify-center gap-2 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
           {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <><PanelLeftClose className="w-4 h-4" /><span className="text-xs font-semibold">Collapse</span></>}
@@ -276,8 +267,6 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
         activeSection={activeSection}
         onNavigate={setActiveSection}
         onLogout={handleLogout}
-        onAssistant={openChat}
-        onDrillingIntelligence={() => { openDrillingIntelligence(); setDrawerOpen(false); }}
         onNotifications={() => { setNotifOpen(true); setDrawerOpen(false); }}
         notifCount={notifCount}
         onDeliveries={() => { navigate('/deliveries'); setDrawerOpen(false); }}
