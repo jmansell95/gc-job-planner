@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Asset name (e.g. 'Truck-mounted Rig 1', 'Trailer T-03', 'Excavator CAT 320', '110V Transformer T-12')"
     },
+    "division_id": {
+      "type": "string",
+      "description": "The division this asset belongs to. Set automatically from the active division when the asset is created. Drives division-scoped filtering \u2014 a division only sees its own assets and equipment. Blank = unassigned (visible to enterprise admins only)."
+    },
     "asset_type": {
       "type": "string",
       "enum": [
@@ -258,7 +262,28 @@
     "asset_type"
   ],
   "rls": {
-    "read": {},
+    "read": {
+      "$or": [
+        {
+          "data.division_id": "{{user.data.division_id}}"
+        },
+        {
+          "data.division_id": {
+            "$in": "{{user.data.managed_division_ids}}"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        }
+      ]
+    },
     "create": {
       "user_condition": {
         "role": "admin"
