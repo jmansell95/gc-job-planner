@@ -88,7 +88,7 @@ export default function DivisionLoadingScreen({ division, onComplete, duration =
         transition={{ delay: 0.3 }}
         className="text-xl font-extrabold text-white tracking-tight mb-1 z-10"
       >
-        Entering {divName}
+        Loading {divName}…
       </motion.h2>
       {subtitle && (
         <motion.p
@@ -106,10 +106,8 @@ export default function DivisionLoadingScreen({ division, onComplete, duration =
         <div
           className="h-full rounded-full transition-all duration-75 ease-out"
           style={{ background: `linear-gradient(to right, ${divColor}, #ffffff)`, width: `${progress}%` }}
-          style={{ width: `${progress}%` }}
         />
       </div>
-      <p className="text-xs text-white/40 font-semibold mt-2 tabular-nums z-10">{Math.round(progress)}%</p>
     </motion.div>
   );
 }

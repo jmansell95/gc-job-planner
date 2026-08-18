@@ -5,6 +5,7 @@ import { useToast } from '@/components/ui/use-toast';
 import {
   Database, Download, RotateCcw, Plus, Trash2, Loader2, CheckCircle2,
   AlertTriangle, Clock, Shield, FileJson, History, X, Search,
+  CalendarClock, Repeat, Power, PowerOff,
 } from 'lucide-react';
 
 const TYPE_STYLES = {
@@ -49,6 +50,10 @@ export default function BackupRestoreHub() {
   const [confirmRestore, setConfirmRestore] = useState(null);
   const [filterDivision, setFilterDivision] = useState('all');
   const [search, setSearch] = useState('');
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({ division_id: '', frequency: 'daily', backup_time: '02:00', weekly_day: 1, retention_count: 14, cron_expression: '' });
+  const [savingSchedule, setSavingSchedule] = useState(false);
+  const [togglingSchedule, setTogglingSchedule] = useState(null);
 
   const { data: divisions = [] } = useQuery({
     queryKey: ['divisions'],
@@ -60,9 +65,67 @@ export default function BackupRestoreHub() {
     queryFn: () => base44.entities.DivisionSnapshot.list('-created_date', 200),
   });
 
+  const { data: schedules = [] } = useQuery({
+    queryKey: ['backup-schedules'],
+    queryFn: () => base44.entities.BackupSchedule.list('-created_date', 100),
+  });
+
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['division-snapshots'] });
     queryClient.invalidateQueries({ queryKey: ['divisions'] });
+    queryClient.invalidateQueries({ queryKey: ['backup-schedules'] });
+  };
+
+  const handleCreateSchedule = async () => {
+    setSavingSchedule(true);
+    try {
+      const div = scheduleForm.division_id
+        ? divisions.find(d => d.id === scheduleForm.division_id)
+        : null;
+      const payload = {
+        division_id: scheduleForm.division_id || '',
+        division_name: div?.name || 'All Divisions',
+        frequency: scheduleForm.frequency,
+        backup_time: scheduleForm.backup_time,
+        weekly_day: scheduleForm.frequency === 'weekly' ? scheduleForm.weekly_day : undefined,
+        cron_expression: scheduleForm.frequency === 'custom' ? scheduleForm.cron_expression : '',
+        retention_count: Number(scheduleForm.retention_count) || 14,
+        is_active: true,
+        created_by_name: 'Admin',
+      };
+      await base44.entities.BackupSchedule.create(payload);
+      toast({ title: 'Schedule created', description: `${scheduleForm.frequency} backup scheduled for ${div?.name || 'all divisions'}.` });
+      setShowScheduleForm(false);
+      setScheduleForm({ division_id: '', frequency: 'daily', backup_time: '02:00', weekly_day: 1, retention_count: 14, cron_expression: '' });
+      invalidate();
+    } catch (e) {
+      toast({ title: 'Failed to create schedule', description: e.message, variant: 'destructive' });
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
+  const handleToggleSchedule = async (schedule) => {
+    setTogglingSchedule(schedule.id);
+    try {
+      await base44.entities.BackupSchedule.update(schedule.id, { is_active: !schedule.is_active });
+      invalidate();
+      toast({ title: schedule.is_active ? 'Schedule paused' : 'Schedule activated' });
+    } catch (e) {
+      toast({ title: 'Failed to toggle schedule', description: e.message, variant: 'destructive' });
+    } finally {
+      setTogglingSchedule(null);
+    }
+  };
+
+  const handleDeleteSchedule = async (schedule) => {
+    try {
+      await base44.entities.BackupSchedule.delete(schedule.id);
+      invalidate();
+      toast({ title: 'Schedule deleted' });
+    } catch (e) {
+      toast({ title: 'Failed to delete schedule', description: e.message, variant: 'destructive' });
+    }
   };
 
   const handleBackup = async (divisionId, divisionName) => {
@@ -216,6 +279,216 @@ export default function BackupRestoreHub() {
           ))}
         </div>
       </div>
+
+      {/* Scheduled Backups */}
+      <div className="insight-card rounded-2xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-md">
+              <CalendarClock className="w-4.5 h-4.5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900">Scheduled Backups</h3>
+              <p className="text-xs text-slate-500">Automatic backups on a recurring schedule</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowScheduleForm(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] text-white text-sm font-bold shadow-md hover:shadow-lg active:scale-95 transition"
+          >
+            <Plus className="w-3.5 h-3.5" /> New Schedule
+          </button>
+        </div>
+
+        {schedules.length === 0 ? (
+          <div className="text-center py-6">
+            <Repeat className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <p className="text-sm font-semibold text-slate-500">No schedules yet</p>
+            <p className="text-xs text-slate-400 mt-1">Create a schedule to run backups automatically — daily, weekly, or custom.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {schedules.map(sch => {
+              const div = sch.division_id ? divisions.find(d => d.id === sch.division_id) : null;
+              const freqLabel = sch.frequency === 'daily' ? 'Daily' : sch.frequency === 'weekly' ? 'Weekly' : 'Custom';
+              const dayLabel = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][sch.weekly_day || 1];
+              const timeLabel = sch.frequency === 'weekly' ? `${dayLabel} ${sch.backup_time || '02:00'}` : sch.frequency === 'custom' ? (sch.cron_expression || 'cron') : (sch.backup_time || '02:00');
+              return (
+                <div key={sch.id} className={'flex items-center gap-3 p-3 rounded-xl border transition ' + (sch.is_active ? 'bg-emerald-50/50 border-emerald-200' : 'bg-slate-50 border-slate-200 opacity-60')}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: div?.color || '#2E5A1A' }}>
+                    <CalendarClock className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-slate-900 truncate">{sch.division_name || 'All Divisions'}</span>
+                      <span className={'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ' + (sch.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500')}>
+                        {sch.is_active ? <Power className="w-2.5 h-2.5" /> : <PowerOff className="w-2.5 h-2.5" />}
+                        {sch.is_active ? 'Active' : 'Paused'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
+                      <span className="font-semibold">{freqLabel}</span>
+                      <span className="text-slate-300">·</span>
+                      <span className="tabular-nums">{timeLabel}</span>
+                      <span className="text-slate-300">·</span>
+                      <span>Keep {sch.retention_count || 14}</span>
+                      {sch.last_run_at && (
+                        <>
+                          <span className="text-slate-300">·</span>
+                          <span>Last: {timeAgo(sch.last_run_at)}</span>
+                          {sch.last_run_status === 'failed' && <span className="text-rose-500 font-semibold">failed</span>}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => handleToggleSchedule(sch)}
+                      disabled={togglingSchedule === sch.id}
+                      title={sch.is_active ? 'Pause schedule' : 'Activate schedule'}
+                      className={'p-2 rounded-lg transition ' + (sch.is_active ? 'bg-amber-50 hover:bg-amber-100 text-amber-600' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600')}
+                    >
+                      {togglingSchedule === sch.id ? <Loader2 className="w-4 h-4 animate-spin" /> : sch.is_active ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteSchedule(sch)}
+                      title="Delete schedule"
+                      className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Schedule creation modal */}
+      {showScheduleForm && (
+        <div className="fixed inset-0 z-[60] bg-blue-950/60 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => !savingSchedule && setShowScheduleForm(false)}>
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                  <CalendarClock className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">New Backup Schedule</h3>
+                  <p className="text-xs text-slate-500">Runs automatically on a recurring basis</p>
+                </div>
+              </div>
+              <button onClick={() => setShowScheduleForm(false)} className="p-1.5 rounded-lg hover:bg-slate-100">
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="space-y-3.5">
+              {/* Division */}
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Division</label>
+                <select
+                  value={scheduleForm.division_id}
+                  onChange={e => setScheduleForm(f => ({ ...f, division_id: e.target.value }))}
+                  className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:border-[#2E5A1A]"
+                >
+                  <option value="">All Divisions</option>
+                  {divisions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+              </div>
+
+              {/* Frequency */}
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Frequency</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['daily', 'weekly', 'custom'].map(f => (
+                    <button
+                      key={f}
+                      onClick={() => setScheduleForm(s => ({ ...s, frequency: f }))}
+                      className={'px-3 py-2.5 rounded-xl text-sm font-bold capitalize transition ' + (scheduleForm.frequency === f ? 'bg-[#2E5A1A] text-white shadow-md' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100')}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Time */}
+              {scheduleForm.frequency !== 'custom' && (
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Time (24h)</label>
+                  <input
+                    type="time"
+                    value={scheduleForm.backup_time}
+                    onChange={e => setScheduleForm(f => ({ ...f, backup_time: e.target.value }))}
+                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:border-[#2E5A1A]"
+                  />
+                </div>
+              )}
+
+              {/* Weekly day */}
+              {scheduleForm.frequency === 'weekly' && (
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Day of Week</label>
+                  <div className="grid grid-cols-7 gap-1">
+                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setScheduleForm(f => ({ ...f, weekly_day: i }))}
+                        className={'py-2 rounded-lg text-xs font-bold transition ' + (scheduleForm.weekly_day === i ? 'bg-[#2E5A1A] text-white' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100')}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Cron expression */}
+              {scheduleForm.frequency === 'custom' && (
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Cron Expression</label>
+                  <input
+                    type="text"
+                    value={scheduleForm.cron_expression}
+                    onChange={e => setScheduleForm(f => ({ ...f, cron_expression: e.target.value }))}
+                    placeholder="0 2 * * 1-5"
+                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-mono text-slate-700 focus:outline-none focus:border-[#2E5A1A]"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">e.g. "0 2 * * 1-5" = 2am Mon-Fri</p>
+                </div>
+              )}
+
+              {/* Retention */}
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Retention (snapshots to keep)</label>
+                <input
+                  type="number"
+                  value={scheduleForm.retention_count}
+                  onChange={e => setScheduleForm(f => ({ ...f, retention_count: e.target.value }))}
+                  min="1"
+                  max="365"
+                  className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:border-[#2E5A1A]"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">Older snapshots beyond this count are automatically deleted.</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-5">
+              <button onClick={() => setShowScheduleForm(false)} disabled={savingSchedule} className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 transition disabled:opacity-60">Cancel</button>
+              <button
+                onClick={handleCreateSchedule}
+                disabled={savingSchedule}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#2E5A1A] text-white text-sm font-bold shadow-md hover:bg-[#1c4a12] disabled:opacity-60 transition"
+              >
+                {savingSchedule ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarClock className="w-4 h-4" />}
+                Create Schedule
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2">

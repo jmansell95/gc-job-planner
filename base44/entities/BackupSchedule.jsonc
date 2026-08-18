@@ -1,0 +1,94 @@
+{
+  "name": "BackupSchedule",
+  "type": "object",
+  "properties": {
+    "division_id": {
+      "type": "string",
+      "description": "The division this backup schedule applies to. Blank = global (all active divisions)."
+    },
+    "division_name": {
+      "type": "string",
+      "description": "Division name (denormalised for display). 'All Divisions' for global schedules."
+    },
+    "frequency": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "weekly",
+        "custom"
+      ],
+      "default": "daily",
+      "description": "How often the backup runs. 'daily' = every night; 'weekly' = once a week; 'custom' = cron expression."
+    },
+    "cron_expression": {
+      "type": "string",
+      "description": "Custom cron expression for 'custom' frequency (e.g. '0 2 * * 1-5' = 2am Mon-Fri). Used when frequency is 'custom'."
+    },
+    "backup_time": {
+      "type": "string",
+      "default": "02:00",
+      "description": "Time of day to run the backup (HH:MM, 24h format). Used for 'daily' and 'weekly' frequencies. Defaults to 2am."
+    },
+    "weekly_day": {
+      "type": "number",
+      "description": "Day of week for weekly backups (0=Sun, 1=Mon, ... 6=Sat). Used when frequency is 'weekly'."
+    },
+    "retention_count": {
+      "type": "number",
+      "default": 14,
+      "description": "Maximum number of snapshots to keep for this division. Older snapshots beyond this count are automatically deleted. Default 14 (two weeks of daily backups)."
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this schedule is active and will trigger backups."
+    },
+    "last_run_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last time this schedule triggered a backup."
+    },
+    "last_run_status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failed",
+        "pending"
+      ],
+      "description": "Result of the last scheduled backup run."
+    },
+    "next_run_at": {
+      "type": "string",
+      "description": "ISO timestamp of the next scheduled backup run."
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Admin who created this schedule."
+    }
+  },
+  "required": [
+    "frequency",
+    "is_active"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -119,11 +119,11 @@ export const DIVISION_TYPES = [
   },
   {
     value: 'land_water',
-    label: 'Land & Water',
+    label: 'Water',
     icon: 'Waves',
     blurb: 'Marine, waterway & flood risk',
     color: '#0d9488',
-    tagline: 'Marine & Waterway Specialists',
+    tagline: 'Water Engineering Specialists',
     enabled_hubs: [...ALL_HUBS.filter(h => h !== 'investigation')],
     nav_items: ['home', 'schedule', 'scan', 'ai_hub', 'profile'],
     settings: { ...BASE_SETTINGS },

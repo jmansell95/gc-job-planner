@@ -40,7 +40,17 @@ export default async function(req) {
 
     try {
       // 3. Read all division-scoped entities
-      const entitiesToBackup = ['Staff', 'Job', 'Vehicle', 'RotaAssignment', 'Timesheet'];
+      const entitiesToBackup = [
+        'Staff', 'Job', 'Vehicle', 'RotaAssignment', 'Timesheet',
+        'SiteAsset', 'ComplianceItem', 'Invoice', 'JobCostItem',
+        'JobAssetAssignment', 'DeliveryLog', 'Sample', 'MonitoringWell',
+        'InvestigationLog', 'LabTestResult', 'Absence', 'HotelBooking',
+        'DailyCost', 'JobComment', 'JobDocument', 'JobMilestone',
+        'JobDelayLog', 'SubcontractorLog', 'ServiceRecord', 'EquipmentCalibration',
+        'ToolboxTalk', 'SafetyReport', 'SitePhoto', 'WeatherLog',
+        'GeofenceEvent', 'BriefingSignature', 'AssetReturnLog',
+        'StaffMessage', 'ShiftSwap', 'TrainingBooking',
+      ];
       const backupData = {
         division: {
           name: division.name,
