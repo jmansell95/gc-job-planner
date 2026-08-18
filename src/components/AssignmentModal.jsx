@@ -32,6 +32,8 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   const [jobSearch, setJobSearch] = useState('');
   const [jobDropdownOpen, setJobDropdownOpen] = useState(false);
   const [showCompletedJobs, setShowCompletedJobs] = useState(false);
+  const [assignmentMode, setAssignmentMode] = useState('today'); // 'today' | 'custom' | 'full_job'
+  const [customEndDate, setCustomEndDate] = useState('');
   const queryClient = useQueryClient();
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: absences = [] } = useQuery({ queryKey: ['absences'], queryFn: () => base44.entities.Absence.list() });
@@ -101,6 +103,8 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
       setTimeConflict(null);
       setComplianceOverride(false);
       setRigComplianceOverride(false);
+      setAssignmentMode('today');
+      setCustomEndDate('');
     }
   }, [isOpen, assignment, defaultStaffId, defaultDate]);
 
@@ -214,7 +218,11 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
     return (a.name || '').localeCompare(b.name || '');
   });
   const effectiveStartDisplay = formData.start_delayed && formData.actual_start_date ? formData.actual_start_date : formData.assigned_date;
-  const multiDayDays = (!isEditing && selectedJob?.end_date && effectiveStartDisplay && selectedJob.end_date > effectiveStartDisplay) ? buildDateRange(effectiveStartDisplay, selectedJob.end_date) : [];
+  const jobEndDate = selectedJob?.end_date || '';
+  const customEndValid = assignmentMode === 'custom' && customEndDate && effectiveStartDisplay && customEndDate >= effectiveStartDisplay;
+  const fullJobEnd = assignmentMode === 'full_job' && jobEndDate && effectiveStartDisplay && jobEndDate > effectiveStartDisplay ? jobEndDate : '';
+  const rangeEndDate = customEndValid ? customEndDate : fullJobEnd;
+  const multiDayDays = (!isEditing && rangeEndDate) ? buildDateRange(effectiveStartDisplay, rangeEndDate) : [];
   const teamMismatch = isStaffOutsideJobTeams(selectedStaff, selectedJob, teams);
   const requiredTeamNames = selectedJob ? getJobTeamIds(selectedJob).map(id => teams.find(t => t.id === id)?.name).filter(Boolean) : [];
   const selectedStaffTeamName = selectedStaff ? (teams.find(t => t.id === selectedStaff.team_id)?.name || 'No team') : '';
@@ -334,7 +342,10 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
     try {
       const rateMultiplier = formData.rate_multiplier === '' ? null : Number(formData.rate_multiplier);
       const effectiveStart = formData.start_delayed && formData.actual_start_date ? formData.actual_start_date : formData.assigned_date;
-      const isMultiDay = !isEditing && selectedJob?.end_date && selectedJob.end_date > effectiveStart;
+      const customEndValid = assignmentMode === 'custom' && customEndDate && effectiveStart && customEndDate >= effectiveStart;
+      const fullJobEnd = assignmentMode === 'full_job' && selectedJob?.end_date && selectedJob.end_date > effectiveStart ? selectedJob.end_date : '';
+      const rangeEnd = customEndValid ? customEndDate : fullJobEnd;
+      const isMultiDay = !isEditing && !!rangeEnd;
       if (isEditing) {
         const payload = {
           ...formData,
@@ -345,7 +356,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
         if (formData.start_delayed && formData.actual_start_date) payload.assigned_date = formData.actual_start_date;
         await base44.entities.RotaAssignment.update(assignment.id, payload);
       } else if (isMultiDay) {
-        const days = buildDateRange(effectiveStart, selectedJob.end_date);
+        const days = buildDateRange(effectiveStart, rangeEnd);
         const assignments = days.map((dateStr, idx) => ({
           job_id: formData.job_id,
           staff_id: formData.staff_id,
@@ -601,10 +612,47 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
               <p className="text-[11px] text-slate-400 mt-1">{defaultDate ? 'The day you clicked in the rota' : 'Pick a date for this shift'}</p>
             </div>
+            {!isEditing && selectedJob && effectiveStartDisplay && (
+              <div className="sm:col-span-2 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <CalendarClock className="w-4 h-4 text-emerald-700" />
+                  <p className="text-xs font-semibold text-slate-800">Assignment Duration</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  <button type="button" onClick={() => setAssignmentMode('today')}
+                    className={`px-2 py-2 rounded-lg text-xs font-medium border transition ${assignmentMode === 'today' ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                    Today only
+                  </button>
+                  <button type="button" onClick={() => setAssignmentMode('custom')}
+                    className={`px-2 py-2 rounded-lg text-xs font-medium border transition ${assignmentMode === 'custom' ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                    Custom range
+                  </button>
+                  <button type="button" onClick={() => setAssignmentMode('full_job')}
+                    disabled={!jobEndDate || jobEndDate <= effectiveStartDisplay}
+                    className={`px-2 py-2 rounded-lg text-xs font-medium border transition disabled:opacity-40 disabled:cursor-not-allowed ${assignmentMode === 'full_job' ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                    Full job
+                  </button>
+                </div>
+                {assignmentMode === 'custom' && (
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-600 mb-1">End date</label>
+                    <input type="date" value={customEndDate} min={effectiveStartDisplay}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+                    {customEndDate && customEndDate < effectiveStartDisplay && (
+                      <p className="text-[11px] text-red-600 mt-1">End date must be on or after the assignment date.</p>
+                    )}
+                  </div>
+                )}
+                {assignmentMode === 'full_job' && (!jobEndDate || jobEndDate <= effectiveStartDisplay) && (
+                  <p className="text-[11px] text-slate-400">This job has no end date beyond the assignment date — use "Today only" or "Custom range".</p>
+                )}
+              </div>
+            )}
             {multiDayDays.length > 0 && (
               <div className="sm:col-span-2 flex items-start gap-2 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
                 <CalendarClock className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span>Multi-day job — assignments will be created for each day from <strong>{format(new Date(effectiveStartDisplay + 'T00:00:00'), 'dd MMM')}</strong> to <strong>{format(new Date(selectedJob.end_date + 'T00:00:00'), 'dd MMM yyyy')}</strong> ({multiDayDays.length} days).</span>
+                <span>Assignments will be created for each day from <strong>{format(new Date(effectiveStartDisplay + 'T00:00:00'), 'dd MMM')}</strong> to <strong>{format(new Date(rangeEndDate + 'T00:00:00'), 'dd MMM yyyy')}</strong> ({multiDayDays.length} day{multiDayDays.length !== 1 ? 's' : ''}).</span>
               </div>
             )}
             <div>
@@ -816,7 +864,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
           )}
           <div className="flex gap-3 mt-5">
             <button type="submit" className="flex-1 px-4 py-2.5 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm">
-              {isEditing ? 'Update Assignment' : 'Add Assignment'}
+              {isEditing ? 'Update Assignment' : multiDayDays.length > 1 ? `Add ${multiDayDays.length} Assignments` : 'Add Assignment'}
             </button>
             {isEditing && assignment.briefing_signed && (
               <button type="button" onClick={handleResetBriefing} disabled={resetting}
