@@ -6,10 +6,12 @@ import {
   UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle,
   Users, Briefcase, CalendarDays, Trash2, HardHat, AlertCircle, RefreshCw,
   ChevronDown, ChevronRight, MapPin, Building2, UserX, Layers, Clock,
-  Palmtree, Thermometer, GraduationCap, Building, Filter, Warehouse, X
+  Palmtree, Thermometer, GraduationCap, Building, Filter, Warehouse, X, History
 } from 'lucide-react';
 import ImportCompleteModal from '@/components/import/ImportCompleteModal';
 import ImportProgressModal from '@/components/import/ImportProgressModal';
+import PurgeCompletedJobsPanel from '@/components/import/PurgeCompletedJobsPanel';
+import { Link } from 'react-router-dom';
 
 export default function ImportDashboard() {
   const { toast } = useToast();
@@ -22,6 +24,7 @@ export default function ImportDashboard() {
   const [preview, setPreview] = useState(null);
   const [applyResult, setApplyResult] = useState(null);
   const [error, setError] = useState(null);
+  const [activeOnly, setActiveOnly] = useState(true);
 
   const handleFileChange = (e) => {
     const f = e.target.files?.[0];
@@ -69,7 +72,7 @@ export default function ImportDashboard() {
     setAnalysing(true);
     setError(null);
     try {
-      const res = await base44.functions.invoke('importPlannerSpreadsheet', { file, dry_run: true, division_id: activeDivisionId });
+      const res = await base44.functions.invoke('importPlannerSpreadsheet', { file, dry_run: true, division_id: activeDivisionId, active_only: activeOnly });
       setPreview(res.data);
     } catch (e) {
       const msg = e?.response?.data?.error || e.message || 'Analysis failed';
@@ -99,7 +102,7 @@ export default function ImportDashboard() {
         const phase = phases[i];
         setApplyPhase(phase.label);
         setProgressModal(prev => ({ ...prev, currentStep: i }));
-        const res = await base44.functions.invoke('importPlannerSpreadsheet', { file, ...phase.params, division_id: activeDivisionId });
+        const res = await base44.functions.invoke('importPlannerSpreadsheet', { file, ...phase.params, division_id: activeDivisionId, active_only: activeOnly });
         phaseResults.push(res.data);
       }
       // Merge the 3 phase summaries into one result for the completion modal
@@ -149,6 +152,23 @@ export default function ImportDashboard() {
 
   return (
     <div className="page-bg-vibrant min-h-screen p-4 md:p-6 space-y-6">
+      {/* Prehistoric import link */}
+      <Link to="/prehistoric-import" className="block">
+        <div className="insight-card rounded-2xl p-4 flex items-center gap-3 hover:shadow-lg transition group">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center flex-shrink-0">
+            <History className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-slate-800">Prehistoric Data Import →</p>
+            <p className="text-xs text-slate-500">Import a full legacy archive with a preview pane and field matching. Self-isolated, with an automatic backup snapshot.</p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-slate-500 transition flex-shrink-0" />
+        </div>
+      </Link>
+
+      {/* Purge completed jobs */}
+      <PurgeCompletedJobsPanel />
+
       {/* Upload Card */}
       <div className="insight-card rounded-2xl p-6">
         <h2 className="text-lg font-semibold text-slate-800 mb-1">Upload Spreadsheet</h2>
@@ -192,6 +212,21 @@ export default function ImportDashboard() {
           <span><strong>Import Guard:</strong> Staff, teams, and crew member types are <strong>never modified</strong> — the import matches names only and skips anyone not found in Staff Command. Add missing staff manually in Staff Command first, then re-import. The import rebuilds jobs, rotas, rig assignments, cost items, training bookings, and absences in 3 phases to avoid timeouts on large files.</span>
         </div>
 
+        {/* Active-only filter toggle */}
+        <div className="mt-4 flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
+          <Filter className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-emerald-900">Active jobs only</p>
+            <p className="text-xs text-emerald-700">When on, only planning &amp; in-progress jobs are imported — completed jobs are excluded. Turn off to import everything.</p>
+          </div>
+          <button
+            onClick={() => setActiveOnly(!activeOnly)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${activeOnly ? 'bg-emerald-500' : 'bg-slate-300'}`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${activeOnly ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        </div>
+
         {error && (
           <div className="mt-4 flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
             <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -218,6 +253,43 @@ export default function ImportDashboard() {
               </button>
             </div>
             <div className="overflow-y-auto flex-1 p-6 space-y-4">
+          {/* Active-only status filter info */}
+          <div className="insight-card rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Filter className="w-4 h-4 text-[#2E5A1A]" />
+              <h3 className="text-sm font-bold text-slate-800">Status Filter</h3>
+              <span className="text-xs text-slate-400 ml-auto">
+                {activeOnly ? 'Only active jobs (planning + in-progress) will be imported' : 'All statuses will be imported'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                activeOnly ? 'bg-emerald-500 text-white border-transparent' : 'bg-white text-slate-500 border-slate-200'
+              }`}>
+                <span>Active</span>
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${activeOnly ? 'bg-white/25' : 'bg-slate-100 text-slate-600'}`}>
+                  {(preview.summary.jobs?.planning || 0) + (preview.summary.jobs?.in_progress || 0)}
+                </span>
+              </span>
+              <span className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                !activeOnly ? 'bg-slate-500 text-white border-transparent' : 'bg-white text-slate-500 border-slate-200'
+              }`}>
+                <span>Completed</span>
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${!activeOnly ? 'bg-white/25' : 'bg-slate-100 text-slate-600'}`}>
+                  {preview.summary.jobs?.completed || 0}
+                </span>
+              </span>
+              {activeOnly && (preview.summary.skipped_by_active_filter || 0) > 0 && (
+                <span className="text-xs text-amber-600 font-medium ml-1">
+                  {preview.summary.skipped_by_active_filter} completed job(s) excluded by the active-only filter
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-2">
+              Change the filter with the toggle above the upload area, then click "Upload &amp; Analyse" again.
+            </p>
+          </div>
+
           {/* Summary tiles */}
           <div className="insight-card rounded-2xl p-6">
 

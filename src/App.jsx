@@ -19,6 +19,7 @@ import EnterpriseHelp from './pages/EnterpriseHelp';
 import EnterpriseStaffHub from './pages/EnterpriseStaffHub';
 import EnterpriseFleetHub from './pages/EnterpriseFleetHub';
 import AdminDashboard from './pages/AdminDashboard';
+import PrehistoricImportPage from './components/import/PrehistoricImportPage';
 import StaffDashboard from './pages/StaffDashboard';
 import StaffProfile from './pages/StaffProfile';
 import SubcontractorDashboard from './pages/SubcontractorDashboard';
@@ -127,6 +128,7 @@ const AuthenticatedApp = () => {
             <Route path="/keylogbook-docs" element={<RouteGuard><KeyLogBookDocs /></RouteGuard>} />
             <Route path="/roadmap" element={<RouteGuard><ImprovementRoadmap /></RouteGuard>} />
             <Route path="/m365-setup-guide" element={<RouteGuard><Microsoft365SetupGuide /></RouteGuard>} />
+            <Route path="/prehistoric-import" element={<RouteGuard><PrehistoricImportPage /></RouteGuard>} />
           </Route>
           <Route path="/rig-hub" element={<Navigate to="/assets" replace />} />
           <Route path="/asset-inventory" element={<Navigate to="/assets" replace />} />

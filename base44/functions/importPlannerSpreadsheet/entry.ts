@@ -729,6 +729,7 @@ export default async function(req) {
     let skipPurgeAndJobs = false;
     let writePhase = 'all'; // 'all' | 'rotas' | 'cost_items' | 'training_absences'
     let importDivisionId: string | null = null;
+    let activeOnly = true; // when true, completed jobs are excluded from the import
     let arrayBuffer: ArrayBuffer;
     const contentType = req.headers.get('content-type') || '';
     if (contentType.includes('multipart/form-data')) {
@@ -738,6 +739,7 @@ export default async function(req) {
       skipPurgeAndJobs = formData.get('skip_purge_and_jobs') === 'true';
       writePhase = formData.get('write_phase') || 'all';
       importDivisionId = (formData.get('division_id') as string) || null;
+      activeOnly = formData.get('active_only') !== 'false';
       if (!filePart) return Response.json({ error: 'A spreadsheet file is required.' }, { status: 400 });
       arrayBuffer = await (filePart as File).arrayBuffer();
     } else {
@@ -747,6 +749,7 @@ export default async function(req) {
       skipPurgeAndJobs = body.skip_purge_and_jobs === true;
       writePhase = body.write_phase || 'all';
       importDivisionId = body.division_id || null;
+      activeOnly = body.active_only !== false;
       if (!fileUrl) return Response.json({ error: 'file_url is required' }, { status: 400 });
       const fileRes = await fetch(fileUrl);
       if (!fileRes.ok) return Response.json({ error: 'Could not download the uploaded file' }, { status: 422 });
@@ -1264,16 +1267,19 @@ export default async function(req) {
     // staff are linked to their jobs. This ensures drilling subcontractors and
     // agency workers on completed jobs (e.g. Kingsnorth) are included.
     const skippedCompletedJobs = [];
+    const skippedJobBaseKeys = new Set();
     for (const baseKey of uniqueJobBaseKeys) {
       const rawName = jobNameByBaseKey[baseKey];
       const jobRealDates = (jobRealDatesByBaseKey[baseKey] || jobDatesByBaseKey[baseKey] || []).sort();
       const jobStatus = determineJobStatus(jobRealDates, rawName, jobHasSubbies[baseKey], jobDatesByBaseKey[baseKey] || []);
       if (jobStatus === 'completed') {
         skippedCompletedJobs.push({ name: rawName, status: jobStatus, end_date: jobRealDates[jobRealDates.length - 1] || '' });
+        if (activeOnly) skippedJobBaseKeys.add(baseKey);
       }
     }
 
     for (const baseKey of uniqueJobBaseKeys) {
+      if (skippedJobBaseKeys.has(baseKey)) continue;
       const rawName = jobNameByBaseKey[baseKey];
       const parsed = parseJobName(rawName);
       const jobDates = (jobDatesByBaseKey[baseKey] || []).sort();
@@ -1692,6 +1698,9 @@ export default async function(req) {
       // Resolve job for job entries (skip if unresolvable)
       let resolvedJob = null;
       if (!a.non_job_type && a.job_name) {
+        // Active-only filter: skip rota entries for completed jobs that were excluded
+        const jobBaseKey = keyToMaster[extractJobBaseKey(a.job_name)] || extractJobBaseKey(a.job_name);
+        if (skippedJobBaseKeys.has(jobBaseKey)) continue;
         resolvedJob = findJobForAssignment(a.job_name);
         if (!resolvedJob) continue;
       }
@@ -2121,6 +2130,8 @@ export default async function(req) {
       sheets_parsed: sheetNames,
       all_workbook_sheets: workbook.SheetNames,
       skipped_completed_jobs: skippedCompletedJobs,
+      active_only: activeOnly,
+      skipped_by_active_filter: skippedJobBaseKeys.size,
       date_range: { from: dateFrom, to: dateTo },
       today: TODAY,
       sheet_breakdown: sheetBreakdown.map(s => ({
