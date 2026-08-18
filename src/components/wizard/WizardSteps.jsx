@@ -6,6 +6,7 @@ import {
   DIVISION_TYPE_LABELS, ALL_HUBS, HUB_LABELS, HUB_DESCRIPTIONS, HUB_TABS, INTEGRATIONS, COLOR_SWATCHES,
 } from './divisionWizardData';
 import TemplatePicker from './TemplatePicker';
+import BlankSlateBanner from './BlankSlateBanner';
 
 const labelCls = 'text-xs font-bold text-slate-500 uppercase tracking-wide';
 const requiredMark = <span className="text-rose-500"> *</span>;
