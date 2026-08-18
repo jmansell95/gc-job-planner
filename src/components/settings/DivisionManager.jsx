@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
@@ -201,7 +202,7 @@ function DeleteDivisionModal({ division, staffCount, onCancel, onDeleted }) {
       setDeleting(false);
     }
   };
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 bg-blue-950/60 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onCancel}>
       <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-5" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
@@ -230,6 +231,7 @@ function DeleteDivisionModal({ division, staffCount, onCancel, onDeleted }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
