@@ -88,7 +88,7 @@ export default function DivisionLoadingScreen({ division, onComplete, duration =
         transition={{ delay: 0.3 }}
         className="text-xl font-extrabold text-white tracking-tight mb-1 z-10"
       >
-        Loading {divName}…
+        Loading Divisions
       </motion.h2>
       {subtitle && (
         <motion.p
