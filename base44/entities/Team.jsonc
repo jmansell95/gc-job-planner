@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Team or group name"
     },
+    "division_id": {
+      "type": "string",
+      "description": "The division this team belongs to. Set automatically from the active division when the team is created. Drives division-scoped filtering \u2014 a division only sees its own teams. Blank = unassigned (visible to enterprise admins only)."
+    },
     "description": {
       "type": "string",
       "description": "Team description"
@@ -124,5 +128,29 @@
   },
   "required": [
     "name"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.division_id": "{{user.data.division_id}}"
+        },
+        {
+          "data.division_id": {
+            "$in": "{{user.data.managed_division_ids}}"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        }
+      ]
+    }
+  }
 }

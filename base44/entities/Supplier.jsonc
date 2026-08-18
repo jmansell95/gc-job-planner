@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Supplier company name"
     },
+    "division_id": {
+      "type": "string",
+      "description": "The division this supplier belongs to. Set automatically from the active division when the supplier is created. Drives division-scoped filtering \u2014 a division only sees its own suppliers. Blank = unassigned (visible to enterprise admins only)."
+    },
     "contact_name": {
       "type": "string",
       "description": "Primary contact person"
@@ -94,5 +98,29 @@
   },
   "required": [
     "name"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.division_id": "{{user.data.division_id}}"
+        },
+        {
+          "data.division_id": {
+            "$in": "{{user.data.managed_division_ids}}"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        }
+      ]
+    }
+  }
 }

@@ -17,6 +17,10 @@
       "type": "string",
       "description": "Name of the compliance item (e.g. CSCS Card, CPCS Card, Vehicle MOT, Public Liability Insurance, RAMS)"
     },
+    "division_id": {
+      "type": "string",
+      "description": "The division this compliance item belongs to. Set automatically from the active division (or the linked staff/vehicle/job's division) when the item is created. Drives division-scoped filtering \u2014 a division only sees its own compliance items. Blank = unassigned (visible to enterprise admins only)."
+    },
     "qualification_type": {
       "type": "string",
       "enum": [
@@ -90,5 +94,29 @@
   "required": [
     "category",
     "title"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.division_id": "{{user.data.division_id}}"
+        },
+        {
+          "data.division_id": {
+            "$in": "{{user.data.managed_division_ids}}"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        }
+      ]
+    }
+  }
 }

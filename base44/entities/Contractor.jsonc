@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Sub-contractor company or individual name"
     },
+    "division_id": {
+      "type": "string",
+      "description": "The division this contractor belongs to. Set automatically from the active division when the contractor is created. Drives division-scoped filtering \u2014 a division only sees its own contractors. Blank = unassigned (visible to enterprise admins only)."
+    },
     "contractor_type": {
       "type": "string",
       "enum": [
@@ -183,5 +187,29 @@
   },
   "required": [
     "name"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.division_id": "{{user.data.division_id}}"
+        },
+        {
+          "data.division_id": {
+            "$in": "{{user.data.managed_division_ids}}"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        }
+      ]
+    }
+  }
 }

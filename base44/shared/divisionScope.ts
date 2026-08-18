@@ -22,6 +22,16 @@ export const DIRECT_SCOPED_ENTITIES = new Set([
   'Timesheet',
   'ShiftSwap',
   'StaffMessage',
+  // — Full isolation: formerly-shared operational resources, now per-division —
+  'Client',
+  'Contractor',
+  'Supplier',
+  'SiteAsset',
+  'RateCardItem',
+  'Team',
+  'ComplianceItem',
+  'BillingRule',
+  'Project',
 ]);
 
 // Entities scoped via a job_id join. No division_id field, but they belong to
@@ -50,19 +60,13 @@ export const JOB_SCOPED_ENTITIES = new Set([
 // Global/shared entities — not division-partitioned. Returned unfiltered so
 // they remain available in every division (e.g. a Client is shared across
 // divisions that both work for that client).
+// Enterprise-wide admin config — NOT division-partitioned. These define
+// platform-level configuration (roles, integration keys, help content, type
+// definitions) and are shared across every division by design.
 export const GLOBAL_ENTITIES = new Set([
-  'Client',
-  'Contractor',
-  'Supplier',
-  'RateCardItem',
-  'ComplianceItem',
   'TrainingRequirement',
-  'Team',
-  'BillingRule',
-  'Project',
   'JobType',
   'Division',
-  'SiteAsset',
   'PermissionGroup',
   'AppSetting',
   'HelpTopic',
