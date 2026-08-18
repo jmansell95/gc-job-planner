@@ -151,9 +151,9 @@ export default function EnterpriseDashboard() {
                 </div>
                 <div className="min-w-0">
                   <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white tracking-tight leading-none truncate">
-                    Land &amp; Water Solutions
+                    Ground Control
                   </h1>
-                  <p className="text-xs sm:text-sm text-white/70 font-semibold mt-1 truncate">Business Unit · Housing 4 Specialist Divisions</p>
+                  <p className="text-xs sm:text-sm text-white/70 font-semibold mt-1 truncate">Enterprise Parent · Housing Land & Water Solutions & 4 Specialist Divisions</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
