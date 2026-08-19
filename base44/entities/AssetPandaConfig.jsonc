@@ -8,23 +8,23 @@
     },
     "api_token": {
       "type": "string",
-      "description": "Pre-generated Asset Panda session token. Optional \u2014 if blank, the sync auto-generates a fresh token on each run using client_id/client_secret. Session tokens expire, so prefer using client_id/client_secret instead."
-    },
-    "client_id": {
-      "type": "string",
-      "description": "Asset Panda Client ID \u2014 issued on the Asset Panda API Configuration page (Settings \u2192 API Configuration). Used with client_secret to auto-generate a fresh session token on every sync/push call, so expired tokens are never an issue."
-    },
-    "client_secret": {
-      "type": "string",
-      "description": "Asset Panda Client Secret \u2014 issued alongside the Client ID on the API Configuration page. Used with client_id to auto-generate a session token via POST /v3/session/token."
+      "description": "Pre-generated Asset Panda session token. Optional advanced fallback \u2014 if blank, the sync auto-generates a fresh token on each run using the email/password web login. Session tokens expire, so prefer using email + password instead."
     },
     "email": {
       "type": "string",
-      "description": "DEPRECATED \u2014 use client_id. Legacy Asset Panda account email. Kept for backward compatibility; the sync falls back to this when client_id is blank."
+      "description": "Asset Panda WEB LOGIN email \u2014 the email address you sign into app.assetpanda.com with. Used with password to auto-generate a fresh session token on every sync/push call via POST /v3/session-token, so expired tokens are never an issue. This is the primary authentication method."
     },
     "password": {
       "type": "string",
-      "description": "DEPRECATED \u2014 use client_secret. Legacy Asset Panda account password. Kept for backward compatibility; the sync falls back to this when client_secret is blank."
+      "description": "Asset Panda WEB LOGIN password \u2014 the password you sign into app.assetpanda.com with. Used with email to auto-generate a session token. The sync auto-generates a fresh token on every call."
+    },
+    "client_id": {
+      "type": "string",
+      "description": "DEPRECATED \u2014 not used for V3 auth. The Client ID issued on the Asset Panda API Configuration page is a UUID that the V3 /v3/session-token endpoint rejects with 'User email not found!'. Use the web-login email + password instead. Kept for backward compatibility only."
+    },
+    "client_secret": {
+      "type": "string",
+      "description": "DEPRECATED \u2014 not used for V3 auth. Kept for backward compatibility only. Use the web-login password instead."
     },
     "base_url": {
       "type": "string",

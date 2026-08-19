@@ -1,6 +1,8 @@
 // ---------------------------------------------------------------------------
 // assetPandaClient — shared helpers for the Asset Panda integration functions.
-// Used by: syncAssetPanda, getAssetPandaGroupFields, assetPandaWebhook.
+// Used by: syncAssetPanda, getAssetPandaGroupFields, assetPandaWebhook,
+// pushAllToAssetPanda, pushAssetUpdateToPanda, pushSignOutToPanda,
+// testAssetPandaConnection.
 // ---------------------------------------------------------------------------
 
 export interface PandaField {
@@ -10,7 +12,8 @@ export interface PandaField {
 
 /**
  * Resolve a bearer token from the saved Asset Panda config.
- * Uses api_token if present, otherwise authenticates with email/password.
+ * Uses api_token if present, otherwise authenticates with the Asset Panda
+ * web-login email + password (POST /v3/session-token).
  * Returns { token } on success, { error, skipped } when no credentials are
  * configured (skipped=true so scheduled automations don't auto-pause), or
  * { error } when authentication fails.
@@ -22,14 +25,15 @@ export async function resolvePandaToken(
   // 1. A pre-generated session token (api_token) wins if present and valid-looking.
   let token = config.api_token || '';
 
-  // 2. Otherwise exchange the Client ID + Client Secret (issued on Asset Panda's
-  //    API Configuration page) for a fresh session token. Asset Panda's V3
-  //    session endpoint accepts these as the email/password pair — the Client ID
-  //    is your Asset Panda service-account email, the Client Secret is its
-  //    password. Session tokens expire, so we generate a new one on every call.
-  //    Trim whitespace because copy-pasted credentials often carry stray spaces.
-  const email = String(config.client_id || config.email || '').trim();
-  const secret = String(config.client_secret || config.password || '').trim();
+  // 2. Otherwise authenticate with the Asset Panda WEB LOGIN (email + password)
+  //    to get a fresh session token. The V3 /v3/session-token endpoint requires
+  //    a real Asset Panda user email + password — the "Client ID"/"Client Secret"
+  //    issued on the API Configuration page is a UUID that this endpoint rejects
+  //    with "User email not found!". Use the email + password you sign into
+  //    app.assetpanda.com with. Session tokens expire, so we generate a new one
+  //    on every call. Trim whitespace (copy-paste often adds stray spaces).
+  const email = String(config.email || '').trim();
+  const secret = String(config.password || '').trim();
   if (!token && email && secret) {
     try {
       // The documented endpoint is /v3/session-token (hyphen). Try it first,
@@ -52,7 +56,9 @@ export async function resolvePandaToken(
         return {
           error:
             `Asset Panda rejected the credentials: ${lastErrBody || `HTTP ${tokenRes.status}`}. ` +
-            `The Client ID must be your Asset Panda service-account email and the Client Secret its password — check both are correct and have no trailing spaces.`,
+            `The Email and Password must be the credentials you sign into app.assetpanda.com with ` +
+            `(not the API Configuration Client ID/Secret, which is a UUID the session endpoint rejects). ` +
+            `Check both are correct and have no trailing spaces.`,
         };
       }
       const tokenJson: any = await (tokenRes as Response).json();
@@ -62,7 +68,7 @@ export async function resolvePandaToken(
         tokenJson.accessToken ||
         (typeof tokenJson === 'string' ? tokenJson : '');
       if (!token) {
-        return { error: 'Asset Panda did not return a session token. Check your Client ID and Client Secret.' };
+        return { error: 'Asset Panda did not return a session token. Check your email and password.' };
       }
     } catch (e: any) {
       return { error: `Token request failed: ${e.message}` };
@@ -73,7 +79,7 @@ export async function resolvePandaToken(
     return {
       skipped: true,
       error:
-        'No credentials configured. Paste your Asset Panda Client ID and Client Secret (from Asset Panda → Settings → API Configuration) in Settings → Asset Panda.',
+        'No credentials configured. Enter your Asset Panda web-login email and password (the ones you sign into app.assetpanda.com with) in Settings → Asset Panda.',
     };
   }
   return { token };
