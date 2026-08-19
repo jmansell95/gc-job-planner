@@ -5,12 +5,21 @@ import {
   PoundSterling, TrendingUp, Percent, Calculator, AlertTriangle,
   Loader2, RefreshCw, Mountain, ChevronDown, ChevronRight, User,
   CheckCircle2, XCircle, Target, Gauge, Truck, Save, Check, Ruler,
-  HardHat, Users, ArrowRightLeft
+  HardHat, Users, ArrowRightLeft, ExternalLink
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import BoreholeRevenueTable from '@/components/financials/BoreholeRevenueTable';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-[#2E5A1A] text-sm";
+
+// Map billing-setup warning text to a deep-link route so the user can jump
+// straight to the settings area that fixes the warning.
+const warningLink = (w) => {
+  if (/Asset Panda/i.test(w)) return '/enterprise/settings';
+  if (/Rate Cards|Our Rate Card|Master Price List|markup/i.test(w)) return '/billing';
+  return null;
+};
 
 const ROLE_LABELS = {
   driller: { label: 'Driller', color: 'bg-amber-100 text-amber-700' },
@@ -60,6 +69,7 @@ function MethodBadge({ method }) {
  */
 export default function AutoFinancialsBreakdown({ job }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [showMatched, setShowMatched] = useState(false);
   const [showUnmatched, setShowUnmatched] = useState(false);
   const [showBoreholes, setShowBoreholes] = useState(false);
@@ -163,12 +173,20 @@ export default function AutoFinancialsBreakdown({ job }) {
             <h3 className="text-sm font-bold text-amber-800">Billing Setup Needs Attention</h3>
           </div>
           <div className="space-y-1.5">
-            {bs.warnings.map((w, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-700">{w}</p>
-              </div>
-            ))}
+            {bs.warnings.map((w, i) => {
+              const link = warningLink(w);
+              return (
+                <div key={i} className="flex items-start gap-2">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-700 flex-1">{w}</p>
+                  {link && (
+                    <button onClick={() => navigate(link)} className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 hover:text-amber-900 bg-amber-100 hover:bg-amber-200 px-2 py-1 rounded-md transition flex-shrink-0">
+                      Fix <ExternalLink className="w-2.5 h-2.5" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
