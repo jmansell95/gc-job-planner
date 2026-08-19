@@ -48,7 +48,13 @@ export default function CrewDeploymentWidget({ todaysRotas, staff, jobs, vehicle
     return true;
   });
 
-  const yardStaff = (yardRotas || []).map(r => staffMap[r.staff_id]).filter(Boolean);
+  // Deduplicate — one entry per staff member (multiple yard rota rows = one person)
+  const _yardSeen = new Set();
+  const yardStaff = (yardRotas || []).filter(r => {
+    if (!r.staff_id || _yardSeen.has(r.staff_id)) return false;
+    _yardSeen.add(r.staff_id);
+    return true;
+  }).map(r => staffMap[r.staff_id]).filter(Boolean);
   const drivers = yardStaff.filter(s => {
     const title = (s.job_title || '').toLowerCase();
     return title.includes('driver') || title.includes('delivery') || title.includes('logistics');

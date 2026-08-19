@@ -224,8 +224,17 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
   const logsByJob = {};
   invLogs.forEach(l => { if (!logsByJob[l.job_id]) logsByJob[l.job_id] = 0; logsByJob[l.job_id]++; });
 
+  // Deduplicate — one entry per staff per job (a staff member may have multiple
+  // rota rows for the same day, but they're one person on site)
   const rotasByJob = {};
-  todayRotas.forEach(r => { if (!rotasByJob[r.job_id]) rotasByJob[r.job_id] = []; rotasByJob[r.job_id].push(r); });
+  const _rotaSeen = {};
+  todayRotas.forEach(r => {
+    const k = `${r.job_id}|${r.staff_id}`;
+    if (_rotaSeen[k]) return;
+    _rotaSeen[k] = true;
+    if (!rotasByJob[r.job_id]) rotasByJob[r.job_id] = [];
+    rotasByJob[r.job_id].push(r);
+  });
 
   const legsByJob = {};
   (deliveryLegs || []).forEach(l => { if (!legsByJob[l.job_id]) legsByJob[l.job_id] = []; legsByJob[l.job_id].push(l); });

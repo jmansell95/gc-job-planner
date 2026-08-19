@@ -80,9 +80,14 @@ export default function JobQuickDrawer({ job, onClose, onOpenFullDetails }) {
   }, 0);
   const totalMeters = (job?.meterage != null && job?.meterage !== '') ? Number(job.meterage) : loggedMeterage;
 
-  // Crew today
+  // Crew today — deduplicate by staff_id (multiple rota rows = one person)
   const todaysRotas = rotas.filter(r => r.assigned_date === todayStr);
-  const crewToday = todaysRotas.map(r => staff.find(s => s.id === r.staff_id)).filter(Boolean);
+  const _crewSeen = new Set();
+  const crewToday = todaysRotas.filter(r => {
+    if (!r.staff_id || _crewSeen.has(r.staff_id)) return false;
+    _crewSeen.add(r.staff_id);
+    return true;
+  }).map(r => staff.find(s => s.id === r.staff_id)).filter(Boolean);
 
   // Assets on job
   const jobAssets = assignments.map(a => ({ ...a, asset: assets.find(as => as.id === a.asset_id) }));
