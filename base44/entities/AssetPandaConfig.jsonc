@@ -29,23 +29,53 @@
     },
     "field_name": {
       "type": "string",
-      "description": "The Asset Panda field key that holds the asset name (e.g. 'field_1'). Leave blank to auto-detect by field label."
+      "description": "DEPRECATED \u2014 use field_map. Legacy fixed mapping for the asset name field key. Kept for backward compatibility; the custom field_map takes precedence."
     },
     "field_serial": {
       "type": "string",
-      "description": "The Asset Panda field key that holds the serial / asset tag (e.g. 'field_2'). Leave blank to auto-detect."
+      "description": "DEPRECATED \u2014 use field_map. Legacy fixed mapping for the serial / asset tag field key."
     },
     "field_daily_rate": {
       "type": "string",
-      "description": "The Asset Panda field key that holds the daily billing rate (e.g. 'field_5'). Leave blank to auto-detect."
+      "description": "DEPRECATED \u2014 use field_map. Legacy fixed mapping for the daily billing rate field key."
     },
     "field_stock_status": {
       "type": "string",
-      "description": "The Asset Panda field key that holds the stock / condition status (e.g. 'field_6'). Leave blank to auto-detect."
+      "description": "DEPRECATED \u2014 use field_map. Legacy fixed mapping for the stock / condition status field key."
     },
     "field_asset_type": {
       "type": "string",
-      "description": "The Asset Panda field key that holds the asset type / category used to detect rigs (e.g. 'field_3'). Leave blank to auto-detect."
+      "description": "DEPRECATED \u2014 use field_map. Legacy fixed mapping for the asset type / category field key."
+    },
+    "field_map": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "system_field": {
+            "type": "string",
+            "description": "The SiteAsset system field name to map to (e.g. 'name', 'serial_number', 'storage_location', 'compliance_expiry_date')."
+          },
+          "panda_field_key": {
+            "type": "string",
+            "description": "The Asset Panda field key (e.g. 'field_1') that holds the value for this system field."
+          },
+          "panda_field_label": {
+            "type": "string",
+            "description": "The human-readable label of the Asset Panda field (denormalised for display in the mapping UI)."
+          }
+        },
+        "required": [
+          "system_field",
+          "panda_field_key"
+        ]
+      },
+      "default": [],
+      "description": "Full custom field map \u2014 maps any Asset Panda field to any SiteAsset system field. Configured visually in Settings \u2192 Asset Panda \u2192 Field Mapping. Takes precedence over the legacy fixed field_* mappings. The sync applies core fields (name, serial, type, stock, rate) with their specialised parsing, and applies all other mapped fields as direct copies."
+    },
+    "webhook_secret": {
+      "type": "string",
+      "description": "Shared secret used to authenticate inbound webhooks from Asset Panda flows. Appended as the 'secret' query parameter on the webhook URL. When set, the assetPandaWebhook endpoint verifies every request carries this secret."
     },
     "auto_deactivate": {
       "type": "boolean",
