@@ -37,6 +37,7 @@ import PageHeader from '@/components/PageHeader';
 import TabBar from '@/components/TabBar';
 import SubPills from '@/components/SubPills';
 import HubStatsBar from '@/components/dashboard/HubStatsBar';
+import { useAssetRealtime } from '@/hooks/useAssetRealtime';
 
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: Boxes },
@@ -49,6 +50,7 @@ const CATEGORIES = [
 
 export default function AssetHub() {
   const navigate = useNavigate();
+  useAssetRealtime();
   const [view, setView] = useState('inventory');
   const [group, setGroup] = useState('inventory');
   const [category, setCategory] = useState('all');

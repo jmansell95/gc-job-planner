@@ -52,8 +52,14 @@ export default function AssetPandaInfoPanel({ asset }) {
               {asset.last_sync_timestamp && <span className="text-slate-400 font-normal">· {fmtSync(asset.last_sync_timestamp)}</span>}
             </span>
           </div>
-          {(asset.storage_location || asset.colour) && (
+          {(asset.storage_location || asset.colour || asset.panda_group_label || asset.cost_price != null) && (
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+              {asset.panda_group_label && (
+                <div className="flex items-center gap-1.5 min-w-0"><Database className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" /><span className="text-slate-500 flex-shrink-0">Group:</span><span className="font-medium text-slate-700 truncate">{asset.panda_group_label}</span></div>
+              )}
+              {asset.cost_price != null && (
+                <div className="flex items-center gap-1.5 min-w-0"><Box className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" /><span className="text-slate-500 flex-shrink-0">Cost:</span><span className="font-medium text-slate-700 truncate">£{Number(asset.cost_price).toFixed(0)}</span></div>
+              )}
               {asset.storage_location && (
                 <div className="flex items-center gap-1.5 min-w-0"><MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" /><span className="text-slate-500 flex-shrink-0">Location:</span><span className="font-medium text-slate-700 truncate">{asset.storage_location}</span></div>
               )}

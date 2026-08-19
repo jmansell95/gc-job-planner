@@ -35,9 +35,18 @@ const EMPTY = {
   responsible_person: '', tooling_notes: '', compliance_status: 'unknown',
   compliance_expiry_date: '', last_service_date: '', next_service_date: '',
   service_notes: '', repair_notes: '', is_active: true, notes: '',
+  stock_level: 'unknown',
   service_interval_hours: '', operating_hours: 0, hours_since_last_service: 0, hours_at_last_service: 0,
   linked_equipment_ids: [],
 };
+
+const STOCK_LEVELS = [
+  { value: 'in_stock', label: 'In Stock' },
+  { value: 'low_stock', label: 'Low Stock' },
+  { value: 'out_of_stock', label: 'Out of Stock' },
+  { value: 'needs_service', label: 'Needs Service' },
+  { value: 'unknown', label: 'Unknown' },
+];
 
 export default function AssetComplianceEditor({ asset, onClose }) {
   const isEdit = !!asset;
@@ -182,6 +191,7 @@ export default function AssetComplianceEditor({ asset, onClose }) {
         repair_notes: form.repair_notes || '',
         is_active: form.is_active !== false,
         notes: form.notes || '',
+        stock_level: form.stock_level || 'unknown',
         service_interval_hours: (form.asset_type === 'rig' || form.asset_type === 'machinery')
           ? (Number(form.service_interval_hours) || (form.asset_type === 'rig' ? 250 : 500))
           : null,
@@ -198,9 +208,21 @@ export default function AssetComplianceEditor({ asset, onClose }) {
       if (isEdit) {
         await base44.entities.SiteAsset.update(asset.id, payload);
         toast({ title: 'Asset updated', description: `${payload.name} saved.` });
+        // Push back to Asset Panda so it stays the source of truth bidirectionally
+        if (payload.panda_asset_id) {
+          try {
+            await base44.functions.invoke('pushAssetUpdateToPanda', { asset_id: asset.id, action: 'update' });
+          } catch (_) { /* non-fatal — local record is already saved */ }
+        }
       } else {
-        await base44.entities.SiteAsset.create(payload);
+        const created = await base44.entities.SiteAsset.create(payload);
         toast({ title: 'Asset added', description: `${payload.name} created.` });
+        // Optionally create a matching object in Asset Panda
+        if (payload.panda_asset_id) {
+          try {
+            await base44.functions.invoke('pushAssetUpdateToPanda', { asset_id: created.id, action: 'update' });
+          } catch (_) { /* non-fatal */ }
+        }
       }
       queryClient.invalidateQueries({ queryKey: ['scoped', 'SiteAsset'] });
       queryClient.invalidateQueries({ queryKey: ['job-asset-assignments'] });
@@ -377,6 +399,14 @@ export default function AssetComplianceEditor({ asset, onClose }) {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 mt-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1 flex items-center gap-1"><Database className="w-3 h-3" /> Stock Level (Asset Panda)</label>
+                <select value={form.stock_level || 'unknown'} onChange={e => set('stock_level', e.target.value)}
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-white">
+                  {STOCK_LEVELS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
+                {form.panda_asset_id && <p className="text-[10px] text-blue-600 mt-1">Pushes back to Asset Panda on save</p>}
+              </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Last Service / Test Date</label>
                 <input type="date" value={form.last_service_date || ''} onChange={e => set('last_service_date', e.target.value)}

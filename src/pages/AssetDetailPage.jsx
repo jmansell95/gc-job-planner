@@ -24,6 +24,7 @@ import ServiceHistoryPanel from '@/components/compliance/ServiceHistoryPanel';
 import CertificateVault from '@/components/righub/CertificateVault';
 import CompliancePackGenerator from '@/components/assetcommand/CompliancePackGenerator';
 import AssetMovementHistory from '@/components/assetcommand/AssetMovementHistory';
+import { useAssetRealtime } from '@/hooks/useAssetRealtime';
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: Package },
@@ -40,6 +41,7 @@ export default function AssetDetailPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  useAssetRealtime();
   const [activeTab, setActiveTab] = useState('overview');
   const [showLogService, setShowLogService] = useState(false);
   const [showReportFault, setShowReportFault] = useState(false);
