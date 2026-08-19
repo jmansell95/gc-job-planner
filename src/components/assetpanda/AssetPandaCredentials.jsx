@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { KeyRound, Eye, EyeOff, Save, RefreshCw, Settings2 } from 'lucide-react';
+import { KeyRound, Eye, EyeOff, Save, RefreshCw } from 'lucide-react';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm";
 
@@ -50,35 +50,7 @@ export default function AssetPandaCredentials({ form, setForm, config, onSave, s
           </div>
         </div>
 
-        <div className="border-t border-slate-100 pt-3">
-          <div className="flex items-center gap-2 mb-2">
-            <Settings2 className="w-3.5 h-3.5 text-slate-400" />
-            <p className="text-xs font-semibold text-slate-700">Field Mapping (optional)</p>
-            <span className="text-[11px] text-slate-400">— leave blank to auto-detect by field label</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Name field</label>
-              <input value={form.field_name} onChange={e => setForm({ ...form, field_name: e.target.value })} className={`${inputCls} font-mono`} placeholder="field_1" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Serial field</label>
-              <input value={form.field_serial} onChange={e => setForm({ ...form, field_serial: e.target.value })} className={`${inputCls} font-mono`} placeholder="field_2" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Daily rate field</label>
-              <input value={form.field_daily_rate} onChange={e => setForm({ ...form, field_daily_rate: e.target.value })} className={`${inputCls} font-mono`} placeholder="field_5" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Stock status field</label>
-              <input value={form.field_stock_status} onChange={e => setForm({ ...form, field_stock_status: e.target.value })} className={`${inputCls} font-mono`} placeholder="field_6" />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-600 mb-1">Asset type field</label>
-              <input value={form.field_asset_type} onChange={e => setForm({ ...form, field_asset_type: e.target.value })} className={`${inputCls} font-mono`} placeholder="field_3" />
-            </div>
-          </div>
-        </div>
+        {/* Field mapping is now configured visually below — see the Field Mapping section. */}
 
         <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer border-t border-slate-100 pt-3">
           <input type="checkbox" checked={form.auto_deactivate} onChange={e => setForm({ ...form, auto_deactivate: e.target.checked })} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />

@@ -16,6 +16,15 @@ const TYPE_GRADIENT = {
 
 function safeFmt(d) { try { return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); } catch { return d; } }
 
+/** Tooltip for the Panda/Local source badge — includes last sync time when available. */
+function syncTitle(asset) {
+  const base = asset.panda_asset_id ? 'Synced from Asset Panda' : 'Created locally — not in Asset Panda';
+  if (asset.last_sync_timestamp) {
+    try { return `${base} · last sync ${new Date(asset.last_sync_timestamp).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`; } catch { return base; }
+  }
+  return base;
+}
+
 /** An asset is "in depot" if its storage_location mentions depot or yard. */
 export function isInDepot(asset) {
   const loc = (asset?.storage_location || '').toLowerCase().trim();
@@ -168,8 +177,8 @@ export default function AssetInventoryGrid({
                     </span>
                     <div className="flex items-center gap-1.5">
                       {rig.panda_asset_id
-                        ? <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200" title="Synced from Asset Panda"><Database className="w-3 h-3" /> Panda</span>
-                        : <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200" title="Created locally — not in Asset Panda"><CircleDot className="w-3 h-3" /> Local</span>}
+                        ? <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200" title={syncTitle(rig)}><Database className="w-3 h-3" /> Panda</span>
+                        : <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200" title={syncTitle(rig)}><CircleDot className="w-3 h-3" /> Local</span>}
                       <span className="text-xs text-slate-400 flex items-center gap-1"><Link2 className="w-3 h-3" /> {linked.length}</span>
                     </div>
                   </div>
@@ -268,8 +277,8 @@ export default function AssetInventoryGrid({
                         </span>
                       )}
                       {equip.panda_asset_id
-                        ? <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200" title="Synced from Asset Panda"><Database className="w-2.5 h-2.5" /> Panda</span>
-                        : <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200" title="Created locally — not in Asset Panda"><CircleDot className="w-2.5 h-2.5" /> Local</span>}
+                        ? <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200" title={syncTitle(equip)}><Database className="w-2.5 h-2.5" /> Panda</span>
+                        : <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200" title={syncTitle(equip)}><CircleDot className="w-2.5 h-2.5" /> Local</span>}
                       {parentRig && <span className="text-[10px] text-emerald-700 font-medium flex items-center gap-0.5"><Link2 className="w-3 h-3" /> {parentRig.name}</span>}
                     </div>
                   </div>

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+import { resolvePandaToken, buildFullFieldMap } from '../../shared/assetPandaClient.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -23,27 +24,10 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: 'No Asset Panda group ID configured. Enter the group ID in Settings → Asset Panda Sync Data.' });
     }
 
-    // --- Resolve a bearer token ---
-    let token = config.api_token || '';
-    if (!token && config.email && config.password) {
-      const tokenRes = await fetch(`${baseUrl}/v3/session/token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: config.email, password: config.password }),
-      });
-      if (!tokenRes.ok) {
-        const errBody = await tokenRes.text();
-        return Response.json({ error: 'Asset Panda authentication failed', details: errBody }, { status: 402 });
-      }
-      const tokenJson = await tokenRes.json();
-      token = tokenJson.token || tokenJson.access_token || tokenJson.accessToken || (typeof tokenJson === 'string' ? tokenJson : '');
-      if (!token) {
-        return Response.json({ error: 'Asset Panda did not return a session token. Check your email/password.' }, { status: 402 });
-      }
-    }
-    if (!token) {
-      return Response.json({ skipped: true, reason: 'No API token configured. Enter your Asset Panda token (or email + password) in Settings → Asset Panda Sync Data.' });
-    }
+    // --- Resolve a bearer token (shared helper) ---
+    const { token, error: tokenError, skipped: tokenSkipped } = await resolvePandaToken(config, baseUrl);
+    if (tokenSkipped) return Response.json({ skipped: true, reason: tokenError });
+    if (tokenError) return Response.json({ error: tokenError, details: tokenError }, { status: 402 });
 
     const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
 
@@ -78,6 +62,23 @@ Deno.serve(async (req) => {
         }
       } catch (fieldsErr) {
         console.error('Could not fetch group fields:', fieldsErr.message);
+      }
+    }
+
+    // --- Extended field map: custom field_map entries beyond the 5 core fields ---
+    // buildFullFieldMap merges legacy field_* defaults + the custom field_map array.
+    // We extract the non-core mappings to apply as direct-copy fields on each asset.
+    const CORE_FIELDS = new Set(['name', 'serial_number', 'daily_billing_rate', 'stock_level', 'asset_type']);
+    const DIRECT_COPY_FIELDS = new Set([
+      'storage_location', 'responsible_person', 'compliance_expiry_date', 'next_service_date',
+      'last_service_date', 'service_notes', 'repair_notes', 'colour', 'equipment_type',
+      'tooling_notes', 'notes',
+    ]);
+    const fullSystemMap = buildFullFieldMap(config);
+    const extraMap = {};
+    for (const [sysField, pandaKey] of Object.entries(fullSystemMap)) {
+      if (!CORE_FIELDS.has(sysField) && DIRECT_COPY_FIELDS.has(sysField) && pandaKey) {
+        extraMap[sysField] = pandaKey;
       }
     }
 
@@ -204,6 +205,12 @@ Deno.serve(async (req) => {
           last_sync_timestamp: now,
           is_active: shouldDeactivate ? false : (match ? (match.is_active !== false) : true),
         };
+
+        // Apply extended (direct-copy) mapped fields from the custom field map
+        for (const [sysField, pandaKey] of Object.entries(extraMap)) {
+          const val = fieldValue(obj, pandaKey);
+          if (val) payload[sysField] = val;
+        }
 
         if (match) {
           toUpdate.push({ id: match.id, ...payload });

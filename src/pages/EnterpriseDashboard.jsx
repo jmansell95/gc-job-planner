@@ -70,12 +70,17 @@ export default function EnterpriseDashboard() {
     });
   }, [permittedDivisions, statsData]);
 
-  // Two-level hierarchy
+  // Two-level hierarchy. An orphaned division (parent points to a record not in
+  // the permitted set) is treated as standalone so it never disappears from view.
   const hierarchy = useMemo(() => {
     const all = permittedDivisions;
+    const allIds = new Set(all.map(d => d.id));
     const parentIds = new Set(all.filter(d => d.parent_division_id).map(d => d.parent_division_id));
     const businessUnits = all.filter(d => !d.parent_division_id && parentIds.has(d.id));
-    const standalone = all.filter(d => !d.parent_division_id && !parentIds.has(d.id));
+    const buIds = new Set(businessUnits.map(d => d.id));
+    const standalone = all.filter(d =>
+      !buIds.has(d.id) && (!d.parent_division_id || !allIds.has(d.parent_division_id))
+    );
     return { businessUnits, standalone, parentIds };
   }, [permittedDivisions]);
 

@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Database, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import AssetPandaCredentials from '@/components/assetpanda/AssetPandaCredentials';
+import AssetPandaFieldMapper from '@/components/assetpanda/AssetPandaFieldMapper';
+import AssetPandaWebhookSection from '@/components/assetpanda/AssetPandaWebhookSection';
 import AssetPandaSyncStatus from '@/components/assetpanda/AssetPandaSyncStatus';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
@@ -15,6 +17,7 @@ export default function AssetPandaSettings() {
   const [form, setForm] = useState({
     api_token: '', email: '', password: '', base_url: 'https://api.assetpanda.com', group_id: '',
     field_name: '', field_serial: '', field_daily_rate: '', field_stock_status: '', field_asset_type: '',
+    field_map: [], webhook_secret: '',
     auto_deactivate: true,
   });
 
@@ -37,6 +40,8 @@ export default function AssetPandaSettings() {
         field_daily_rate: config.field_daily_rate || '',
         field_stock_status: config.field_stock_status || '',
         field_asset_type: config.field_asset_type || '',
+        field_map: config.field_map || [],
+        webhook_secret: config.webhook_secret || '',
         auto_deactivate: config.auto_deactivate !== false,
       });
     }
@@ -113,6 +118,8 @@ export default function AssetPandaSettings() {
       />
 
       <AssetPandaCredentials form={form} setForm={setForm} config={config} onSave={handleSave} saving={saving} />
+      <AssetPandaFieldMapper form={form} setForm={setForm} config={config} onSave={handleSave} saving={saving} />
+      <AssetPandaWebhookSection form={form} setForm={setForm} config={config} onSave={handleSave} saving={saving} />
       <AssetPandaSyncStatus assets={assets} config={config} isLoading={isLoading} lastSync={lastSync} />
     </div>
   );
