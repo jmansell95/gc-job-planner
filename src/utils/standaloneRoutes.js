@@ -12,6 +12,7 @@ export const STANDALONE_ROUTES = {
   billing: '/billing',
   assets: '/assets',
   fleet: '/fleet',
+  reports: '/reports',
 };
 
 // Reverse map: route path → section id (for sidebar active-state highlight).

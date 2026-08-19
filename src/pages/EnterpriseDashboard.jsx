@@ -7,11 +7,12 @@ import { useAuth } from '@/lib/AuthContext';
 import {
   Building2, Users, Briefcase, Truck, ClipboardCheck, ShieldCheck, PoundSterling,
   ArrowRight, Layers, Settings, Sparkles, AlertTriangle, CheckCircle2,
-  LayoutGrid, X, Activity, Crown, Wrench, TrendingUp, Clock,
+  LayoutGrid, X, Activity, Wrench, TrendingUp, Clock,
   User, HelpCircle, LogOut,
 } from 'lucide-react';
 import EnterpriseHeader from '@/components/EnterpriseHeader';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
+import Logo from '@/components/Logo';
 import DivisionWizard from '@/components/wizard/DivisionWizard';
 import CreationChoiceModal from '@/components/enterprise/CreationChoiceModal';
 import BusinessUnitCreateModal from '@/components/enterprise/BusinessUnitCreateModal';
@@ -145,9 +146,7 @@ export default function EnterpriseDashboard() {
             {/* Title row */}
             <div className="flex items-center justify-between gap-3 mb-5">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0 shadow-sm">
-                  <Crown className="w-6 h-6 text-[#2E5A1A]" />
-                </div>
+                <Logo height={44} className="flex-shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[10px] text-emerald-700 font-bold uppercase tracking-widest mb-0.5">Enterprise Dashboard</p>
                   <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight leading-none truncate">

@@ -7,12 +7,12 @@
 // of the blueprint fields so the wizard can apply them atomically when the
 // user switches division type. No defaults are duplicated elsewhere.
 
-export const ALL_HUBS = ['overview', 'jobs', 'scheduling', 'staff', 'logistics', 'assets', 'fleet', 'investigation', 'compliance', 'billing', 'settings'];
+export const ALL_HUBS = ['overview', 'jobs', 'scheduling', 'staff', 'logistics', 'assets', 'fleet', 'investigation', 'compliance', 'billing', 'reports', 'settings'];
 
 export const HUB_LABELS = {
   overview: 'Dashboard', jobs: 'Jobs', scheduling: 'Scheduling', staff: 'Staff',
   logistics: 'Deliveries', assets: 'Assets', fleet: 'Fleet', investigation: 'Investigation',
-  compliance: 'Compliance', billing: 'Billing', settings: 'Settings',
+  compliance: 'Compliance', billing: 'Billing', reports: 'Reports', settings: 'Settings',
 };
 
 export const HUB_DESCRIPTIONS = {
@@ -26,6 +26,7 @@ export const HUB_DESCRIPTIONS = {
   investigation: 'Boreholes & AGS (geotech)',
   compliance: 'Audits, safety & certs',
   billing: 'Invoices & rate cards',
+  reports: 'Power BI & native reporting',
   settings: 'Business Stream configuration',
 };
 
@@ -87,6 +88,9 @@ export const HUB_TABS = {
     { id: 'rate_cards', label: 'Rate Cards' },
     { id: 'billing_rules', label: 'Billing Rules' },
     { id: 'cost_items', label: 'Cost Items' },
+  ],
+  reports: [
+    { id: 'overview', label: 'Reports' },
   ],
   settings: [
     { id: 'general', label: 'General Settings' },

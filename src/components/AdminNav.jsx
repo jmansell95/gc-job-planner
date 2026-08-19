@@ -83,6 +83,7 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
     { id: 'investigation', label: 'Investigation Hub', icon: FlaskConical },
     { id: 'compliance', label: 'Compliance Hub', icon: ShieldCheck },
     { id: 'billing', label: 'Financial Hub', icon: PoundSterling },
+    { id: 'reports', label: 'Reports Hub', icon: FileBarChart },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -173,11 +174,6 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
       {/* Action cluster — bigger search, 2 assistant buttons, full-width collapse */}
       <div className={`${collapsed ? 'px-1.5' : 'px-3'} pt-2 pb-2 border-t border-white/10 space-y-2`}>
         {!collapsed && <GlobalSearch />}
-        <button onClick={() => navigate('/reports')} type="button" title="Reports Hub"
-          className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
-          <FileBarChart className="w-4 h-4 flex-shrink-0" />
-          {!collapsed && <span className="text-xs font-bold">Reports</span>}
-        </button>
         <button onClick={openHub} type="button" title="AI Hubs"
           className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] text-white hover:opacity-90 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none shadow-lg glow-brand">
           <Sparkles className="w-4 h-4 flex-shrink-0" />
