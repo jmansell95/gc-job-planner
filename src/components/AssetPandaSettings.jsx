@@ -106,7 +106,8 @@ export default function AssetPandaSettings() {
     setSyncing(false);
   };
 
-  const ready = !!((form.group_id || (form.groups || []).some(g => g.group_id)) && (form.api_token || (form.email && form.password)));
+  // Sync works with just credentials — groups are auto-discovered when none configured
+  const ready = !!(form.api_token || (form.email && form.password));
 
   const handlePushAll = async () => {
     setPushing(true);

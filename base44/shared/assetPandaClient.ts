@@ -86,6 +86,29 @@ export async function resolvePandaToken(
 }
 
 /**
+ * Fetch all groups in the Asset Panda account via GET /v3/groups.
+ * Returns normalised [{ id, name, key }].
+ */
+export async function fetchAllPandaGroups(
+  baseUrl: string,
+  token: string
+): Promise<{ id: string; name: string; key: string }[]> {
+  const res = await fetch(`${baseUrl}/v3/groups`, {
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) {
+    throw new Error(`Could not fetch groups (HTTP ${res.status})`);
+  }
+  const json: any = await res.json();
+  const groups = Array.isArray(json) ? json : json.groups || json.data || [];
+  return groups.map((g: any) => ({
+    id: String(g.id ?? g._id ?? ''),
+    name: String(g.name || g.label || ''),
+    key: String(g.key || ''),
+  }));
+}
+
+/**
  * Fetch the field definitions for a group. Returns normalised [{ key, label }].
  */
 export async function fetchPandaGroupFields(

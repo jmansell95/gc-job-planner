@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
-import { resolvePandaToken, buildFullFieldMap } from '../../shared/assetPandaClient.ts';
+import { resolvePandaToken, buildFullFieldMap, fetchAllPandaGroups, fetchPandaGroupFields } from '../../shared/assetPandaClient.ts';
 import { findBestRateCardMatch } from '../../shared/assetPandaRateMatcher.ts';
 
 Deno.serve(async (req) => {
@@ -18,29 +18,58 @@ Deno.serve(async (req) => {
 
     const baseUrl = (config.base_url || 'https://api.assetpanda.com').replace(/\/+$/, '');
 
-    // --- Build the list of groups to sync ---
-    // Multi-group: config.groups array. Legacy: single config.group_id.
-    let groups: Array<{ group_id: string; label: string; asset_type_hint?: string; field_map_overrides?: any[] }> = [];
-    if (Array.isArray(config.groups) && config.groups.length > 0) {
-      groups = config.groups.map((g: any) => ({
-        group_id: g.group_id,
-        label: g.label || g.group_id,
-        asset_type_hint: g.asset_type_hint || 'auto',
-        field_map_overrides: Array.isArray(g.field_map_overrides) ? g.field_map_overrides : [],
-      }));
-    } else if (config.group_id) {
-      groups = [{ group_id: config.group_id, label: 'Asset Panda', asset_type_hint: 'auto', field_map_overrides: [] }];
-    }
-    if (groups.length === 0) {
-      return Response.json({ skipped: true, reason: 'No Asset Panda groups configured. Add at least one group in Settings → Asset Panda → Groups.' });
-    }
-
     // --- Resolve a bearer token (shared helper) ---
     const { token, error: tokenError, skipped: tokenSkipped } = await resolvePandaToken(config, baseUrl);
     if (tokenSkipped) return Response.json({ skipped: true, reason: tokenError });
     if (tokenError) return Response.json({ error: tokenError, details: tokenError }, { status: 402 });
 
     const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+    // --- Build the list of groups to sync ---
+    // ALWAYS auto-discover ALL groups in the account via GET /v3/groups so the
+    // sync pulls in every asset regardless of manual configuration. Any
+    // manually-configured groups (with labels / type hints / field overrides)
+    // are merged on top by group_id, so admin customisations are preserved.
+    let groups: Array<{ group_id: string; label: string; asset_type_hint?: string; field_map_overrides?: any[] }> = [];
+    let autoDiscovered = false;
+    const configuredByGroupId: Record<string, any> = {};
+    if (Array.isArray(config.groups)) {
+      for (const g of config.groups) {
+        if (g?.group_id) configuredByGroupId[String(g.group_id)] = g;
+      }
+    }
+
+    try {
+      const allGroups = await fetchAllPandaGroups(baseUrl, token);
+      if (allGroups.length === 0) {
+        return Response.json({ skipped: true, reason: 'No groups found in your Asset Panda account.' });
+      }
+      groups = allGroups.map((g) => {
+        const cfg = configuredByGroupId[g.id] || configuredByGroupId[g.key];
+        return {
+          group_id: g.id,
+          label: cfg?.label || g.name,
+          asset_type_hint: cfg?.asset_type_hint || 'auto',
+          field_map_overrides: Array.isArray(cfg?.field_map_overrides) ? cfg.field_map_overrides : [],
+        };
+      });
+      autoDiscovered = true;
+    } catch (discErr) {
+      // Fall back to manually configured groups if auto-discovery fails
+      if (Array.isArray(config.groups) && config.groups.length > 0) {
+        groups = config.groups.map((g: any) => ({
+          group_id: String(g.group_id),
+          label: g.label || g.group_id,
+          asset_type_hint: g.asset_type_hint || 'auto',
+          field_map_overrides: Array.isArray(g.field_map_overrides) ? g.field_map_overrides : [],
+        }));
+      } else if (config.group_id) {
+        groups = [{ group_id: String(config.group_id), label: 'Asset Panda', asset_type_hint: 'auto', field_map_overrides: [] }];
+      }
+      if (groups.length === 0) {
+        return Response.json({ error: `Could not auto-discover groups: ${(discErr as Error).message}. Add group IDs manually in Settings → Asset Panda → Groups.` }, { status: 500 });
+      }
+    }
 
     // --- Helpers ---
     const fieldValue = (obj: any, key: string) => {
@@ -86,7 +115,7 @@ Deno.serve(async (req) => {
       return isNaN(num) ? null : num;
     };
 
-    // Core system fields + direct-copy fields (now includes cost_price, charge_out_price)
+    // Core system fields + direct-copy fields
     const CORE_FIELDS = new Set(['name', 'serial_number', 'daily_billing_rate', 'stock_level', 'asset_type', 'cost_price', 'charge_out_price']);
     const DIRECT_COPY_FIELDS = new Set([
       'storage_location', 'responsible_person', 'compliance_expiry_date', 'next_service_date',
@@ -113,6 +142,7 @@ Deno.serve(async (req) => {
     let totalDeactivated = 0;
     const allErrors: string[] = [];
     const groupResults: any[] = [];
+    const discoveredGroupConfigs: any[] = [];
 
     // --- Iterate each group ---
     for (const group of groups) {
@@ -120,7 +150,16 @@ Deno.serve(async (req) => {
       const groupLabel = group.label;
       const typeHint = group.asset_type_hint;
 
-      // Build the field map for this group: global field_map merged with per-group overrides
+      // --- Always fetch the group's field definitions for auto-mapping ---
+      let groupFields: { key: string; label: string }[] = [];
+      try {
+        groupFields = await fetchPandaGroupFields(baseUrl, token, groupId);
+      } catch (fieldsErr) {
+        console.error(`Could not fetch fields for group "${groupLabel}":`, (fieldsErr as Error).message);
+      }
+
+      // Build the field map for this group: start with legacy fixed fields, then
+      // auto-detect from the group's field labels, then apply custom overrides.
       let fieldMap: Record<string, string> = {
         name: config.field_name || '',
         serial: config.field_serial || '',
@@ -131,32 +170,22 @@ Deno.serve(async (req) => {
         charge_out_price: '',
       };
 
-      // Auto-detect unmapped core fields from the group's field labels
-      const missingMappings = Object.values(fieldMap).some((v) => !v);
-      if (missingMappings) {
-        try {
-          const fieldsRes = await fetch(`${baseUrl}/v3/groups/${groupId}/fields`, { headers: authHeaders });
-          if (fieldsRes.ok) {
-            const fieldsJson: any = await fieldsRes.json();
-            const fields = Array.isArray(fieldsJson) ? fieldsJson : (fieldsJson.fields || fieldsJson.data || []);
-            const findByLabel = (keywords: string[]) => {
-              const f = fields.find((f: any) => {
-                const label = String(f.label || f.name || '').toLowerCase();
-                return keywords.some((k) => label.includes(k));
-              });
-              return f ? String(f.key || f.id || f.field_key || '') : '';
-            };
-            if (!fieldMap.name) fieldMap.name = findByLabel(['name', 'title', 'asset name']);
-            if (!fieldMap.serial) fieldMap.serial = findByLabel(['serial', 'asset tag', 'tag', 'registration', 'reg']);
-            if (!fieldMap.daily_rate) fieldMap.daily_rate = findByLabel(['rate', 'billing', 'day rate']);
-            if (!fieldMap.stock_status) fieldMap.stock_status = findByLabel(['stock', 'condition', 'status', 'availability']);
-            if (!fieldMap.asset_type) fieldMap.asset_type = findByLabel(['type', 'category', 'class', 'group type']);
-            if (!fieldMap.cost_price) fieldMap.cost_price = findByLabel(['cost', 'cost price', 'purchase cost', 'internal cost']);
-            if (!fieldMap.charge_out_price) fieldMap.charge_out_price = findByLabel(['charge', 'charge out', 'sell', 'sale price', 'charge-out']);
-          }
-        } catch (fieldsErr) {
-          console.error('Could not fetch group fields:', (fieldsErr as Error).message);
-        }
+      // Auto-detect from field labels (now always runs, not just when missing)
+      if (groupFields.length > 0) {
+        const findByLabel = (keywords: string[]) => {
+          const f = groupFields.find((f) => {
+            const label = String(f.label || '').toLowerCase();
+            return keywords.some((k) => label.includes(k));
+          });
+          return f ? String(f.key || '') : '';
+        };
+        if (!fieldMap.name) fieldMap.name = findByLabel(['name', 'title', 'asset name', 'description']);
+        if (!fieldMap.serial) fieldMap.serial = findByLabel(['serial', 'asset tag', 'tag', 'registration', 'reg']);
+        if (!fieldMap.daily_rate) fieldMap.daily_rate = findByLabel(['rate', 'billing', 'day rate', 'daily rate']);
+        if (!fieldMap.stock_status) fieldMap.stock_status = findByLabel(['stock', 'condition', 'status', 'availability', 'state']);
+        if (!fieldMap.asset_type) fieldMap.asset_type = findByLabel(['type', 'category', 'class', 'group type', 'asset type']);
+        if (!fieldMap.cost_price) fieldMap.cost_price = findByLabel(['cost', 'cost price', 'purchase cost', 'internal cost', 'purchase price']);
+        if (!fieldMap.charge_out_price) fieldMap.charge_out_price = findByLabel(['charge', 'charge out', 'sell', 'sale price', 'charge-out', 'price']);
       }
 
       // Merge the custom field_map (global) + per-group overrides into the core map
@@ -190,6 +219,14 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Record the discovered group config for saving
+      discoveredGroupConfigs.push({
+        group_id: groupId,
+        label: groupLabel,
+        asset_type_hint: typeHint || 'auto',
+        field_map_overrides: group.field_map_overrides || [],
+      });
+
       // --- Paginate through all objects in this group ---
       let offset = 0;
       const limit = 100;
@@ -204,11 +241,11 @@ Deno.serve(async (req) => {
         });
         if (!objRes.ok) {
           const errBody = await objRes.text();
-          allErrors.push(`Group "${groupLabel}" search failed: ${errBody}`);
+          allErrors.push(`Group "${groupLabel}" search failed (HTTP ${objRes.status}): ${errBody.slice(0, 200)}`);
           break;
         }
         const objJson: any = await objRes.json();
-        const page = Array.isArray(objJson) ? objJson : (objJson.objects || objJson.data || objJson.results || []);
+        const page = Array.isArray(objJson) ? objJson : (objJson.objects || objJson.data || objJson.results || objJson.group_objects || []);
         allObjects = allObjects.concat(page);
         pages++;
         if (page.length < limit) break;
@@ -295,6 +332,7 @@ Deno.serve(async (req) => {
             await base44.asServiceRole.entities.SiteAsset.bulkUpdate(toUpdate.slice(i, i + 100));
           } catch (bulkErr) {
             console.error('bulkUpdate error:', (bulkErr as Error).message);
+            allErrors.push(`bulkUpdate batch failed: ${(bulkErr as Error).message}`);
           }
         }
       }
@@ -304,6 +342,7 @@ Deno.serve(async (req) => {
             await base44.asServiceRole.entities.SiteAsset.bulkCreate(toCreate.slice(i, i + 100));
           } catch (bulkErr) {
             console.error('bulkCreate error:', (bulkErr as Error).message);
+            allErrors.push(`bulkCreate batch failed: ${(bulkErr as Error).message}`);
           }
         }
       }
@@ -318,17 +357,17 @@ Deno.serve(async (req) => {
         created: groupCreated,
         updated: groupSynced,
         deactivated: groupDeactivated,
+        fields_detected: groupFields.length,
+        field_map: { ...fieldMap, ...extraMap },
       });
     }
 
     // --- Propose rate-card links for unmatched/proposed assets ---
-    // Load all rate card items (our company, active) and re-load synced assets.
     let proposedCount = 0;
     try {
       const rateCardItems = await base44.asServiceRole.entities.RateCardItem.list('-created_date', 500);
       const ourRates = rateCardItems.filter((r: any) => r.is_active !== false && r.rate_card_source !== 'supplier');
 
-      // Re-load assets to get the freshly created/updated ones with their IDs
       const refreshed = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
       const needsProposal = refreshed.filter(
         (a: any) =>
@@ -349,7 +388,6 @@ Deno.serve(async (req) => {
           });
           proposedCount++;
         } else if (!match && asset.rate_card_link_status === 'proposed') {
-          // Previously proposed but no longer matches — reset to unmatched
           toLinkUpdate.push({
             id: asset.id,
             rate_card_item_id: '',
@@ -370,7 +408,7 @@ Deno.serve(async (req) => {
       console.error('Link proposal failed:', (linkErr as Error).message);
     }
 
-    const summary = `${totalCreated} new, ${totalSynced} updated, ${totalDeactivated} deactivated, ${proposedCount} links proposed (${groups.length} groups).`;
+    const summary = `${totalCreated} new, ${totalSynced} updated, ${totalDeactivated} deactivated, ${proposedCount} links proposed (${groups.length} groups${autoDiscovered ? ' auto-discovered' : ''}).`;
     const status = allErrors.length === 0 ? 'success' : 'success';
 
     // --- Persist sync outcome on the config record (per-group + global) ---
@@ -381,10 +419,17 @@ Deno.serve(async (req) => {
         last_sync_status: status,
         api_token: token,
       };
-      // Update per-group last_sync fields
-      if (Array.isArray(config.groups) && config.groups.length > 0) {
+      // If auto-discovered, save the discovered groups so they show in Settings
+      if (autoDiscovered && discoveredGroupConfigs.length > 0) {
+        updateData.groups = discoveredGroupConfigs.map((g) => ({
+          group_id: g.group_id,
+          label: g.label,
+          asset_type_hint: g.asset_type_hint,
+          field_map_overrides: g.field_map_overrides || [],
+        }));
+      } else if (Array.isArray(config.groups) && config.groups.length > 0) {
         updateData.groups = config.groups.map((g: any) => {
-          const gr = groupResults.find((r) => r.group_id === g.group_id);
+          const gr = groupResults.find((r) => r.group_id === String(g.group_id));
           return {
             ...g,
             last_sync_at: now,
@@ -409,6 +454,7 @@ Deno.serve(async (req) => {
       synced: totalSynced,
       deactivated: totalDeactivated,
       proposedLinks: proposedCount,
+      auto_discovered: autoDiscovered,
       errors: allErrors,
       summary,
       synced_at: now,
