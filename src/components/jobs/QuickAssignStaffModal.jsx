@@ -40,6 +40,30 @@ export default function QuickAssignStaffModal({ open, onClose, job, allStaff = [
 
   const assignedStaffIds = useMemo(() => new Set(rotas.map(r => r.staff_id)), [rotas]);
 
+  const buildDateRange = (startStr, endStr) => {
+    const days = [];
+    let d = new Date(startStr + 'T00:00:00');
+    const end = new Date(endStr + 'T00:00:00');
+    while (d <= end) {
+      if (!skipWeekends || !isWeekend(d)) days.push(format(d, 'yyyy-MM-dd'));
+      d = addDays(d, 1);
+    }
+    return days;
+  };
+
+  const buildRecurringDates = (startStr, endStr, days) => {
+    const dates = [];
+    let d = new Date(startStr + 'T00:00:00');
+    const end = new Date(endStr + 'T00:00:00');
+    while (d <= end) {
+      const jsDay = d.getDay();
+      const patternDay = jsDay === 0 ? 7 : jsDay; // 1=Mon … 7=Sun
+      if (days.includes(patternDay)) dates.push(format(d, 'yyyy-MM-dd'));
+      d = addDays(d, 1);
+    }
+    return dates;
+  };
+
   // Conflict detection — fetch each selected staff member's rotas on OTHER jobs
   // and flag any that overlap with the dates we're about to assign.
   const { data: conflictMap = {} } = useQuery({
@@ -92,30 +116,6 @@ export default function QuickAssignStaffModal({ open, onClose, job, allStaff = [
 
   const toggleDay = (val) => {
     setWorkingDays(prev => prev.includes(val) ? prev.filter(d => d !== val) : [...prev, val].sort());
-  };
-
-  const buildDateRange = (startStr, endStr) => {
-    const days = [];
-    let d = new Date(startStr + 'T00:00:00');
-    const end = new Date(endStr + 'T00:00:00');
-    while (d <= end) {
-      if (!skipWeekends || !isWeekend(d)) days.push(format(d, 'yyyy-MM-dd'));
-      d = addDays(d, 1);
-    }
-    return days;
-  };
-
-  const buildRecurringDates = (startStr, endStr, days) => {
-    const dates = [];
-    let d = new Date(startStr + 'T00:00:00');
-    const end = new Date(endStr + 'T00:00:00');
-    while (d <= end) {
-      const jsDay = d.getDay();
-      const patternDay = jsDay === 0 ? 7 : jsDay; // 1=Mon … 7=Sun
-      if (days.includes(patternDay)) dates.push(format(d, 'yyyy-MM-dd'));
-      d = addDays(d, 1);
-    }
-    return dates;
   };
 
   const handleAssign = async () => {
