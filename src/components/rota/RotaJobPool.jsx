@@ -141,6 +141,7 @@ export default function RotaJobPool({ weekStart, embedded = false }) {
           week_start: ws,
           assignment_type: 'job',
           status: 'assigned',
+          division_id: activeDivisionId || null,
         }))
       );
       await queryClient.invalidateQueries({ queryKey: ['rotas'] });
