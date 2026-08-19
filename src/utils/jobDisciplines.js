@@ -28,6 +28,55 @@ export function getDisciplineConfig(typeKey) {
   };
 }
 
+// Sub-categories (crew types) available under each discipline. Lets you pick
+// the specific crew flavour for a track — e.g. Groundworks → Enabling Crew.
+// A discipline's sub_category is stored on the discipline entry and drives
+// crew matching downstream.
+export const DISCIPLINE_SUBCATEGORIES = {
+  drilling: [
+    { val: 'cp_crew', label: 'CP Crew' },
+    { val: 'rotary_crew', label: 'Rotary Crew' },
+    { val: 'mixed_crew', label: 'Mixed Crew' },
+  ],
+  groundworks: [
+    { val: 'enabling_crew', label: 'Enabling Crew' },
+    { val: 'coring_crew', label: 'Coring Crew' },
+    { val: 'trial_pit_crew', label: 'Trial Pit Crew' },
+    { val: 'general', label: 'General Groundworks' },
+  ],
+  enabling: [
+    { val: 'enabling_crew', label: 'Enabling Crew' },
+    { val: 'site_clearance', label: 'Site Clearance' },
+    { val: 'general', label: 'General' },
+  ],
+  enabling_works: [
+    { val: 'enabling_crew', label: 'Enabling Crew' },
+    { val: 'site_clearance', label: 'Site Clearance' },
+    { val: 'general', label: 'General' },
+  ],
+  coring: [
+    { val: 'coring_crew', label: 'Coring Crew' },
+    { val: 'general', label: 'General' },
+  ],
+  trial_pit: [
+    { val: 'trial_pit_crew', label: 'Trial Pit Crew' },
+    { val: 'general', label: 'General' },
+  ],
+  depot: [
+    { val: 'yard', label: 'Yard' },
+    { val: 'fitter', label: 'Fitter' },
+    { val: 'driver', label: 'Driver' },
+  ],
+  supervisor: [
+    { val: 'site_supervisor', label: 'Site Supervisor' },
+    { val: 'project_manager', label: 'Project Manager' },
+  ],
+};
+
+export function getDisciplineSubcategories(typeKey) {
+  return DISCIPLINE_SUBCATEGORIES[typeKey] || [];
+}
+
 /**
  * Returns the disciplines array for a job. Falls back to a single-entry
  * array derived from the legacy job_type if the disciplines array is empty,

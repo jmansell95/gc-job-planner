@@ -4,7 +4,7 @@ import {
   User, Briefcase, Star, X, Plus, ChevronDown, ChevronRight,
   Sparkles,
 } from 'lucide-react';
-import { DISCIPLINE_CONFIG, getDisciplineConfig } from '@/utils/jobDisciplines';
+import { DISCIPLINE_CONFIG, getDisciplineConfig, getDisciplineSubcategories } from '@/utils/jobDisciplines';
 
 /**
  * DisciplineBuilder — a visual, expandable multi-discipline picker for the
@@ -78,6 +78,7 @@ export default function DisciplineBuilder({ disciplines, onChange, teams = [] })
       type,
       status: 'planning',
       drilling_method: type === 'drilling' ? 'cp' : 'not_applicable',
+      sub_category: '',
       required_team_ids: [],
     };
     onChange([...items, newDisc]);
@@ -191,6 +192,10 @@ export default function DisciplineBuilder({ disciplines, onChange, teams = [] })
                     </div>
                     <p className="text-[11px] text-slate-400 mt-0.5">
                       {d.status === 'active' ? '🟢 Active track' : d.status === 'completed' ? '✅ Completed' : d.status === 'on_hold' ? '⏸ On hold' : '📋 Planning'}
+                      {d.sub_category && (() => {
+                        const sub = getDisciplineSubcategories(d.type).find(s => s.val === d.sub_category);
+                        return sub ? <span className="ml-1.5">· {sub.label}</span> : null;
+                      })()}
                       {d.type === 'drilling' && d.drilling_method && d.drilling_method !== 'not_applicable' && (
                         <span className="ml-1.5">· {d.drilling_method.toUpperCase()}</span>
                       )}
@@ -251,6 +256,34 @@ export default function DisciplineBuilder({ disciplines, onChange, teams = [] })
                         ))}
                       </div>
                     </div>
+
+                    {/* Sub-category / crew type — e.g. Groundworks → Enabling Crew */}
+                    {(() => {
+                      const subs = getDisciplineSubcategories(d.type);
+                      if (subs.length === 0) return null;
+                      return (
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Crew Type</label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {subs.map((s) => (
+                              <button
+                                key={s.val}
+                                type="button"
+                                onClick={() => updateDiscipline(i, { sub_category: d.sub_category === s.val ? '' : s.val })}
+                                className={`text-xs px-2.5 py-1 rounded-full border font-medium transition ${
+                                  d.sub_category === s.val
+                                    ? `${tone.bar} text-white border-transparent`
+                                    : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                                }`}
+                              >
+                                {s.label}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-1">Pick the crew flavour for this track — e.g. an Enabling Crew under Groundworks.</p>
+                        </div>
+                      );
+                    })()}
 
                     {/* Drilling method (only for drilling type) */}
                     {d.type === 'drilling' && (

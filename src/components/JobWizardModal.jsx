@@ -10,7 +10,7 @@ import {
 import ProjectSelect from '@/components/ProjectSelect';
 import SubcontractorAssignments from '@/components/SubcontractorAssignments';
 import DisciplineBuilder from '@/components/disciplines/DisciplineBuilder';
-import { getJobDisciplines } from '@/utils/jobDisciplines';
+import { getJobDisciplines, getDisciplineSubcategories } from '@/utils/jobDisciplines';
 import { getJobTypeColor, isDrillingJobType } from '@/utils/jobTeams';
 import { useDivision } from '@/contexts/DivisionContext';
 
@@ -18,11 +18,10 @@ const inputCls = "w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ou
 
 const STEPS = [
   { id: 1, label: 'Identity', icon: Briefcase },
-  { id: 2, label: 'Required Teams', icon: Users },
-  { id: 3, label: 'Schedule & Contacts', icon: CalendarDays },
-  { id: 4, label: 'Billing', icon: Receipt },
-  { id: 5, label: 'Sub-Contractors', icon: Building2 },
-  { id: 6, label: 'Review', icon: Check },
+  { id: 2, label: 'Schedule & Contacts', icon: CalendarDays },
+  { id: 3, label: 'Billing', icon: Receipt },
+  { id: 4, label: 'Sub-Contractors', icon: Building2 },
+  { id: 5, label: 'Review', icon: Check },
 ];
 
 const REVENUE_METHODS = [
@@ -68,7 +67,6 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
 
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list(), enabled: open });
   const { data: contractors = [] } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list(), enabled: open });
-  const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list(), enabled: open });
   const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order'), enabled: open });
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 200), enabled: open });
 
@@ -107,8 +105,6 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
   if (!open) return null;
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
-  const selectedTeamIds = Array.isArray(form.required_team_ids) ? form.required_team_ids : [];
-  const toggleTeam = (id) => set('required_team_ids', selectedTeamIds.includes(id) ? selectedTeamIds.filter(t => t !== id) : [...selectedTeamIds, id]);
 
   // Apply a job type template — pre-fills the form with the type's defaults
   const applyTemplate = (jobType) => {
@@ -134,18 +130,18 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
     });
   };
 
-  const isDrilling = isDrillingJobType(form.job_type, jobTypes) || form.drilling_method !== 'not_applicable' || teams.some(t => selectedTeamIds.includes(t.id) && isDrillingJobType(t.job_type, jobTypes));
+  const isDrilling = isDrillingJobType(form.job_type, jobTypes) || form.drilling_method !== 'not_applicable';
 
   const stepValid = () => {
     if (step === 1) return !!form.name?.trim() && !!form.location?.trim();
-    if (step === 3) return !!form.start_date && !!form.end_date && new Date(form.end_date) >= new Date(form.start_date);
-    if (step === 4) {
+    if (step === 2) return !!form.start_date && !!form.end_date && new Date(form.end_date) >= new Date(form.start_date);
+    if (step === 3) {
       // Validate billing-specific required fields
       if (form.revenue_method === 'flat_fee' && !form.client_charge) return false;
       if (form.revenue_method === 'unit_rate' && !form.unit_price) return false;
       return true;
     }
-    // Step 4 (Sub-Contractors) is always valid — optional
+    // Sub-Contractors & Review are always valid
     return true;
   };
 
@@ -183,6 +179,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
         clean.disciplines = clean.disciplines.map((d, i) => ({
           type: d.type,
           status: d.status || 'planning',
+          sub_category: d.sub_category || undefined,
           drilling_method: d.drilling_method || (i === 0 ? clean.drilling_method : 'not_applicable') || 'not_applicable',
           start_date: d.start_date || clean.start_date,
           end_date: d.end_date || clean.end_date,
@@ -424,33 +421,8 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                 </div>
               )}
 
-              {/* STEP 2 — Required Teams */}
+              {/* STEP 2 — Schedule & Contacts */}
               {step === 2 && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Required Teams <span className="text-xs text-slate-400 font-normal">· who can be assigned to this job</span></label>
-                    {teams.length === 0 ? (
-                      <p className="text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">No teams yet — add them in Settings.</p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {teams.map(t => {
-                          const selected = selectedTeamIds.includes(t.id);
-                          return (
-                            <button type="button" key={t.id} onClick={() => toggleTeam(t.id)}
-                              className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition font-medium ${selected ? 'bg-[#2E5A1A] text-white border-[#2E5A1A]' : 'bg-white border-slate-200 text-slate-600 hover:border-[#2E5A1A]/40'}`}>
-                              <Users className="w-3 h-3" />{t.name}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                    <p className="text-[11px] text-slate-400 mt-2">Staff outside these teams will see a soft warning when assigned to this job.</p>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 3 — Schedule & Contacts */}
-              {step === 3 && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -525,8 +497,8 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                 </div>
               )}
 
-              {/* STEP 4 — Billing & Financials */}
-              {step === 4 && (
+              {/* STEP 3 — Billing & Financials */}
+              {step === 3 && (
                 <div className="space-y-4">
                   {/* Revenue method selector — the key field */}
                   <div>
@@ -689,8 +661,8 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                 </div>
               )}
 
-              {/* STEP 5 — Sub-Contractors */}
-              {step === 5 && (
+              {/* STEP 4 — Sub-Contractors */}
+              {step === 4 && (
                 <SubcontractorAssignments
                   assignments={subAssignments}
                   onChange={setSubAssignments}
@@ -698,8 +670,8 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                 />
               )}
 
-              {/* STEP 6 — Review */}
-              {step === 6 && (
+              {/* STEP 5 — Review */}
+              {step === 5 && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-[#2E5A1A]">
                     <Sparkles className="w-4 h-4" />
@@ -711,11 +683,13 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                     <ReviewRow label="Client" value={clients.find(c => c.id === form.client_id)?.name} />
                     <ReviewRow label="Project" value={projects.find(p => p.id === form.project_id)?.name} />
                     <ReviewRow label="Schedule" value={form.start_date && form.end_date ? `${fmtDate(form.start_date)} → ${fmtDate(form.end_date)}` : ''} />
-                    <ReviewRow label="Teams" value={selectedTeamIds.map(id => teams.find(t => t.id === id)?.name).filter(Boolean).join(', ')} />
                     <ReviewRow label="Billing Method" value={methodLabel} highlight />
                     <ReviewRow label="Drilling Method" value={{ cp: 'Cable Percussion', rotary: 'Rotary', mixed: 'Mixed', not_applicable: 'N/A' }[form.drilling_method] || 'N/A'} />
                     {(form.disciplines || []).length > 0 && (
-                      <ReviewRow label="Disciplines" value={(form.disciplines || []).map((d, i) => `${i === 0 ? '★ ' : ''}${d.type.replace(/_/g, ' ')}`).join(' · ')} highlight />
+                      <ReviewRow label="Disciplines" value={(form.disciplines || []).map((d, i) => {
+                        const sub = d.sub_category ? getDisciplineSubcategories(d.type).find(s => s.val === d.sub_category) : null;
+                        return `${i === 0 ? '★ ' : ''}${d.type.replace(/_/g, ' ')}${sub ? ` (${sub.label})` : ''}`;
+                      }).join(' · ')} highlight />
                     )}
                     {form.revenue_method === 'meterage_rate' && <ReviewRow label="Metre Rate" value={form.meterage_rate ? `£${form.meterage_rate}/m` : 'Auto from rate card'} />}
                     {form.revenue_method === 'meterage_rate' && <ReviewRow label="Target" value={form.meterage_target ? `${form.meterage_target}m` : '—'} />}
@@ -764,7 +738,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" /> Live Snapshot
               </p>
-              <JobSnapshotCard form={form} clients={clients} teams={teams} jobTypes={jobTypes} projects={projects} fmtDate={fmtDate} methodLabel={methodLabel} />
+              <JobSnapshotCard form={form} clients={clients} jobTypes={jobTypes} projects={projects} fmtDate={fmtDate} methodLabel={methodLabel} />
             </div>
           </div>
         </div>
@@ -776,7 +750,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
               <ChevronLeft className="w-4 h-4" /> Back
             </button>
           )}
-          {step < 6 ? (
+          {step < 5 ? (
             <button type="button" onClick={() => stepValid() && setStep(step + 1)} disabled={!stepValid()} className="flex-1 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] transition disabled:opacity-40 flex items-center justify-center gap-1.5">
               Continue <ChevronRight className="w-4 h-4" />
             </button>
@@ -846,11 +820,10 @@ function GeocodeButton({ address, onResult }) {
   );
 }
 
-function JobSnapshotCard({ form, clients, teams, jobTypes, projects, fmtDate, methodLabel }) {
+function JobSnapshotCard({ form, clients, jobTypes, projects, fmtDate, methodLabel }) {
   const client = clients.find(c => c.id === form.client_id);
   const project = projects.find(p => p.id === form.project_id);
   const color = getJobTypeColor(form.job_type, jobTypes);
-  const selectedTeamIds = Array.isArray(form.required_team_ids) ? form.required_team_ids : [];
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -884,14 +857,6 @@ function JobSnapshotCard({ form, clients, teams, jobTypes, projects, fmtDate, me
           {form.revenue_method === 'flat_fee' && form.client_charge && <p className="text-[10px] text-slate-400">{`£${form.client_charge} flat fee`}</p>}
           {form.revenue_method === 'none' && form.markup_percentage && <p className="text-[10px] text-slate-400">{`${form.markup_percentage}% markup`}</p>}
         </div>
-        {selectedTeamIds.length > 0 && (
-          <div className="flex flex-wrap gap-1 pt-1">
-            {selectedTeamIds.slice(0, 4).map(id => {
-              const t = teams.find(t => t.id === id);
-              return t ? <span key={id} className="text-[10px] bg-[#2E5A1A]/10 text-[#2E5A1A] px-1.5 py-0.5 rounded-full font-medium">{t.name}</span> : null;
-            })}
-          </div>
-        )}
       </div>
     </div>
   );
