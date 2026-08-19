@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ChevronDown, Search, Check, Receipt, Factory, ShieldCheck, ShieldAlert, ShieldX, Tag } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { fmt } from './shared';
-import { findOwnedAssetRateCardItem } from '@/components/logistics/rigRateMatcher';
+import { resolveAssetPrice } from '@/components/logistics/rigRateMatcher';
 
 const complianceMeta = {
   compliant: { icon: ShieldCheck, cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
@@ -30,8 +30,12 @@ export default function OwnedItemPicker({ value, onChange, rateCardGroups = [], 
       for (const g of assetGroups) {
         const a = g.items.find((i) => i.id === id);
         if (a) {
-          const rc = findOwnedAssetRateCardItem(a, rateCardItems);
-          const priceText = rc && rc.price != null ? `${fmt(rc.price)}${rc.unit ? `/${rc.unit}` : '/day'}` : (a.daily_billing_rate != null ? `${fmt(a.daily_billing_rate)}/day` : 'no rate');
+          const price = resolveAssetPrice(a, rateCardItems);
+          const priceText = price.source === 'rate-card'
+            ? `${fmt(price.chargeOut)}${price.unit ? `/${price.unit}` : '/day'}`
+            : price.source === 'asset-panda'
+            ? `${fmt(price.chargeOut)}/day (AP)`
+            : 'no rate';
           return { name: a.name, sub: `${priceText}${a.serial_number ? ` · ${a.serial_number}` : ''}` };
         }
       }
@@ -122,8 +126,13 @@ export default function OwnedItemPicker({ value, onChange, rateCardGroups = [], 
               <div className="divide-y divide-slate-50">
                 {g.items.map((a) => {
                   const sel = value === `ap-${a.id}`;
-                  const rc = findOwnedAssetRateCardItem(a, rateCardItems);
-                  const priceText = rc && rc.price != null ? `${fmt(rc.price)}${rc.unit ? `/${rc.unit}` : '/day'}` : (a.daily_billing_rate != null ? `${fmt(a.daily_billing_rate)}/day` : 'no rate');
+                  const price = resolveAssetPrice(a, rateCardItems);
+                  const priceText = price.source === 'rate-card'
+                    ? `${fmt(price.chargeOut)}${price.unit ? `/${price.unit}` : '/day'}`
+                    : price.source === 'asset-panda'
+                    ? `${fmt(price.chargeOut)}/day`
+                    : 'no rate';
+                  const isAP = price.source === 'asset-panda';
                   const comp = complianceMeta[a.compliance_status];
                   const CompIcon = comp?.icon;
                   return (
@@ -134,6 +143,9 @@ export default function OwnedItemPicker({ value, onChange, rateCardGroups = [], 
                         <p className="text-sm font-medium text-slate-800 truncate">{a.name}</p>
                         <p className="text-[11px] text-slate-400 truncate">{a.serial_number ? `${a.serial_number} · ` : ''}{priceText}</p>
                       </div>
+                      {isAP && (
+                        <span className="text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full flex-shrink-0">AP</span>
+                      )}
                       {comp && (
                         <span className={`inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium border flex-shrink-0 ${comp.cls}`}>
                           {CompIcon && <CompIcon className="w-2.5 h-2.5" />} {a.compliance_status}

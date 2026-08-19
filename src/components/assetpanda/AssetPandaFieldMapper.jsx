@@ -12,6 +12,8 @@ const SYSTEM_FIELDS = [
   { value: 'asset_type', label: 'Asset Type' },
   { value: 'stock_level', label: 'Stock / Condition Status' },
   { value: 'daily_billing_rate', label: 'Daily Billing Rate' },
+  { value: 'cost_price', label: 'Cost Price (internal cost)' },
+  { value: 'charge_out_price', label: 'Charge-Out Price (sell)' },
   { value: 'storage_location', label: 'Storage Location' },
   { value: 'responsible_person', label: 'Responsible Person' },
   { value: 'compliance_expiry_date', label: 'Compliance Expiry Date' },

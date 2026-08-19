@@ -4,7 +4,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Database, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import AssetPandaCredentials from '@/components/assetpanda/AssetPandaCredentials';
+import AssetPandaGroups from '@/components/assetpanda/AssetPandaGroups';
 import AssetPandaFieldMapper from '@/components/assetpanda/AssetPandaFieldMapper';
+import AssetPandaLinkReview from '@/components/assetpanda/AssetPandaLinkReview';
 import AssetPandaWebhookSection from '@/components/assetpanda/AssetPandaWebhookSection';
 import AssetPandaSyncStatus from '@/components/assetpanda/AssetPandaSyncStatus';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
@@ -16,6 +18,7 @@ export default function AssetPandaSettings() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     api_token: '', email: '', password: '', base_url: 'https://api.assetpanda.com', group_id: '',
+    groups: [],
     field_name: '', field_serial: '', field_daily_rate: '', field_stock_status: '', field_asset_type: '',
     field_map: [], webhook_secret: '',
     auto_deactivate: true,
@@ -35,6 +38,7 @@ export default function AssetPandaSettings() {
         password: config.password || '',
         base_url: config.base_url || 'https://api.assetpanda.com',
         group_id: config.group_id || '',
+        groups: config.groups || [],
         field_name: config.field_name || '',
         field_serial: config.field_serial || '',
         field_daily_rate: config.field_daily_rate || '',
@@ -100,7 +104,7 @@ export default function AssetPandaSettings() {
     setSyncing(false);
   };
 
-  const ready = !!(form.group_id && (form.api_token || (form.email && form.password)));
+  const ready = !!((form.group_id || (form.groups || []).some(g => g.group_id)) && (form.api_token || (form.email && form.password)));
 
   return (
     <div className="space-y-5">
@@ -118,7 +122,9 @@ export default function AssetPandaSettings() {
       />
 
       <AssetPandaCredentials form={form} setForm={setForm} config={config} onSave={handleSave} saving={saving} />
+      <AssetPandaGroups form={form} setForm={setForm} config={config} onSave={handleSave} saving={saving} />
       <AssetPandaFieldMapper form={form} setForm={setForm} config={config} onSave={handleSave} saving={saving} />
+      <AssetPandaLinkReview />
       <AssetPandaWebhookSection form={form} setForm={setForm} config={config} onSave={handleSave} saving={saving} />
       <AssetPandaSyncStatus assets={assets} config={config} isLoading={isLoading} lastSync={lastSync} />
     </div>

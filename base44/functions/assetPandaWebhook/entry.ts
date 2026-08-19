@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { findBestRateCardMatch } from '../../shared/assetPandaRateMatcher.ts';
 
 // ---------------------------------------------------------------------------
 // assetPandaWebhook — receives flow events from Asset Panda and applies them
@@ -12,13 +13,16 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 //   object_id / id / asset_id / data.id  — the Asset Panda object id
 //   serial_number / serial               — fallback match by serial
 //   action / event / flow_action / type  — the flow action (deactivate,
-//                                           activate, compliance, etc.)
+//                                           activate, compliance, cost_change, etc.)
 //   stock_level / status                 — new stock / condition status
 //   compliance_status                    — compliance flag to apply
+//   cost_price / charge_out_price        — new cost / charge-out values
 //
 // The function resolves the SiteAsset by panda_asset_id → serial, applies the
-// recognised action (stock-level change, deactivation, compliance flag), and
-// logs a SystemAuditLog entry so the change is traceable on the Assets Hub.
+// recognised action (stock-level change, deactivation, compliance flag, cost
+// change), and logs a SystemAuditLog entry. On a cost change, it re-runs the
+// rate-card auto-match for that asset and flags it for re-review if the link
+// is now stale (previously confirmed link no longer matches by name).
 // ---------------------------------------------------------------------------
 export default async function (req: Request): Promise<Response> {
   try {
@@ -134,6 +138,62 @@ export default async function (req: Request): Promise<Response> {
       update.compliance_status = 'expiring';
       changes.push('compliance_status');
       auditNote += ' → compliance: expiring';
+    }
+
+    // Cost change — update cost_price / charge_out_price and re-match the rate card link
+    const newCost = payload.cost_price ?? payload.data?.cost_price;
+    const newChargeOut = payload.charge_out_price ?? payload.data?.charge_out_price;
+    const isCostChange =
+      action.includes('cost') ||
+      action.includes('price') ||
+      action.includes('rate') ||
+      newCost != null ||
+      newChargeOut != null;
+    if (isCostChange) {
+      if (newCost != null) {
+        const num = Number(String(newCost).replace(/[^0-9.]/g, ''));
+        if (!isNaN(num)) {
+          update.cost_price = num;
+          changes.push('cost_price');
+          auditNote += ` → cost: ${num}`;
+        }
+      }
+      if (newChargeOut != null) {
+        const num = Number(String(newChargeOut).replace(/[^0-9.]/g, ''));
+        if (!isNaN(num)) {
+          update.charge_out_price = num;
+          changes.push('charge_out_price');
+          auditNote += ` → charge-out: ${num}`;
+        }
+      }
+      // Re-run the rate-card auto-match. If the asset had a confirmed link but
+      // the name no longer matches, flag it for re-review (back to 'proposed').
+      // Never auto-change a confirmed link — just flag it as proposed so the
+      // admin can re-confirm or change it in the Review Links screen.
+      try {
+        const rateCardItems = await sr.entities.RateCardItem.list('-created_date', 500);
+        const ourRates = rateCardItems.filter((r: any) => r.is_active !== false && r.rate_card_source !== 'supplier');
+        const match = findBestRateCardMatch(asset, ourRates, asset.division_id);
+        if (asset.rate_card_link_status === 'confirmed' || asset.rate_card_link_status === 'skipped') {
+          // Confirmed/skipped links are preserved — only flag for re-review if
+          // the best match now points to a different rate card item.
+          if (match && match.id !== asset.rate_card_item_id) {
+            update.rate_card_link_status = 'proposed';
+            update.rate_card_item_id = match.id;
+            changes.push('rate_card_link_status', 'rate_card_item_id');
+            auditNote += ' → link flagged for re-review';
+          }
+        } else if (match) {
+          // Unmatched/proposed — update with the latest best match.
+          update.rate_card_link_status = 'proposed';
+          update.rate_card_item_id = match.id;
+          changes.push('rate_card_link_status', 'rate_card_item_id');
+          auditNote += ' → link proposed';
+        }
+      } catch (matchErr) {
+        // re-match is best-effort — don't fail the webhook
+        console.error('Re-match failed:', (matchErr as Error).message);
+      }
     }
 
     await sr.entities.SiteAsset.update(asset.id, update);

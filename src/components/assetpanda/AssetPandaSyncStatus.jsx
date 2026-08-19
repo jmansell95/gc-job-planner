@@ -61,8 +61,8 @@ export default function AssetPandaSyncStatus({ assets, config, isLoading, lastSy
         <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
         <div className="text-sm text-blue-800 space-y-1">
           <p className="font-semibold">How the sync works</p>
-          <p className="text-blue-700">Asset Panda is the single source of truth for your inventory. The sync pulls each asset's name, serial number, stock level and daily billing rate into your Site Assets catalogue, auto-classifies rigs, and can auto-deactivate any item flagged as <em>out of stock</em> or <em>needs service</em> so it can't be added to a job.</p>
-          <p className="text-blue-700 text-xs">Enter your credentials above, then click <strong>Sync Now</strong>. Field mappings are optional — the sync auto-detects them from your Asset Panda group's field labels.</p>
+          <p className="text-blue-700">Asset Panda is the single source of truth for your inventory. The sync pulls each asset's name, serial, stock level and cost from every configured group into your asset catalogue, auto-classifies rigs, and can auto-deactivate any item flagged as <em>out of stock</em> or <em>needs service</em>. Costs flow into the billable-items catalogue on jobs — the Master Price List rate card takes precedence when a link is confirmed; the Asset Panda cost is the fallback.</p>
+          <p className="text-blue-700 text-xs">Add your groups above, enter credentials, then click <strong>Sync Now</strong>. After syncing, review the proposed rate-card links so the rate card price wins for matched assets.</p>
         </div>
       </div>
 
@@ -91,12 +91,12 @@ export default function AssetPandaSyncStatus({ assets, config, isLoading, lastSy
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-slate-900 truncate">{a.name}</p>
                     <p className="text-xs text-slate-400 truncate">
-                      {a.serial_number || 'No serial'}{a.is_rig ? ' · Rig' : ''}
+                      {a.serial_number || 'No serial'}{a.is_rig ? ' · Rig' : ''}{a.panda_group_label ? ` · ${a.panda_group_label}` : ''}
                     </p>
                   </div>
-                  {a.daily_billing_rate != null && (
+                  {a.cost_price != null && (
                     <span className="text-xs font-semibold text-emerald-700 flex-shrink-0">
-                      £{Number(a.daily_billing_rate).toFixed(0)}/day
+                      £{Number(a.cost_price).toFixed(0)}
                     </span>
                   )}
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${sb.cls}`}>{sb.label}</span>

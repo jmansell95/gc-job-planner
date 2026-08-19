@@ -25,7 +25,77 @@
     },
     "group_id": {
       "type": "string",
-      "description": "Asset Panda group (entity) ID whose objects represent the inventory to sync. Find this in Asset Panda under the group's settings."
+      "description": "DEPRECATED \u2014 use groups. Legacy single group ID. Kept for backward compatibility; when groups is empty, the sync treats this as a single-entry group."
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "description": "Asset Panda group (entity) ID whose objects represent the inventory to sync for this group."
+          },
+          "label": {
+            "type": "string",
+            "description": "Friendly label for this group shown in Settings and on asset records (e.g. 'Rigs', 'Lifting Gear', 'PAT Equipment')."
+          },
+          "asset_type_hint": {
+            "type": "string",
+            "enum": [
+              "rig",
+              "machinery",
+              "trailer",
+              "vehicle",
+              "lifting",
+              "portable_appliance",
+              "auto"
+            ],
+            "default": "auto",
+            "description": "Hint for the asset_type of objects in this group. 'auto' = detect from the object's name/type fields. When set to a specific type, all objects in this group are classified as that type unless the object's own type field overrides it."
+          },
+          "field_map_overrides": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "system_field": {
+                  "type": "string",
+                  "description": "The SiteAsset system field name to map to."
+                },
+                "panda_field_key": {
+                  "type": "string",
+                  "description": "The Asset Panda field key that holds the value for this system field."
+                },
+                "panda_field_label": {
+                  "type": "string",
+                  "description": "The human-readable label of the Asset Panda field."
+                }
+              },
+              "required": [
+                "system_field",
+                "panda_field_key"
+              ]
+            },
+            "default": [],
+            "description": "Per-group field-map overrides. When empty, the global field_map is used for this group. When set, these override the global field_map for objects in this group only (merged: global first, then overrides replace matching system_field keys)."
+          },
+          "last_sync_at": {
+            "type": "string",
+            "description": "ISO timestamp of the last successful sync run for this group."
+          },
+          "last_sync_summary": {
+            "type": "string",
+            "description": "Short human-readable summary of the last sync result for this group."
+          }
+        },
+        "required": [
+          "group_id",
+          "label"
+        ]
+      },
+      "default": [],
+      "description": "Multiple Asset Panda groups within one database. Each entry syncs its objects into SiteAsset records, tagged with the group label (panda_group_label) so the Assets Hub can filter by source group. When empty, the legacy group_id is used as a single group (backward compatible)."
     },
     "field_name": {
       "type": "string",
@@ -54,7 +124,7 @@
         "properties": {
           "system_field": {
             "type": "string",
-            "description": "The SiteAsset system field name to map to (e.g. 'name', 'serial_number', 'storage_location', 'compliance_expiry_date')."
+            "description": "The SiteAsset system field name to map to (e.g. 'name', 'serial_number', 'storage_location', 'compliance_expiry_date', 'cost_price')."
           },
           "panda_field_key": {
             "type": "string",
@@ -71,7 +141,7 @@
         ]
       },
       "default": [],
-      "description": "Full custom field map \u2014 maps any Asset Panda field to any SiteAsset system field. Configured visually in Settings \u2192 Asset Panda \u2192 Field Mapping. Takes precedence over the legacy fixed field_* mappings. The sync applies core fields (name, serial, type, stock, rate) with their specialised parsing, and applies all other mapped fields as direct copies."
+      "description": "Full custom field map \u2014 maps any Asset Panda field to any SiteAsset system field. Configured visually in Settings \u2192 Asset Panda \u2192 Field Mapping. Takes precedence over the legacy fixed field_* mappings. The sync applies core fields (name, serial, type, stock, cost) with their specialised parsing, and applies all other mapped fields as direct copies. Map an Asset Panda field to 'cost_price' to pull each asset's cost into the system for the billable-items catalogue."
     },
     "webhook_secret": {
       "type": "string",

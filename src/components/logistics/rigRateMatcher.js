@@ -149,22 +149,51 @@ export function findOwnedAssetRateCardItem(asset, rateCardItems = [], projectId 
 }
 
 /**
- * Resolve the billing price for an owned asset from the Master Price List (Our Rate Card).
- * Asset Panda is for inventory/stock only — it is NOT a pricing source.
+ * Resolve the billing price for an owned asset.
  *
- * Returns { cost, unit, rateCardItem, source } where source is
- * 'rate-card' | 'none'.
+ * Price precedence (per the Asset Panda cost-linkage spec):
+ *   1. Confirmed rate-card link (asset.rate_card_item_id + status 'confirmed')
+ *      → rate card price wins.
+ *   2. Proposed rate-card link (status 'proposed') — the auto-match is a link
+ *      too, so the rate card price wins unless the admin skips it.
+ *   3. Fuzzy name match at pick time (findOwnedAssetRateCardItem) — rate card
+ *      wins for any asset with a matching rate card item.
+ *   4. Asset Panda cost_price / charge_out_price — the fallback when there is
+ *      no rate card match (or the admin explicitly skipped the proposed link).
+ *   5. Zero (no price available).
+ *
+ * Returns { cost, chargeOut, unit, rateCardItem, source } where source is
+ * 'rate-card' | 'asset-panda' | 'none'.
  */
 export function resolveAssetPrice(asset, rateCardItems = [], projectId = null) {
   if (!asset) return { cost: 0, chargeOut: 0, unit: 'day', rateCardItem: null, source: 'none' };
 
-  const rc = findOwnedAssetRateCardItem(asset, rateCardItems, projectId);
-  if (rc && rc.price != null) {
-    // cost = internal cost (cost_price if set, else charge-out price as fallback)
-    // chargeOut = what we bill the client (price)
-    const cost = rc.cost_price != null ? Number(rc.cost_price) || 0 : Number(rc.price) || 0;
-    return { cost, chargeOut: Number(rc.price) || 0, unit: rc.unit || 'day', rateCardItem: rc, source: 'rate-card' };
+  // 1 & 2 — confirmed or proposed link on the asset record
+  const linkStatus = asset.rate_card_link_status;
+  if ((linkStatus === 'confirmed' || linkStatus === 'proposed') && asset.rate_card_item_id) {
+    const rc = (rateCardItems || []).find((r) => r.id === asset.rate_card_item_id);
+    if (rc && rc.price != null) {
+      const cost = rc.cost_price != null ? Number(rc.cost_price) || 0 : Number(rc.price) || 0;
+      return { cost, chargeOut: Number(rc.price) || 0, unit: rc.unit || 'day', rateCardItem: rc, source: 'rate-card' };
+    }
   }
 
+  // 3 — fuzzy name match (skipped assets bypass this — admin chose AP cost)
+  if (linkStatus !== 'skipped') {
+    const rc = findOwnedAssetRateCardItem(asset, rateCardItems, projectId);
+    if (rc && rc.price != null) {
+      const cost = rc.cost_price != null ? Number(rc.cost_price) || 0 : Number(rc.price) || 0;
+      return { cost, chargeOut: Number(rc.price) || 0, unit: rc.unit || 'day', rateCardItem: rc, source: 'rate-card' };
+    }
+  }
+
+  // 4 — Asset Panda cost as fallback
+  const apCost = asset.cost_price != null ? Number(asset.cost_price) || 0 : 0;
+  const apCharge = asset.charge_out_price != null ? Number(asset.charge_out_price) || 0 : apCost;
+  if (apCost > 0 || apCharge > 0) {
+    return { cost: apCost, chargeOut: apCharge, unit: 'day', rateCardItem: null, source: 'asset-panda' };
+  }
+
+  // 5 — no price
   return { cost: 0, chargeOut: 0, unit: 'day', rateCardItem: null, source: 'none' };
 }

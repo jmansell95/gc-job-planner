@@ -61,9 +61,36 @@
       "type": "string",
       "description": "ID of this asset in Asset Panda \u2014 used by the scheduled sync to match inventory records and pull live stock levels and warehouse locations."
     },
+    "panda_group_label": {
+      "type": "string",
+      "description": "Label of the Asset Panda group this asset was synced from (e.g. 'Rigs', 'Lifting Gear'). Set during multi-group sync so the Assets Hub can filter assets by their source group. Blank for manually-created assets and legacy single-group syncs."
+    },
     "daily_billing_rate": {
       "type": "number",
       "description": "DEPRECATED \u2014 do not use for billing. Asset Panda is for inventory stock levels and warehouse locations only, not pricing. All rig, crew, plant and labour prices come from the Master Price List (RateCardItem) via the rate card matcher. This field is retained for backward compatibility only."
+    },
+    "cost_price": {
+      "type": "number",
+      "description": "Internal cost price for this asset in GBP, pulled from Asset Panda via the mapped 'cost_price' field. Used as the fallback price in the billable-items catalogue when no rate card item is linked. The rate card (Master Price List) always takes precedence over this value when a link is confirmed."
+    },
+    "charge_out_price": {
+      "type": "number",
+      "description": "Optional charge-out (sell) price for this asset in GBP, pulled from Asset Panda. When set and no rate card item is linked, this is shown as the charge-out in the billable-items catalogue. Most pricing should come from the rate card; this is a fallback for assets with no rate card match."
+    },
+    "rate_card_item_id": {
+      "type": "string",
+      "description": "Linked RateCardItem from the Master Price List. Set automatically as a 'proposed' match during sync (fuzzy name match), then confirmed by an admin in Settings \u2192 Asset Panda \u2192 Review Links. Once confirmed, the rate card price takes precedence over the Asset Panda cost_price in the billable-items catalogue. Blank for assets with no rate card match."
+    },
+    "rate_card_link_status": {
+      "type": "string",
+      "enum": [
+        "unmatched",
+        "proposed",
+        "confirmed",
+        "skipped"
+      ],
+      "default": "unmatched",
+      "description": "Status of the rate-card link for this asset. 'unmatched' = no proposed match found, 'proposed' = auto-match awaiting admin confirmation, 'confirmed' = admin confirmed the link (rate card price wins), 'skipped' = admin chose to skip the proposed match and use the Asset Panda cost as the fallback."
     },
     "stock_level": {
       "type": "string",
