@@ -173,6 +173,25 @@ export default function AutoFinancialsBreakdown({ job }) {
         </div>
       )}
 
+      {/* === REVENUE RECONCILIATION CHECK === */}
+      {(() => {
+        const componentSum = (s.meterage_revenue || 0) + (s.sor_revenue || 0) + (s.additional_charges || 0) + (s.hire_client_charge_net || 0) + (s.subcon_client_charge_net || 0) + (s.owned_items_revenue || 0);
+        const total = s.total_revenue_net || 0;
+        const diff = Math.abs(componentSum - total);
+        if (diff < 1) return null;
+        return (
+          <div className="bg-red-50 border border-red-300 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <AlertTriangle className="w-4 h-4 text-red-600" />
+              <h3 className="text-sm font-bold text-red-800">Revenue Reconciliation Mismatch</h3>
+            </div>
+            <p className="text-xs text-red-700">
+              The sum of displayed revenue components (£{componentSum.toLocaleString('en-GB', { minimumFractionDigits: 2 })}) doesn't match the total revenue net (£{total.toLocaleString('en-GB', { minimumFractionDigits: 2 })}). This usually means a rate card match is missing or a billing method isn't fully set — check the warnings above.
+            </p>
+          </div>
+        );
+      })()}
+
       {/* === Rate card status strip === */}
       <div className="flex flex-wrap items-center gap-2 bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-2.5">
         <div className="flex items-center gap-1.5">

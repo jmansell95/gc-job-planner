@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQueryClient } from '@tanstack/react-query';
-import { Search, UserPlus, Loader2, CheckCircle2, Repeat, CalendarRange } from 'lucide-react';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { Search, UserPlus, Loader2, CheckCircle2, Repeat, CalendarRange, AlertTriangle } from 'lucide-react';
 import { format, addDays, isWeekend } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CrewSuggesterAI from '@/components/jobs/CrewSuggesterAI';
@@ -39,6 +39,43 @@ export default function QuickAssignStaffModal({ open, onClose, job, allStaff = [
   const [saving, setSaving] = useState(false);
 
   const assignedStaffIds = useMemo(() => new Set(rotas.map(r => r.staff_id)), [rotas]);
+
+  // Conflict detection — fetch each selected staff member's rotas on OTHER jobs
+  // and flag any that overlap with the dates we're about to assign.
+  const { data: conflictMap = {} } = useQuery({
+    queryKey: ['staff-conflicts', selectedIds, job?.id],
+    queryFn: async () => {
+      if (selectedIds.length === 0) return {};
+      const results = await Promise.all(
+        selectedIds.map(id => base44.entities.RotaAssignment.filter({ staff_id: id }, '-created_date', 200))
+      );
+      const map = {};
+      results.forEach((staffRotas, i) => {
+        const sid = selectedIds[i];
+        map[sid] = staffRotas.filter(r => r.job_id !== job.id);
+      });
+      return map;
+    },
+    enabled: selectedIds.length > 0 && !!job?.id,
+  });
+
+  const plannedDates = useMemo(() => {
+    if (mode === 'recurring') {
+      const end = recurringEnd || job?.end_date || endDate;
+      return buildRecurringDates(startDate, end, workingDays);
+    }
+    return buildDateRange(startDate, endDate);
+  }, [mode, startDate, endDate, recurringEnd, workingDays, job?.end_date]);
+
+  const staffConflicts = useMemo(() => {
+    const dateSet = new Set(plannedDates);
+    const conflicts = {};
+    for (const [sid, staffRotas] of Object.entries(conflictMap)) {
+      const dates = [...new Set(staffRotas.map(r => r.assigned_date))].filter(d => dateSet.has(d));
+      if (dates.length > 0) conflicts[sid] = dates;
+    }
+    return conflicts;
+  }, [conflictMap, plannedDates]);
 
   const filteredStaff = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -245,6 +282,22 @@ export default function QuickAssignStaffModal({ open, onClose, job, allStaff = [
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search staff..." className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]" />
           </div>
+
+          {/* Conflict warning */}
+          {Object.keys(staffConflicts).length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-700">
+                <p className="font-semibold">Scheduling conflict detected</p>
+                <p className="mt-0.5">
+                  {Object.entries(staffConflicts).map(([sid, dates]) => {
+                    const st = allStaff.find(x => x.id === sid);
+                    return `${st?.name || 'Staff'} (${dates.length} date${dates.length > 1 ? 's' : ''})`;
+                  }).join(', ')} already assigned to another job on overlapping dates.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Staff list */}
           <div className="max-h-60 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-100">

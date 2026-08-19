@@ -40,6 +40,7 @@ function RateItemRow({ item, subcategory, onUpdate, viewMode = 'chargeable' }) {
     notes: item.notes ?? '',
     effective_date: item.effective_date ?? '',
     expiry_date: item.expiry_date ?? '',
+    is_active: item.is_active !== false,
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -64,6 +65,7 @@ function RateItemRow({ item, subcategory, onUpdate, viewMode = 'chargeable' }) {
         notes: form.notes || null,
         effective_date: form.effective_date || null,
         expiry_date: form.expiry_date || null,
+        is_active: form.is_active,
       });
       onUpdate();
       setEditing(false);
@@ -79,6 +81,28 @@ function RateItemRow({ item, subcategory, onUpdate, viewMode = 'chargeable' }) {
       onUpdate();
     } catch (e) { console.error(e); }
     setDeleting(false);
+  };
+
+  const duplicate = async () => {
+    try {
+      await base44.entities.RateCardItem.create({
+        category: item.category,
+        division_id: item.division_id,
+        subcategory: item.subcategory || null,
+        description: `${item.description} (copy)`,
+        price: item.price ?? null,
+        price_text: item.price_text || null,
+        cost_price: item.cost_price ?? null,
+        unit: item.unit || null,
+        men: item.men ?? null,
+        notes: item.notes || null,
+        rate_card_source: item.rate_card_source || 'our_company',
+        supplier_id: item.supplier_id || null,
+        is_active: true,
+      });
+      onUpdate();
+      setEditing(false);
+    } catch (e) { console.error(e); }
   };
 
   const priceDisplay = item.price != null ? fmt(item.price) : item.price_text || '—';
@@ -122,9 +146,16 @@ function RateItemRow({ item, subcategory, onUpdate, viewMode = 'chargeable' }) {
               <input type="date" value={form.expiry_date} onChange={e => setForm({ ...form, expiry_date: e.target.value })} className={inputCls} />
             </div>
           </div>
+          <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+            <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} className="rounded border-slate-300" />
+            Active (available for new jobs)
+          </label>
           <div className="flex gap-2">
             <button onClick={save} disabled={saving} className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] disabled:opacity-50">
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Save
+            </button>
+            <button onClick={duplicate} className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-200 transition">
+              <Copy className="w-3.5 h-3.5" /> Duplicate
             </button>
             <button onClick={del} disabled={deleting} className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100 transition disabled:opacity-50">
               {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />} Delete
@@ -139,6 +170,9 @@ function RateItemRow({ item, subcategory, onUpdate, viewMode = 'chargeable' }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-sm font-medium text-slate-800">{item.description}</p>
+              {item.is_active === false && (
+                <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-bold border border-slate-200">INACTIVE</span>
+              )}
               {item.price == null && (
                 <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full font-bold inline-flex items-center gap-0.5 border border-amber-300">POA</span>
               )}
@@ -185,7 +219,7 @@ function RateItemRow({ item, subcategory, onUpdate, viewMode = 'chargeable' }) {
                 </span>
               )}
               {item.unit && <span className="text-slate-400">/{item.unit}</span>}
-              <button onClick={() => { setForm({ description: item.description, price: item.price ?? '', price_text: item.price_text ?? '', cost_price: item.cost_price ?? '', unit: item.unit ?? '', men: item.men ?? '', notes: item.notes ?? '', effective_date: item.effective_date ?? '', expiry_date: item.expiry_date ?? '' }); setEditing(true); }} className="ml-auto p-1 text-slate-400 hover:text-[#2E5A1A] transition">
+              <button onClick={() => { setForm({ description: item.description, price: item.price ?? '', price_text: item.price_text ?? '', cost_price: item.cost_price ?? '', unit: item.unit ?? '', men: item.men ?? '', notes: item.notes ?? '', effective_date: item.effective_date ?? '', expiry_date: item.expiry_date ?? '', is_active: item.is_active !== false }); setEditing(true); }} className="ml-auto p-1 text-slate-400 hover:text-[#2E5A1A] transition">
                 <Pencil className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -219,7 +253,7 @@ function RateItemRow({ item, subcategory, onUpdate, viewMode = 'chargeable' }) {
                 )}
               </div>
             )}
-            <button onClick={() => { setForm({ description: item.description, price: item.price ?? '', price_text: item.price_text ?? '', cost_price: item.cost_price ?? '', unit: item.unit ?? '', men: item.men ?? '', notes: item.notes ?? '', effective_date: item.effective_date ?? '', expiry_date: item.expiry_date ?? '' }); setEditing(true); }} className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-[#2E5A1A] transition">
+            <button onClick={() => { setForm({ description: item.description, price: item.price ?? '', price_text: item.price_text ?? '', cost_price: item.cost_price ?? '', unit: item.unit ?? '', men: item.men ?? '', notes: item.notes ?? '', effective_date: item.effective_date ?? '', expiry_date: item.expiry_date ?? '', is_active: item.is_active !== false }); setEditing(true); }} className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-[#2E5A1A] transition">
               <Pencil className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -372,6 +406,7 @@ export default function RateCardManager() {
   const [viewMode, setViewMode] = useState('master');
   const [activeYear, setActiveYear] = useState(new Date().getFullYear());
   const [cloneOpen, setCloneOpen] = useState(false);
+  const [onlyNoCost, setOnlyNoCost] = useState(false);
   const [clonePct, setClonePct] = useState('');
   const [cloning, setCloning] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -508,8 +543,11 @@ export default function RateCardManager() {
         (i.notes || '').toLowerCase().includes(q)
       );
     }
+    if (onlyNoCost) {
+      list = list.filter(i => (i.cost_price == null || i.cost_price === '') && i.price != null);
+    }
     return list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  }, [items, activeCategory, query, isOurCard, isInternalCosts, internalCostsSupplier, activeSource]);
+  }, [items, activeCategory, query, isOurCard, isInternalCosts, internalCostsSupplier, activeSource, onlyNoCost]);
 
   const grouped = useMemo(() => {
     const map = {};
@@ -743,9 +781,13 @@ export default function RateCardManager() {
             </span>
           )}
           {health.missingCost > 0 && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200" title="Items with a charge-out price but no internal cost — margin can't be calculated">
-              <AlertTriangle className="w-3 h-3" /> {health.missingCost} no cost
-            </span>
+            <button
+              onClick={() => setOnlyNoCost(!onlyNoCost)}
+              className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full border transition ${onlyNoCost ? 'bg-amber-600 text-white border-amber-600' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'}`}
+              title="Items with a charge-out price but no internal cost — click to filter"
+            >
+              <AlertTriangle className="w-3 h-3" /> {health.missingCost} no cost {onlyNoCost && '✓'}
+            </button>
           )}
           {health.zeroMargin > 0 && (
             <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-red-50 text-red-600 border border-red-200" title="Items where internal cost is ≥ charge-out price — zero or negative margin">
