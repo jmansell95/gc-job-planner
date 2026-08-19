@@ -18,6 +18,18 @@
       "type": "string",
       "description": "Subcontractor name (denormalised for display)"
     },
+    "worker_name": {
+      "type": "string",
+      "description": "Name of the individual worker on site for non-drilling work types (groundworks, trial pit, enabling, etc.). Free text because external sub-contractors and agency workers are not internal Staff records."
+    },
+    "crew_lead_name": {
+      "type": "string",
+      "description": "Name of the lead driller for drilling/coring work types. Free text \u2014 external sub-contractor crew members are not internal Staff records."
+    },
+    "crew_second_name": {
+      "type": "string",
+      "description": "Name of the second man on the drilling/coring crew. Free text \u2014 external sub-contractor crew members are not internal Staff records."
+    },
     "staff_id": {
       "type": "string",
       "description": "Staff member who recorded this log (the internal person verifying the sub-con's work)"

@@ -38,12 +38,15 @@ export default function SubcontractorCrewCard({ job }) {
         work_types: new Set(),
         dates: new Set(),
         total_sell: 0,
+        crew_names: [],
       });
     }
     const entry = bySub.get(key);
     if (log.work_type) entry.work_types.add(log.work_type);
     if (log.date) entry.dates.add(log.date);
     entry.total_sell += Number(log.client_charge_net) || 0;
+    const names = [log.crew_lead_name, log.crew_second_name, log.worker_name].filter(Boolean);
+    for (const n of names) if (!entry.crew_names.includes(n)) entry.crew_names.push(n);
   }
 
   const subs = [...bySub.values()];
@@ -132,6 +135,11 @@ export default function SubcontractorCrewCard({ job }) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-medium text-slate-700 truncate">{s.name}</p>
+              {s.crew_names.length > 0 && (
+                <p className="text-[10px] text-slate-500 truncate">
+                  {s.crew_names.join(' · ')}
+                </p>
+              )}
               <p className="text-[10px] text-slate-400 truncate">
                 {[...s.work_types].map(w => w.replace(/_/g, ' ')).join(', ') || 'Work'}
                 {s.dates.size > 0 && ` · ${s.dates.size} day${s.dates.size !== 1 ? 's' : ''}`}

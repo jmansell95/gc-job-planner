@@ -250,6 +250,9 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
           margin_net: Math.round(marginNet * 100) / 100,
           margin_pct: Math.round(marginPct * 10) / 10,
           po_number: a.po_number || undefined,
+          crew_lead_name: a.crew_lead_name || undefined,
+          crew_second_name: a.crew_second_name || undefined,
+          worker_name: a.worker_name || undefined,
           status: 'pending',
         };
         if (a.id) {

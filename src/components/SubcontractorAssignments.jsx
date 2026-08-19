@@ -56,6 +56,7 @@ const emptyAssignment = {
   borehole_ref: '', purchase_rate_basis: 'day_rate', purchase_rate: '',
   hours_worked: '', metres_drilled: '', units_completed: '', units_label: '',
   markup_percentage: 15, po_number: '', _date: new Date().toISOString().slice(0, 10),
+  crew_lead_name: '', crew_second_name: '', worker_name: '',
 };
 
 export default function SubcontractorAssignments({ assignments, onChange, contractors }) {
@@ -202,6 +203,34 @@ function SubcontractorAssignmentCard({ assignment, index, onChange, onRemove, co
               </select>
             </div>
           </div>
+
+          {/* Crew names — adapts to work type */}
+          {['drilling', 'coring'].includes(assignment.work_type) ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Lead Driller</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                  <input type="text" value={assignment.crew_lead_name || ''} onChange={e => onChange(index, 'crew_lead_name', e.target.value)} placeholder="Lead driller name" className={`${inputCls} pl-9`} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Second Man</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                  <input type="text" value={assignment.crew_second_name || ''} onChange={e => onChange(index, 'crew_second_name', e.target.value)} placeholder="Second man name" className={`${inputCls} pl-9`} />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Worker Name</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <input type="text" value={assignment.worker_name || ''} onChange={e => onChange(index, 'worker_name', e.target.value)} placeholder="Worker name" className={`${inputCls} pl-9`} />
+              </div>
+            </div>
+          )}
 
           {/* Row 2: Scope description + borehole refs */}
           <div className="grid grid-cols-3 gap-3">
