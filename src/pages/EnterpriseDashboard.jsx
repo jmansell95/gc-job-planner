@@ -109,7 +109,7 @@ export default function EnterpriseDashboard() {
     setActiveDivision(d.id);
     navigate(d.landing_page || '/admin', { state: { section: 'overview' } });
   };
-  const goToSettings = (tab) => navigate('/enterprise/settings', { state: { tab: tab || 'divisions' } });
+  const goToSettings = (tab) => navigate('/enterprise/settings', { state: { tab: tab || 'business-units' } });
   const canManageDivisions = isSuperAdmin;
 
   if (divisionsLoading) {
@@ -121,12 +121,11 @@ export default function EnterpriseDashboard() {
   }
 
   const quickActions = isSuperAdmin ? [
-    { label: 'Settings', icon: Settings, action: () => goToSettings('divisions'), gradient: 'from-slate-600 to-slate-800' },
-    { label: 'Divisions', icon: Building2, action: () => goToSettings('divisions'), gradient: 'from-emerald-600 to-teal-700' },
+    { label: 'Settings', icon: Settings, action: () => goToSettings(), gradient: 'from-slate-600 to-slate-800' },
     { label: 'Access', icon: ShieldCheck, action: () => goToSettings('access'), gradient: 'from-amber-500 to-orange-600' },
     { label: 'Help', icon: HelpCircle, action: () => navigate('/enterprise/help'), gradient: 'from-rose-500 to-pink-600' },
   ] : [
-    { label: 'Settings', icon: Settings, action: () => goToSettings('divisions'), gradient: 'from-slate-600 to-slate-800' },
+    { label: 'Settings', icon: Settings, action: () => goToSettings(), gradient: 'from-slate-600 to-slate-800' },
     { label: 'Access', icon: ShieldCheck, action: () => goToSettings('access'), gradient: 'from-amber-500 to-orange-600' },
     { label: 'Profile', icon: User, action: () => navigate('/enterprise-profile'), gradient: 'from-blue-600 to-indigo-700' },
     { label: 'Help', icon: HelpCircle, action: () => navigate('/enterprise/help'), gradient: 'from-rose-500 to-pink-600' },
@@ -228,7 +227,7 @@ export default function EnterpriseDashboard() {
       <div className="px-4 xl:px-6 pb-24 xl:pb-6 space-y-4 max-w-7xl mx-auto">
 
         {/* Quick Access */}
-        <div className="grid grid-cols-4 gap-2 sm:gap-3 mt-5 sm:mt-8 relative z-10">
+        <div className={'grid gap-2 sm:gap-3 mt-5 sm:mt-8 relative z-10 ' + (quickActions.length === 3 ? 'grid-cols-3' : 'grid-cols-4')}>
           {quickActions.map(a => {
             const Icon = a.icon;
             return (

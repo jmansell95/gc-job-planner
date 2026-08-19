@@ -2,17 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDivision } from '@/contexts/DivisionContext';
 import {
-  ArrowLeft, Building2, Link2, KeyRound, Settings, Database,
+  ArrowLeft, Building2, Link2, KeyRound, Settings, Database, Layers,
 } from 'lucide-react';
 import EnterpriseHeader from '@/components/EnterpriseHeader';
 import DivisionManager from '@/components/settings/DivisionManager';
+import BusinessUnitManager from '@/components/settings/BusinessUnitManager';
 import IntegrationsHub from '@/components/settings/IntegrationsHub';
 import EnterpriseAccessManager from '@/components/settings/EnterpriseAccessManager';
 import BackupRestoreHub from '@/components/settings/BackupRestoreHub';
 import IntegrationConfigDrawer from '@/components/settings/IntegrationConfigDrawer';
 
 const TABS = [
-  { id: 'divisions', label: 'Divisions', icon: Building2, gradient: 'from-emerald-600 to-teal-700' },
+  { id: 'business-units', label: 'Business Units', icon: Layers, gradient: 'from-emerald-600 to-teal-700' },
+  { id: 'divisions', label: 'Divisions', icon: Building2, gradient: 'from-blue-600 to-cyan-700' },
   { id: 'backup', label: 'Backup & Restore', icon: Database, gradient: 'from-indigo-600 to-blue-700' },
   { id: 'integrations', label: 'Integrations', icon: Link2, gradient: 'from-blue-600 to-indigo-700' },
   { id: 'access', label: 'Access Levels', icon: KeyRound, gradient: 'from-amber-500 to-orange-600' },
@@ -22,7 +24,7 @@ export default function EnterpriseSettings() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setActiveDivision } = useDivision();
-  const [activeTab, setActiveTab] = useState(location.state?.tab || 'divisions');
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'business-units');
   const [selectedIntegration, setSelectedIntegration] = useState(null);
 
   // Clear division context — this is an enterprise-level page.
@@ -30,6 +32,7 @@ export default function EnterpriseSettings() {
 
   const renderTab = () => {
     switch (activeTab) {
+      case 'business-units': return <BusinessUnitManager />;
       case 'divisions': return <DivisionManager />;
       case 'backup': return <BackupRestoreHub />;
       case 'integrations': return <IntegrationsHub onNavigate={setSelectedIntegration} />;

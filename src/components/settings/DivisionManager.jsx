@@ -25,7 +25,7 @@ export default function DivisionManager() {
   const [showWizard, setShowWizard] = React.useState(false);
   const [deleting, setDeleting] = React.useState(null);
 
-  const { data: divisions = [], isLoading } = useQuery({
+  const { data: allDivisions = [], isLoading } = useQuery({
     queryKey: ['divisions'],
     queryFn: () => base44.entities.Division.list('-sort_order', 100),
   });
@@ -38,6 +38,19 @@ export default function DivisionManager() {
     queryClient.invalidateQueries({ queryKey: ['divisions'] });
     queryClient.invalidateQueries({ queryKey: ['staff-division-mgr'] });
   };
+
+  // Partition using the same hierarchy logic as the Enterprise Dashboard:
+  // BUs = top-level (parent null) AND has children. Everything else shows here.
+  const { divisions, buNameMap } = useMemo(() => {
+    const parentIds = new Set(allDivisions.filter(d => d.parent_division_id).map(d => d.parent_division_id));
+    const buIds = new Set(allDivisions.filter(d => !d.parent_division_id && parentIds.has(d.id)).map(d => d.id));
+    const divisions = allDivisions.filter(d => !buIds.has(d.id));
+    const buNameMap = {};
+    for (const d of allDivisions) {
+      if (!d.parent_division_id) buNameMap[d.id] = d.name;
+    }
+    return { divisions, buNameMap };
+  }, [allDivisions]);
 
   // Staff count per division
   const divisionStaffCounts = useMemo(() => {
@@ -57,8 +70,8 @@ export default function DivisionManager() {
             <Building2 className="w-6 h-6 text-white" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-lg font-extrabold text-slate-900">Division Manager</h2>
-            <p className="text-sm text-slate-500">Create and configure divisions. Staff assignment and access levels are managed in the <strong>Access Levels</strong> tab.</p>
+            <h2 className="text-lg font-extrabold text-slate-900">Divisions</h2>
+            <p className="text-sm text-slate-500">Operational divisions and standalone units. Business Units are managed in the <strong>Business Units</strong> tab. Staff assignment and access levels are managed in the <strong>Access Levels</strong> tab.</p>
           </div>
         </div>
       </div>
@@ -98,6 +111,9 @@ export default function DivisionManager() {
                         <div className="min-w-0">
                           <h3 className="text-sm font-extrabold text-slate-900 truncate">{d.name}</h3>
                           <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide">{d.code} {'\u00B7'} {typeLabel}</p>
+                          {d.parent_division_id && buNameMap[d.parent_division_id] && (
+                            <p className="text-[11px] text-emerald-700 font-semibold truncate mt-0.5">Part of {buNameMap[d.parent_division_id]}</p>
+                          )}
                           {d.tagline && <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">{d.tagline}</p>}
                         </div>
                       </div>
