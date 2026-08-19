@@ -168,6 +168,12 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
       });
       // vat_rate defaults to 20 — keep it
       if (form.vat_rate) clean.vat_rate = parseFloat(form.vat_rate);
+      // GPS coordinates & geofence override — clear empty strings so the
+      // backend doesn't reject them as non-numeric strings.
+      ['site_lat', 'site_lng', 'geofence_radius_override'].forEach(k => {
+        if (clean[k] === '' || clean[k] === undefined || clean[k] === null) delete clean[k];
+        else clean[k] = parseFloat(clean[k]);
+      });
 
       // Build the disciplines array from the editor. Each track inherits
       // the job-level dates, revenue method, and drilling method as defaults.
@@ -492,6 +498,30 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Notes</label>
                     <textarea value={form.notes || ''} onChange={e => set('notes', e.target.value)} rows="2" placeholder="Scope, access, special requirements..." className={inputCls} />
                   </div>
+                  {/* Site GPS & Geofence — for Geotab auto-timesheet arrival/departure detection */}
+                  <div className="rounded-xl border border-slate-200 p-4 bg-slate-50/50 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-[#2E5A1A]" />
+                      <span className="text-sm font-semibold text-slate-800">Site GPS & Geofence</span>
+                      <span className="text-xs text-slate-400 font-normal">· for Geotab auto-timesheets</span>
+                    </div>
+                    <div className="flex items-end gap-2 flex-wrap">
+                      <div className="flex-1 min-w-[140px]">
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Latitude</label>
+                        <input type="number" step="any" value={form.site_lat || ''} onChange={e => set('site_lat', e.target.value)} placeholder="e.g. 51.5074" className={inputCls} />
+                      </div>
+                      <div className="flex-1 min-w-[140px]">
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Longitude</label>
+                        <input type="number" step="any" value={form.site_lng || ''} onChange={e => set('site_lng', e.target.value)} placeholder="e.g. -0.1278" className={inputCls} />
+                      </div>
+                      <GeocodeButton address={form.location} onResult={(lat, lng) => { set('site_lat', String(lat)); set('site_lng', String(lng)); }} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Geofence Radius Override (metres) <span className="text-slate-400 font-normal">· blank = global default</span></label>
+                      <input type="number" min="0" step="1" value={form.geofence_radius_override || ''} onChange={e => set('geofence_radius_override', e.target.value)} placeholder="e.g. 150" className={`${inputCls} max-w-[220px]`} />
+                    </div>
+                    <p className="text-[11px] text-slate-400">Set the site's GPS coordinates to enable automatic arrival/departure detection from Geotab vehicle tracking. Override the radius for large sites.</p>
+                  </div>
                 </div>
               )}
 
@@ -767,6 +797,51 @@ function ReviewRow({ label, value, highlight }) {
     <div className={`flex items-start gap-2 px-3 py-2 rounded-lg ${highlight ? 'bg-[#2E5A1A]/5 border border-[#2E5A1A]/15' : 'bg-slate-50'}`}>
       <span className="text-xs text-slate-400 font-medium min-w-[75px]">{label}</span>
       <span className={`text-sm flex-1 break-words ${highlight ? 'text-[#2E5A1A] font-bold' : 'text-slate-800 font-medium'}`}>{value || '—'}</span>
+    </div>
+  );
+}
+
+function GeocodeButton({ address, onResult }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleGeocode = async () => {
+    if (!address?.trim()) { setError('Enter a location first'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `Return the GPS latitude and longitude of this UK site address as a JSON object: "${address}". Use only valid numeric coordinates. If the address is ambiguous, return the most likely match for the UK.`,
+        add_context_from_internet: true,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            lat: { type: 'number' },
+            lng: { type: 'number' }
+          },
+          required: ['lat', 'lng']
+        }
+      });
+      if (res && typeof res.lat === 'number' && typeof res.lng === 'number') {
+        onResult(res.lat, res.lng);
+      } else {
+        setError('Could not geocode this address');
+      }
+    } catch (e) {
+      setError(e.message || 'Geocode failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      <button type="button" onClick={handleGeocode} disabled={loading}
+        className="inline-flex items-center gap-1.5 px-3 py-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-medium hover:bg-blue-100 transition disabled:opacity-60 flex-shrink-0">
+        {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MapPin className="w-3.5 h-3.5" />}
+        Auto-fill
+      </button>
+      {error && <p className="text-[10px] text-red-500">{error}</p>}
     </div>
   );
 }
