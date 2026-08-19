@@ -512,7 +512,14 @@ export default function StaffDashboard() {
   const pendingCount = mgrTimesheets.filter(t => reporters.some(r => r.id === t.staff_id) && t.status === 'submitted').length;
 
   const cardProps = (assignment) => {
-    const crew = allAssignments.filter(a => a.job_id === assignment.job_id && a.assigned_date === assignment.assigned_date);
+    // Deduplicate by staff_id — one person per job/day, even if multiple rota rows exist
+    const _crewSeen = new Set();
+    const crew = allAssignments.filter(a => {
+      if (a.job_id !== assignment.job_id || a.assigned_date !== assignment.assigned_date) return false;
+      if (!a.staff_id || _crewSeen.has(a.staff_id)) return false;
+      _crewSeen.add(a.staff_id);
+      return true;
+    });
     const crewSignedCount = crew.filter(a => a.briefing_signed).length;
     const crewTotal = crew.length;
     return {

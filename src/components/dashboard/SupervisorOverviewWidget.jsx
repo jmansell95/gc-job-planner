@@ -92,7 +92,14 @@ export default function SupervisorOverviewWidget({ profile, onSelectJob }) {
     const teamRotas = todayRotas.filter(r => teamStaffIds.includes(r.staff_id));
     const teamJobIds = [...new Set(teamRotas.map(r => r.job_id))];
     const teamLogs = todayLogs.filter(l => teamJobIds.includes(l.job_id));
-    const onSite = teamRotas.filter(r => r.status === 'started' || r.status === 'completed').length;
+    // Deduplicate by staff_id — count unique people on site, not rota rows
+    const _onSiteSeen = new Set();
+    const onSite = teamRotas.filter(r => {
+      if (r.status !== 'started' && r.status !== 'completed') return false;
+      if (!r.staff_id || _onSiteSeen.has(r.staff_id)) return false;
+      _onSiteSeen.add(r.staff_id);
+      return true;
+    }).length;
     const meterage = teamRotas.reduce((sum, r) => sum + (r.meterage || 0), 0);
     const samples = teamLogs.filter(l => l.sample_type && l.sample_type !== 'none').length;
     const totalDepth = teamLogs.reduce((sum, l) => {
