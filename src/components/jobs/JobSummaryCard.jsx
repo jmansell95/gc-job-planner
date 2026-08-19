@@ -8,6 +8,7 @@ import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
 import WeatherBadge from '@/components/weather/WeatherBadge';
 import QuickEditJobModal from '@/components/jobs/QuickEditJobModal';
+import MiniLocationMap from '@/components/jobs/MiniLocationMap';
 
 const STATUS_META = {
   planning: { label: 'Planning', icon: CircleDashed, grad: 'from-slate-500 to-slate-600', chip: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200' },
@@ -83,8 +84,13 @@ export default function JobSummaryCard({
   const showPartnerBadge = client?.is_partner;
   const partnerColor = client?.partner_color || '#2563eb';
 
+  const hasCoords = job.site_lat != null && job.site_lng != null;
+
   return (
-    <div className="vibrant-card rounded-xl overflow-hidden flex flex-col group">
+    <div
+      className="vibrant-card rounded-xl overflow-hidden flex flex-col group cursor-pointer"
+      onClick={() => onView(job)}
+    >
       {/* Gradient header strip — status-colored */}
       <div className={`h-2 bg-gradient-to-r ${status.grad}`} />
 
@@ -97,7 +103,7 @@ export default function JobSummaryCard({
                 <StatusIcon className="w-3 h-3" /> {status.label}
               </span>
               <DisciplinePills job={job} size="sm" />
-              {job.site_lat != null && job.site_lng != null && (job.status === 'in_progress' || job.status === 'decommissioning') && (
+              {job.site_lat != null && job.site_lng != null && (
                 <WeatherBadge lat={job.site_lat} lng={job.site_lng} />
               )}
             </div>
@@ -170,7 +176,7 @@ export default function JobSummaryCard({
         {/* Project + client */}
         <div className="space-y-0.5">
           {project && (
-            <button onClick={onProjectClick} className="flex items-center gap-1.5 hover:underline">
+            <button onClick={(e) => { e.stopPropagation(); onProjectClick?.(e); }} className="flex items-center gap-1.5 hover:underline">
               <FolderOpen className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
               <span className="text-xs font-medium text-indigo-600 truncate">{project.name}</span>
               <span className="text-[10px] text-slate-400">· {siblingCount} job{siblingCount !== 1 ? 's' : ''}</span>
@@ -189,6 +195,11 @@ export default function JobSummaryCard({
             </span>
           )}
         </div>
+
+        {/* Mini location map — visual site pinpoint */}
+        {hasCoords && (
+          <MiniLocationMap lat={job.site_lat} lng={job.site_lng} label={job.name} height={100} />
+        )}
 
         {/* Stat tiles — subtle, modern */}
         <div className="grid grid-cols-2 gap-2">
@@ -225,7 +236,7 @@ export default function JobSummaryCard({
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
+      <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
         <button onClick={() => onView(job)} className="flex items-center gap-1.5 text-sm font-medium text-[#2E5A1A] hover:text-[#1c4a12] transition">
           <Eye className="w-4 h-4" /> View Details
         </button>
