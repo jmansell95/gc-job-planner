@@ -3,8 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   Loader2, Search, AlertCircle, ShieldCheck, ShieldAlert, ShieldX,
-  Users, GraduationCap, ChevronDown, ChevronRight, UserCircle
+  Users, GraduationCap, ChevronDown, ChevronRight, UserCircle, Filter,
 } from 'lucide-react';
+import { complianceDaysUntil } from '@/utils/complianceDate';
 
 const QUAL_TYPES = [
   { key: 'cscs_card', label: 'CSCS', short: 'CSCS' },
@@ -17,33 +18,36 @@ const QUAL_TYPES = [
   { key: 'other', label: 'Other', short: 'OTH' },
 ];
 
-function parseDate(str) {
-  if (!str) return null;
-  if (/^\d{4}-\d{2}$/.test(str)) return new Date(str + '-01T00:00:00');
-  return new Date(str + 'T00:00:00');
-}
-
+// Unified status logic — aligned with TrainingGapAnalysis.
+// A compliance item with no expiry date is 'compliant' (On File),
+// NOT 'unknown', so a CSCS card saved without an expiry still shows a ✓.
 function getStatus(complianceItem) {
   if (!complianceItem) return 'missing';
   if (complianceItem.status_override === 'not_required') return 'na';
   if (complianceItem.status_override === 'missing') return 'missing';
-  if (!complianceItem.expiry_date) return 'unknown';
-  const d = parseDate(complianceItem.expiry_date);
-  if (!d || isNaN(d.getTime())) return 'unknown';
-  const days = Math.floor((d - new Date()) / 86400000);
+  if (!complianceItem.expiry_date) return 'compliant';
+  const days = complianceDaysUntil(complianceItem.expiry_date);
+  if (days === null) return 'compliant';
   if (days < 0) return 'expired';
   if (days <= 30) return 'expiring';
   return 'compliant';
 }
 
 const STATUS_STYLES = {
-  compliant: { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Valid', icon: ShieldCheck },
-  expiring: { bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-500', label: 'Expiring', icon: ShieldAlert },
-  expired: { bg: 'bg-rose-100', text: 'text-rose-700', dot: 'bg-rose-500', label: 'Expired', icon: ShieldX },
-  missing: { bg: 'bg-slate-100', text: 'text-slate-400', dot: 'bg-slate-300', label: 'Missing', icon: AlertCircle },
-  unknown: { bg: 'bg-slate-50', text: 'text-slate-400', dot: 'bg-slate-300', label: 'Unknown', icon: AlertCircle },
-  na: { bg: 'bg-slate-50', text: 'text-slate-300', dot: 'bg-slate-200', label: 'N/A', icon: ShieldCheck },
+  compliant: { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Valid', icon: ShieldCheck, symbol: '✓' },
+  expiring: { bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-500', label: 'Expiring', icon: ShieldAlert, symbol: '⚠' },
+  expired: { bg: 'bg-rose-100', text: 'text-rose-700', dot: 'bg-rose-500', label: 'Expired', icon: ShieldX, symbol: '✗' },
+  missing: { bg: 'bg-slate-100', text: 'text-slate-400', dot: 'bg-slate-300', label: 'Missing', icon: AlertCircle, symbol: '?' },
+  na: { bg: 'bg-slate-50', text: 'text-slate-300', dot: 'bg-slate-200', label: 'N/A', icon: ShieldCheck, symbol: '—' },
 };
+
+const FILTER_OPTIONS = [
+  { key: 'all', label: 'All' },
+  { key: 'compliant', label: 'Valid' },
+  { key: 'expiring', label: 'Expiring' },
+  { key: 'expired', label: 'Expired' },
+  { key: 'missing', label: 'Missing' },
+];
 
 // Mini progress ring — shows compliant % as a filled arc
 function ProgressRing({ pct, size = 44 }) {
@@ -70,6 +74,7 @@ function ProgressRing({ pct, size = 44 }) {
 
 export default function SkillsMatrix() {
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [expandedGroups, setExpandedGroups] = useState({});
 
   const { data: staff = [], isLoading: staffLoading } = useQuery({
@@ -124,16 +129,26 @@ export default function SkillsMatrix() {
     return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
   }, [staffData]);
 
+  // Apply search + status filter
   const filteredStaff = useMemo(() => {
-    if (!search.trim()) return grouped;
-    const q = search.toLowerCase();
+    const q = search.toLowerCase().trim();
     return grouped
-      .map(([group, members]) => [group, members.filter(d =>
-        (d.staff.name || '').toLowerCase().includes(q) ||
-        (d.staff.job_title || '').toLowerCase().includes(q)
-      )])
+      .map(([group, members]) => {
+        let filtered = members;
+        if (q) {
+          filtered = filtered.filter(d =>
+            (d.staff.name || '').toLowerCase().includes(q) ||
+            (d.staff.job_title || '').toLowerCase().includes(q)
+          );
+        }
+        if (statusFilter !== 'all') {
+          // Keep staff who have at least one qual in the selected status
+          filtered = filtered.filter(d => d.quals.some(qu => qu.status === statusFilter));
+        }
+        return [group, filtered];
+      })
       .filter(([, members]) => members.length > 0);
-  }, [grouped, search]);
+  }, [grouped, search, statusFilter]);
 
   // Summary stats
   const stats = useMemo(() => {
@@ -233,16 +248,41 @@ export default function SkillsMatrix() {
         </div>
       )}
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search staff or job title..."
-          className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10"
-        />
+      {/* Search + Status filter */}
+      <div className="space-y-2.5">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search staff or job title..."
+            className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10"
+          />
+        </div>
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <Filter className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+          {FILTER_OPTIONS.map(opt => {
+            const active = statusFilter === opt.key;
+            const count = opt.key === 'all' ? staffData.length : staffData.filter(d => d.quals.some(q => q.status === opt.key)).length;
+            return (
+              <button
+                key={opt.key}
+                onClick={() => setStatusFilter(opt.key)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap flex-shrink-0 ${
+                  active
+                    ? 'bg-[#2E5A1A] text-white shadow-sm'
+                    : 'bg-white text-slate-600 border border-slate-200 hover:border-[#2E5A1A]/30'
+                }`}
+              >
+                {opt.label}
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${active ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Grouped staff cards */}
@@ -250,6 +290,7 @@ export default function SkillsMatrix() {
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <AlertCircle className="w-8 h-8 text-slate-300 mb-2" />
           <p className="text-sm text-slate-500">No staff found</p>
+          {statusFilter !== 'all' && <p className="text-xs text-slate-400 mt-1">Try a different status filter.</p>}
         </div>
       ) : (
         <div className="space-y-3">
@@ -276,26 +317,38 @@ export default function SkillsMatrix() {
                 {isExpanded && (
                   <div className="divide-y divide-slate-50">
                     {members.map(d => (
-                      <div key={d.staff.id} className="px-4 py-3 flex items-center gap-3 hover:bg-slate-50/50 transition">
-                        {/* Progress ring */}
-                        <ProgressRing pct={d.pct} />
-                        {/* Name + title */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate">{d.staff.name}</p>
-                          <p className="text-[11px] text-slate-400 truncate">{d.staff.job_title || 'No title'}</p>
+                      <div key={d.staff.id} className="px-4 py-3 hover:bg-slate-50/50 transition">
+                        <div className="flex items-center gap-3">
+                          {/* Progress ring */}
+                          <ProgressRing pct={d.pct} />
+                          {/* Name + title */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">{d.staff.name}</p>
+                            <p className="text-[11px] text-slate-400 truncate">{d.staff.job_title || 'No title'}</p>
+                          </div>
+                          {/* Qualification chips */}
+                          <div className="flex items-center gap-1 flex-wrap justify-end">
+                            {d.quals.map(q => {
+                              const style = STATUS_STYLES[q.status];
+                              return (
+                                <span
+                                  key={q.key}
+                                  className={`inline-flex items-center justify-center w-7 h-7 rounded-lg ${style.bg} ${style.text} text-[10px] font-bold`}
+                                  title={`${q.label}: ${style.label}${q.expiry ? ` (exp ${q.expiry})` : ''}`}
+                                >
+                                  {style.symbol}
+                                </span>
+                              );
+                            })}
+                          </div>
                         </div>
-                        {/* Qualification chips */}
-                        <div className="flex items-center gap-1 flex-wrap justify-end">
-                          {d.quals.map(q => {
+                        {/* Mobile: expandable qual detail (tap a chip row to see labels) */}
+                        <div className="mt-2 flex flex-wrap gap-1.5 sm:hidden">
+                          {d.quals.filter(q => q.status !== 'compliant' && q.status !== 'na').map(q => {
                             const style = STATUS_STYLES[q.status];
-                            const SIcon = style.icon;
                             return (
-                              <span
-                                key={q.key}
-                                className={`inline-flex items-center justify-center w-7 h-7 rounded-lg ${style.bg} ${style.text} text-[10px] font-bold`}
-                                title={`${q.label}: ${style.label}${q.expiry ? ` (exp ${q.expiry})` : ''}`}
-                              >
-                                {q.status === 'compliant' ? '✓' : q.status === 'expired' ? '✗' : q.status === 'missing' ? '?' : q.status === 'expiring' ? '⚠' : q.status === 'na' ? '—' : '?'}
+                              <span key={q.key} className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full ${style.bg} ${style.text} font-medium`}>
+                                {q.short} · {style.label}
                               </span>
                             );
                           })}
@@ -311,15 +364,19 @@ export default function SkillsMatrix() {
       )}
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-3 text-xs">
+      <div className="flex flex-wrap gap-3 text-xs pt-1">
         {Object.entries(STATUS_STYLES).filter(([k]) => k !== 'na').map(([key, style]) => (
           <div key={key} className="flex items-center gap-1.5">
-            <span className={`w-4 h-4 rounded ${style.bg} ${style.text} flex items-center justify-center text-[10px] font-bold`}>
-              {style.label === 'Valid' ? '✓' : style.label === 'Expired' ? '✗' : style.label === 'Missing' ? '?' : style.label === 'Expiring' ? '⚠' : '?'}
+            <span className={`w-5 h-5 rounded ${style.bg} ${style.text} flex items-center justify-center text-[10px] font-bold`}>
+              {style.symbol}
             </span>
             <span className="text-slate-500">{style.label}</span>
           </div>
         ))}
+        <div className="flex items-center gap-1.5 text-slate-400">
+          <span className="w-5 h-5 rounded bg-slate-50 text-slate-300 flex items-center justify-center text-[10px] font-bold">—</span>
+          <span>N/A (not required)</span>
+        </div>
       </div>
     </div>
   );

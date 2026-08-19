@@ -214,9 +214,8 @@ function SetupChecklist({ job, rotas, hotelBookings }) {
  * Duplicate info already shown in the hero header (location, dates, budget,
  * status, type, name) is omitted here.
  */
-export default function JobContextView({ job, primaryType, assignedStaff, rotas, allStaff, client, contractor, suppliers, vehicles, hotelBookings, canSeeCosts, isDrillingJob, colors, statusBadge: sb, statusLabels: sl, startDate, endDate, jobProject, siblingJobs, onProjectClick, jobTypes, subTab = 'overview' }) {
+export default function JobContextView({ job, primaryType, assignedStaff, rotas, allStaff, client, contractor, suppliers, vehicles, hotelBookings, canSeeCosts, isDrillingJob, colors, statusBadge: sb, statusLabels: sl, startDate, endDate, jobTypes, subTab = 'overview' }) {
   const [activeActivity, setActiveActivity] = useState('all');
-  const [showProjectJobs, setShowProjectJobs] = useState(false);
   const [showAssignStaff, setShowAssignStaff] = useState(false);
   const [showDisciplineEditor, setShowDisciplineEditor] = useState(false);
 
@@ -323,10 +322,9 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
               {job.job_reference && <VitalsField label="Reference" icon={FileText}>{job.job_reference}</VitalsField>}
               {client && <VitalsField label="Client" icon={Building2}>{client.name}</VitalsField>}
               {contractor && <VitalsField label="Contractor" icon={HardHat}>{contractor.name}</VitalsField>}
-              {jobProject && <VitalsField label="Project" icon={FolderOpen}>{jobProject.name}</VitalsField>}
               {job.project_manager && <VitalsField label="Project Manager" icon={User}>{job.project_manager}</VitalsField>}
               {job.site_contact_name && <VitalsField label="Site Contact" icon={Phone}>{job.site_contact_name}{job.site_contact_phone ? ' · ' + job.site_contact_phone : ''}</VitalsField>}
-              {!job.job_reference && !client && !contractor && !jobProject && !job.project_manager && !job.site_contact_name && (
+              {!job.job_reference && !client && !contractor && !job.project_manager && !job.site_contact_name && (
                 <p className="text-xs text-slate-400 py-3 text-center">No details set</p>
               )}
             </div>
@@ -616,16 +614,6 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
       {subTab === 'links' && (
       <>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {jobProject && (
-          <button onClick={() => setShowProjectJobs(true)} className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 hover:shadow-md transition text-left">
-            <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0"><FolderOpen className="w-4 h-4 text-indigo-600" /></div>
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-slate-900 text-sm truncate">{jobProject.name}</p>
-              <p className="text-xs text-slate-400">{siblingJobs?.length || 0} other job{(siblingJobs?.length || 0) !== 1 ? 's' : ''} in this project</p>
-            </div>
-            <FolderOpen className="w-4 h-4 text-slate-300 flex-shrink-0" />
-          </button>
-        )}
         <LogReviewQuickStat job={job} />
         <PortalLinkManager job={job} />
       </div>
@@ -642,24 +630,6 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
       )}
       </>
       )}
-
-      {/* Project jobs dialog */}
-      <Dialog open={showProjectJobs} onOpenChange={setShowProjectJobs}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><FolderOpen className="w-5 h-5 text-indigo-600" /> {jobProject?.name}</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <p className="text-sm text-slate-500">This job is one of {(siblingJobs?.length || 0) + 1} jobs linked to this project.</p>
-            {(!siblingJobs || siblingJobs.length === 0) ? (
-              <p className="text-sm text-slate-400 text-center py-4">No other jobs in this project yet.</p>
-            ) : siblingJobs.map(sib => (
-              <button key={sib.id} onClick={() => { setShowProjectJobs(false); onProjectClick?.(sib); }} className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50/30 transition text-left">
-                <Briefcase className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-slate-900 truncate">{sib.name}</p><p className="text-xs text-slate-500 truncate">{sib.location} · {sl[sib.status || 'planning']}</p></div>
-              </button>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Quick assign staff modal */}
       <QuickAssignStaffModal open={showAssignStaff} onClose={() => setShowAssignStaff(false)} job={job} allStaff={allStaff} rotas={rotas} />

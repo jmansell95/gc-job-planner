@@ -15,25 +15,25 @@
 // 4. Falls back to null (no price — Asset Panda is for inventory only, not pricing)
 // ---------------------------------------------------------------------------
 
-export function findRigRateCardItem(rigAsset: any, rateCardItems: any[] = [], projectId: string | null = null): any {
+export function findRigRateCardItem(rigAsset: any, rateCardItems: any[] = [], jobId: string | null = null): any {
   if (!rigAsset) return null;
 
   const rigType = rigAsset.rig_type;
   const desc = String(rigAsset.name || '').toLowerCase();
   const isCutdown = /cut\s*down|cutdown/i.test(desc);
 
-  // Project-scoped rates take precedence — when a job belongs to a project with
-  // its own rate card (e.g. EWR), prefer those items, then fall back to the
-  // global Master Price List so unmatched rigs still resolve.
-  const projectItems = projectId
-    ? (rateCardItems || []).filter((r) => r.project_id === projectId && r.price != null && !Number.isNaN(Number(r.price)))
+  // Job-scoped rates take precedence — when a job has its own rate card,
+  // prefer those items, then fall back to the global Master Price List so
+  // unmatched rigs still resolve.
+  const jobItems = jobId
+    ? (rateCardItems || []).filter((r) => r.job_id === jobId && r.price != null && !Number.isNaN(Number(r.price)))
     : [];
   const globalLabour = (rateCardItems || []).filter(
-    (r) => !r.project_id && r.rate_card_source !== 'supplier' &&
+    (r) => !r.job_id && r.rate_card_source !== 'supplier' &&
            String(r.subcategory || '').toLowerCase() === 'labour' &&
            r.price != null && !Number.isNaN(Number(r.price))
   );
-  const labourRates = projectItems.length > 0 ? [...projectItems, ...globalLabour] : globalLabour;
+  const labourRates = jobItems.length > 0 ? [...jobItems, ...globalLabour] : globalLabour;
 
   // 1. Window Sampling rigs (Modular / Tracked / Terrier) — checked BEFORE CP,
   //    since "Dando Terrier" contains "dando" which would otherwise match CP.

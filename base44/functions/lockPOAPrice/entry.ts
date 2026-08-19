@@ -4,7 +4,7 @@ import {
   loadAllRateCardItems,
   isLockValidForDate,
 } from '../../shared/poaResolver.ts';
-import { tokenize, scoreMatch } from '../../shared/projectRateMatcher.ts';
+import { tokenize, scoreMatch } from '../../shared/jobRateMatcher.ts';
 
 // ============================================================
 // lockPOAPrice — the contracts team locks in a price for a POA

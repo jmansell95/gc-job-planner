@@ -19,7 +19,7 @@ import {
   tokenize,
   scoreMatch,
   type RateCardItemLike,
-} from './projectRateMatcher.ts';
+} from './jobRateMatcher.ts';
 
 export interface POALockLike {
   id: string;
@@ -75,21 +75,21 @@ export function findBestPOAMatch(
   return bestScore >= 0.6 ? best : null;
 }
 
-// Load ALL rate card items for a project (including POA / null-price items).
-// Unlike loadProjectRateCardItems, this does NOT filter to priced items only.
+// Load ALL rate card items for a job (including POA / null-price items).
+// Unlike loadJobRateCardItems, this does NOT filter to priced items only.
 export async function loadAllRateCardItems(
   base44: any,
-  projectId: string | null | undefined,
+  jobId: string | null | undefined,
   jobDate?: string | null
 ): Promise<RateCardItemLike[]> {
-  if (projectId) {
-    const projectItems = await base44.asServiceRole.entities.RateCardItem.filter(
-      { project_id: projectId, is_active: true },
+  if (jobId) {
+    const jobItems = await base44.asServiceRole.entities.RateCardItem.filter(
+      { job_id: jobId, is_active: true },
       '-sort_order',
       500
     );
-    if (projectItems && projectItems.length > 0) {
-      return projectItems;
+    if (jobItems && jobItems.length > 0) {
+      return jobItems;
     }
   }
   const global = await base44.asServiceRole.entities.RateCardItem.filter(
@@ -97,7 +97,7 @@ export async function loadAllRateCardItems(
     '-sort_order',
     500
   );
-  return (global || []).filter((i: any) => !i.project_id);
+  return (global || []).filter((i: any) => !i.job_id);
 }
 
 // Load POA locks applicable to a job/project.
@@ -150,8 +150,8 @@ export async function resolvePOAPrice(
   const { job_id, project_id, description, quantity = 1, job_date } = params;
   if (!description) return null;
 
-  // Load all rate card items (including POA)
-  const allItems = await loadAllRateCardItems(base44, project_id, job_date);
+  // Load all rate card items (including POA) — scoped to the job's own rate card
+  const allItems = await loadAllRateCardItems(base44, job_id, job_date);
   // Find the best POA match
   const poaMatch = findBestPOAMatch(description, allItems);
   if (!poaMatch) return null;

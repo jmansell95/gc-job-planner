@@ -9,7 +9,7 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import SORRateCardManager from '@/components/SORRateCardManager';
-import ProjectRateCardManager from '@/components/ProjectRateCardManager';
+import JobRateCardManager from '@/components/JobRateCardManager';
 import SupplierRateCardUploader from '@/components/billing/SupplierRateCardUploader';
 import RateCardSummaryDashboard from '@/components/billing/RateCardSummaryDashboard';
 import { useScopedEntity } from '@/hooks/useScopedEntity';
@@ -686,19 +686,19 @@ export default function RateCardManager() {
     setCloning(false);
   };
 
-  if (viewMode === 'project') {
+  if (viewMode === 'job') {
     return (
       <div className="space-y-4">
-        <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (chargeable rates, internal costs, drilling rates) and Project Rate Cards" />
+        <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (chargeable rates, internal costs, drilling rates) and Job Rate Cards" />
         <div className="flex gap-1.5 bg-slate-100 p-1 rounded-lg w-fit">
           <button onClick={() => setViewMode('master')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
             Master Price List
           </button>
-          <button onClick={() => setViewMode('project')} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-[#2E5A1A] shadow-sm">
-            Project Rate Cards
+          <button onClick={() => setViewMode('job')} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-[#2E5A1A] shadow-sm">
+            Job Rate Cards
           </button>
         </div>
-        <ProjectRateCardManager />
+        <JobRateCardManager />
       </div>
     );
   }
@@ -707,13 +707,13 @@ export default function RateCardManager() {
   if (isDrillingRates) {
     return (
       <div className="space-y-4">
-        <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (chargeable rates, internal costs, drilling rates) and Project Rate Cards" />
+        <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (chargeable rates, internal costs, drilling rates) and Job Rate Cards" />
         <div className="flex gap-1.5 bg-slate-100 p-1 rounded-lg w-fit">
           <button onClick={() => { setViewMode('master'); setActiveSource('standard'); }} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-[#2E5A1A] shadow-sm">
             Master Price List
           </button>
-          <button onClick={() => setViewMode('project')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
-            Project Rate Cards
+          <button onClick={() => setViewMode('job')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
+            Job Rate Cards
           </button>
         </div>
         <RateCardViewToggle
@@ -736,13 +736,13 @@ export default function RateCardManager() {
 
   return (
     <div className="space-y-4">
-      <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (chargeable rates, internal costs, drilling rates) and Project Rate Cards" />
+      <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (chargeable rates, internal costs, drilling rates) and Job Rate Cards" />
       <div className="flex gap-1.5 bg-slate-100 p-1 rounded-lg w-fit">
         <button onClick={() => setViewMode('master')} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-[#2E5A1A] shadow-sm">
           Master Price List
         </button>
-        <button onClick={() => setViewMode('project')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
-          Project Rate Cards
+        <button onClick={() => setViewMode('job')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
+          Job Rate Cards
         </button>
       </div>
       {/* Two-view toggle: Chargeable Rates | Internal Costs (with Drilling Rates as sub-filter) */}

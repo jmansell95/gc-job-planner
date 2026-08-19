@@ -4,8 +4,8 @@
 // Resolution hierarchy (highest priority wins):
 //   1. CONTRACT SNAPSHOT — an active JobBillingContract's rate_snapshot JSON.
 //      Frozen at activation so invoices never drift when rate cards change.
-//   2. PROJECT RATE CARD — RateCardItem where project_id == job.project_id.
-//   3. GLOBAL MASTER LIST — RateCardItem where project_id is null and
+//   2. JOB RATE CARD — RateCardItem where job_id == the job's own id.
+//   3. GLOBAL MASTER LIST — RateCardItem where job_id is null and
 //      rate_card_source == 'our_company'.
 //
 // Every resolution returns a `rate_source` tag ('contract_snapshot' |
@@ -22,15 +22,15 @@
 // instead of calling loadProjectRateCardItems / resolveProjectCharge directly.
 
 import {
-  loadProjectRateCardItems,
-  resolveProjectCharge,
+  loadJobRateCardItems,
+  resolveJobCharge,
   findBestRateCardMatch,
   type RateCardItemLike,
-} from './projectRateMatcher.ts';
+} from './jobRateMatcher.ts';
 
 export type RateSource =
   | 'contract_snapshot'
-  | 'project_rate_card'
+  | 'job_rate_card'
   | 'global_master'
   | 'no_match';
 
@@ -74,7 +74,7 @@ export function resolveFromSnapshot(
     cost_price: i.cost_price ?? null,
     unit: i.unit || null,
     subcategory: i.subcategory || null,
-    project_id: null, // snapshot is project-agnostic
+    job_id: null, // snapshot is job-agnostic
     is_active: true,
     // Extra fields for category filtering
     ...i,
@@ -96,21 +96,21 @@ export function resolveFromSnapshot(
   };
 }
 
-// ── Level 2 + 3: Project / Global rate card ──
-// Uses loadProjectRateCardItems which already implements the project → global
+// ── Level 2 + 3: Job / Global rate card ──
+// Uses loadJobRateCardItems which already implements the job → global
 // fallback internally.
 export async function resolveFromRateCards(
   base44: any,
-  projectId: string | null | undefined,
+  jobId: string | null | undefined,
   description: string,
   quantity: number = 1,
   jobDate?: string | null,
 ): Promise<ResolvedRate | null> {
-  const items = await loadProjectRateCardItems(base44, projectId, jobDate);
-  const match = resolveProjectCharge(description, items, quantity);
+  const items = await loadJobRateCardItems(base44, jobId, jobDate);
+  const match = resolveJobCharge(description, items, quantity);
   if (!match) return null;
-  const source: RateSource = projectId && items.length > 0 && items.some((i) => i.project_id === projectId)
-    ? 'project_rate_card'
+  const source: RateSource = jobId && items.length > 0 && items.some((i) => i.job_id === jobId)
+    ? 'job_rate_card'
     : 'global_master';
   return {
     rate_card_item_id: match.rateCardItem.id,
@@ -133,14 +133,13 @@ export async function resolveRate(
   base44: any,
   params: {
     job_id: string;
-    project_id?: string | null;
     description: string;
     quantity?: number;
     activeContract?: { rate_snapshot?: string | null } | null;
     job_date?: string | null;
   },
 ): Promise<ResolvedRate | null> {
-  const { description, quantity, activeContract, project_id, job_date } = params;
+  const { description, quantity, activeContract, job_id, job_date } = params;
   if (!description) return null;
 
   // Level 1 — contract snapshot
@@ -149,8 +148,8 @@ export async function resolveRate(
     if (snapshotMatch) return snapshotMatch;
   }
 
-  // Level 2 + 3 — project / global rate cards (filtered by effective date)
-  return resolveFromRateCards(base44, project_id, description, quantity, job_date);
+  // Level 2 + 3 — job / global rate cards (filtered by effective date)
+  return resolveFromRateCards(base44, job_id, description, quantity, job_date);
 }
 
 // ── Load the active contract for a job ──

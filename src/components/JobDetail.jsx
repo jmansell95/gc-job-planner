@@ -56,12 +56,8 @@ export default function JobDetail({ job: initialJob, onBack }) {
 
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order') });
-  const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 200) });
-  const { data: allJobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
   const primaryType = getJobPrimaryType(job, teams);
   const colors = getJobTypeColor(primaryType, jobTypes);
-  const jobProject = projects.find(p => p.id === job.project_id) || null;
-  const siblingJobs = jobProject ? allJobs.filter(j => j.project_id === jobProject.id && j.id !== job.id) : [];
 
   const { user: authUser } = useAuth();
   const isPlatformAdmin = authUser?.role === 'admin';
@@ -159,8 +155,6 @@ export default function JobDetail({ job: initialJob, onBack }) {
     queryClient.invalidateQueries({ queryKey: ['rotas-for-job', job.id] });
     setJob(prev => ({ ...prev, status: 'decommissioning' }));
   };
-
-  const handleProjectJobSelect = (sib) => { setJob(sib); window.scrollTo(0, 0); };
 
   const buildJobPrintHtml = () => {
     const staffRows = assignedStaff.map(s => {
@@ -320,9 +314,6 @@ export default function JobDetail({ job: initialJob, onBack }) {
         statusLabels={statusLabels}
         startDate={startDate}
         endDate={endDate}
-        jobProject={jobProject}
-        siblingJobs={siblingJobs}
-        onProjectClick={handleProjectJobSelect}
         jobTypes={jobTypes}
       />
 

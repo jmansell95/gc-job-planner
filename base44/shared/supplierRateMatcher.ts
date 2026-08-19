@@ -21,7 +21,7 @@ export interface RateCardItemLike {
   price?: number | null;
   price_text?: string;
   unit?: string;
-  project_id?: string;
+  job_id?: string;
   is_active?: boolean;
 }
 
@@ -88,7 +88,7 @@ export function findSupplierRateCardItem(
   m = pool.find((r) => { const d = norm(r.description); return d && desc.includes(d); });
   if (m) return m;
 
-  // 3. Recall-based fuzzy match (same algorithm as projectRateMatcher)
+  // 3. Recall-based fuzzy match (same algorithm as jobRateMatcher)
   let best: RateCardItemLike | null = null;
   let bestScore = 0;
   for (const r of pool) {

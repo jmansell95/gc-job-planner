@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { parseRemarks, professionaliseActivities } from '../../shared/keylogbookRemarks.ts';
-import { loadProjectRateCardItems, resolveProjectCharge } from '../../shared/projectRateMatcher.ts';
+import { loadJobRateCardItems, resolveJobCharge } from '../../shared/jobRateMatcher.ts';
 
 // ============================================================
 // KeyLogBook Webhook Receiver — Professionalised Site Logs Pipeline
@@ -120,9 +120,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Could not match an existing job. Ensure job_reference matches the Job reference field.' }, { status: 422 });
     }
 
-    // --- Load the project rate card so driller remarks can be auto-priced ---
-    // (project-scoped rate cards, e.g. EWR, take precedence over the Master Price List)
-    const rateCardItems = await loadProjectRateCardItems(base44, job.project_id);
+    // --- Load the job rate card so driller remarks can be auto-priced ---
+    // (job-scoped rate cards take precedence over the Master Price List)
+    const rateCardItems = await loadJobRateCardItems(base44, job.id);
 
     // --- Delete previous KeyLogBook-imported data for this job+date (overwrite mode) ---
     let deletedCount = 0;
@@ -201,8 +201,8 @@ Deno.serve(async (req) => {
       // Auto-price the activity against the project rate card. Try the cleaned
       // description first, then the raw driller wording (which often matches the
       // rate card terminology more closely, e.g. "bagging spoil").
-      const match = resolveProjectCharge(cleanDesc, rateCardItems, 1) ||
-        resolveProjectCharge(activity.raw_description, rateCardItems, 1);
+      const match = resolveJobCharge(cleanDesc, rateCardItems, 1) ||
+        resolveJobCharge(activity.raw_description, rateCardItems, 1);
       logs.push({
         job_id: job.id,
         staff_id: leadDrillerId || null,
@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
         billing_status: match ? 'auto' : 'no_charge',
         charge_amount: match ? match.total : null,
         charge_breakdown: match ? JSON.stringify({
-          source: 'project_rate_card',
+          source: 'job_rate_card',
           rate_card_item_id: match.rateCardItem.id,
           rate_card_item: match.rateCardItem.description,
           unit_price: match.unitPrice,

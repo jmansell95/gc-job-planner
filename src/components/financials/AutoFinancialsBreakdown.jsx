@@ -214,7 +214,7 @@ export default function AutoFinancialsBreakdown({ job }) {
       <div className="flex flex-wrap items-center gap-2 bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-2.5">
         <div className="flex items-center gap-1.5">
           <span className={`w-2 h-2 rounded-full ${bs.has_project ? 'bg-emerald-500' : 'bg-amber-400'}`} />
-          <span className="text-xs font-medium text-slate-600">{bs.has_project ? 'Project Rate Card' : 'Global Only'}</span>
+          <span className="text-xs font-medium text-slate-600">{bs.has_job_rate_card ? 'Job Rate Card' : 'Global Only'}</span>
         </div>
         <span className="text-slate-200">|</span>
         <div className="flex items-center gap-1.5">
@@ -233,7 +233,7 @@ export default function AutoFinancialsBreakdown({ job }) {
             <span className="text-xs text-slate-600">Rotary: <strong className="text-slate-800">{fmt(dm.rotary_per_metre_rate.price)}/m</strong></span>
           </>
         )}
-        <span className="ml-auto text-xs text-slate-400">{data.rate_card_levels?.project_rates_found || 0} project · {data.rate_card_levels?.global_rates_found || 0} global rates</span>
+        <span className="ml-auto text-xs text-slate-400">{data.rate_card_levels?.job_rates_found || 0} job · {data.rate_card_levels?.global_rates_found || 0} global rates</span>
       </div>
 
       {/* === HERO: Total Revenue === */}

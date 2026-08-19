@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Search, Upload, Loader2, FolderKanban, Building2, Check, X,
+  Search, Upload, Loader2, Briefcase, Check, X,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -15,21 +15,21 @@ const CATEGORY_META = {
 };
 
 /**
- * Project Rate Cards manager — lets an admin upload a project-specific rate card
- * (e.g. the East West Rail "Application for Payment" workbook) and view the ingested
- * rates. Jobs linked to that project bill against these rates in preference to the
+ * Job Rate Cards manager — lets an admin upload a job-specific rate card
+ * (e.g. a particular project's "Application for Payment" workbook) and view the
+ * ingested rates. The linked job bills against these rates in preference to the
  * global Master Price List.
  */
-export default function ProjectRateCardManager() {
+export default function JobRateCardManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [selectedJobId, setSelectedJobId] = useState(null);
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('labour');
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
-  const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list() });
+  const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list('-created_date', 500) });
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['rate-card-items'],
     queryFn: () => base44.entities.RateCardItem.list('-created_date', 1000),
@@ -37,32 +37,32 @@ export default function ProjectRateCardManager() {
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['rate-card-items'] });
-    queryClient.invalidateQueries({ queryKey: ['projects'] });
+    queryClient.invalidateQueries({ queryKey: ['jobs'] });
   };
 
-  // Projects that have at least one project-scoped rate card item
-  const projectsWithItems = useMemo(() => {
-    const ids = new Set(items.filter((i) => i.project_id).map((i) => i.project_id));
-    return projects.filter((p) => ids.has(p.id));
-  }, [items, projects]);
+  // Jobs that have at least one job-scoped rate card item
+  const jobsWithItems = useMemo(() => {
+    const ids = new Set(items.filter((i) => i.job_id).map((i) => i.job_id));
+    return jobs.filter((j) => ids.has(j.id));
+  }, [items, jobs]);
 
-  // Auto-select the first project with items (or EWR) on load
-  const effectiveProjectId = selectedProjectId || projectsWithItems[0]?.id || null;
-  const selectedProject = projects.find((p) => p.id === effectiveProjectId);
+  // Auto-select the first job with items on load
+  const effectiveJobId = selectedJobId || jobsWithItems[0]?.id || null;
+  const selectedJob = jobs.find((j) => j.id === effectiveJobId);
 
-  const projectItems = useMemo(
-    () => items.filter((i) => i.project_id === effectiveProjectId),
-    [items, effectiveProjectId]
+  const jobItems = useMemo(
+    () => items.filter((i) => i.job_id === effectiveJobId),
+    [items, effectiveJobId]
   );
 
   const counts = useMemo(() => ({
-    labour: projectItems.filter((i) => i.category === 'labour').length,
-    plant: projectItems.filter((i) => i.category === 'plant').length,
-    materials: projectItems.filter((i) => i.category === 'materials').length,
-  }), [projectItems]);
+    labour: jobItems.filter((i) => i.category === 'labour').length,
+    plant: jobItems.filter((i) => i.category === 'plant').length,
+    materials: jobItems.filter((i) => i.category === 'materials').length,
+  }), [jobItems]);
 
   const filtered = useMemo(() => {
-    let list = projectItems.filter((i) => i.category === activeCategory);
+    let list = jobItems.filter((i) => i.category === activeCategory);
     if (query.trim()) {
       const q = query.toLowerCase();
       list = list.filter((i) =>
@@ -72,7 +72,7 @@ export default function ProjectRateCardManager() {
       );
     }
     return list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  }, [projectItems, activeCategory, query]);
+  }, [jobItems, activeCategory, query]);
 
   const grouped = useMemo(() => {
     const map = {};
@@ -87,8 +87,8 @@ export default function ProjectRateCardManager() {
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!effectiveProjectId) {
-      toast({ title: 'Select a project first', description: 'Pick a project to attach this rate card to.', variant: 'destructive' });
+    if (!effectiveJobId) {
+      toast({ title: 'Select a job first', description: 'Pick a job to attach this rate card to.', variant: 'destructive' });
       return;
     }
     setUploading(true);
@@ -96,11 +96,11 @@ export default function ProjectRateCardManager() {
       const uploadRes = await base44.integrations.Core.UploadFile({ file });
       const res = await base44.functions.invoke('processEWRRateCardUpload', {
         file_url: uploadRes.file_url,
-        project_id: effectiveProjectId,
+        job_id: effectiveJobId,
       });
       toast({
-        title: 'Project rate card ingested',
-        description: `${res.data.ingested} rates loaded for ${res.data.project}.`,
+        title: 'Job rate card ingested',
+        description: `${res.data.ingested} rates loaded for ${res.data.job}.`,
       });
       refresh();
     } catch (err) {
@@ -114,56 +114,56 @@ export default function ProjectRateCardManager() {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 flex-wrap">
-        <FolderKanban className="w-5 h-5 text-[#2E5A1A]" />
-        <h2 className="font-semibold text-slate-900">Project Rate Cards</h2>
+        <Briefcase className="w-5 h-5 text-[#2E5A1A]" />
+        <h2 className="font-semibold text-slate-900">Job Rate Cards</h2>
         <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
-          {effectiveProjectId ? `${projectItems.length} rates` : 'No project selected'}
+          {effectiveJobId ? `${jobItems.length} rates` : 'No job selected'}
         </span>
         <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleUpload} className="hidden" />
         <button
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploading || !effectiveProjectId}
+          disabled={uploading || !effectiveJobId}
           className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition bg-[#2E5A1A] text-white hover:bg-[#1c4a12] disabled:opacity-50 flex-shrink-0"
         >
           {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-          {uploading ? 'Processing...' : 'Upload Project Rate Card'}
+          {uploading ? 'Processing...' : 'Upload Job Rate Card'}
         </button>
       </div>
 
-      {/* Project selector */}
+      {/* Job selector */}
       <div className="px-4 py-3 border-b border-slate-100 flex flex-col sm:flex-row gap-3 sm:items-center">
         <div className="flex items-center gap-2 flex-1">
-          <Building2 className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          <Briefcase className="w-4 h-4 text-slate-400 flex-shrink-0" />
           <select
-            value={effectiveProjectId || ''}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
+            value={effectiveJobId || ''}
+            onChange={(e) => setSelectedJobId(e.target.value)}
             className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A] bg-white"
           >
-            <option value="">Select a project…</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}{p.reference ? ` (${p.reference})` : ''}
-                {projectItems.some((i) => i.project_id === p.id) ? ' — has rate card' : ''}
+            <option value="">Select a job…</option>
+            {jobs.map((j) => (
+              <option key={j.id} value={j.id}>
+                {j.name}{j.job_reference ? ` (${j.job_reference})` : ''}
+                {jobItems.some((i) => i.job_id === j.id) ? ' — has rate card' : ''}
               </option>
             ))}
           </select>
         </div>
-        {selectedProject?.notes && (
-          <p className="text-xs text-slate-400 max-w-md truncate" title={selectedProject.notes}>{selectedProject.notes}</p>
+        {selectedJob?.notes && (
+          <p className="text-xs text-slate-400 max-w-md truncate" title={selectedJob.notes}>{selectedJob.notes}</p>
         )}
       </div>
 
-      {!effectiveProjectId ? (
+      {!effectiveJobId ? (
         <div className="text-center py-16 px-4">
-          <FolderKanban className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-          <p className="text-sm font-medium text-slate-500">No project rate card selected</p>
-          <p className="text-xs text-slate-400 mt-1">Pick a project above, then upload its rate card workbook. Jobs linked to that project will bill against these rates automatically.</p>
+          <Briefcase className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+          <p className="text-sm font-medium text-slate-500">No job rate card selected</p>
+          <p className="text-xs text-slate-400 mt-1">Pick a job above, then upload its rate card workbook. That job will bill against these rates automatically.</p>
         </div>
-      ) : projectItems.length === 0 ? (
+      ) : jobItems.length === 0 ? (
         <div className="text-center py-16 px-4">
           <Upload className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-          <p className="text-sm font-medium text-slate-500">No rates ingested for this project yet</p>
-          <p className="text-xs text-slate-400 mt-1">Click "Upload Project Rate Card" to load the schedule of rates for {selectedProject?.name}.</p>
+          <p className="text-sm font-medium text-slate-500">No rates ingested for this job yet</p>
+          <p className="text-xs text-slate-400 mt-1">Click "Upload Job Rate Card" to load the schedule of rates for {selectedJob?.name}.</p>
         </div>
       ) : (
         <>
@@ -185,7 +185,7 @@ export default function ProjectRateCardManager() {
           <div className="px-4 py-3 border-b border-slate-100">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`Search ${CATEGORY_META[activeCategory].label.toLowerCase()} rates for ${selectedProject?.name || 'this project'}…`} className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`Search ${CATEGORY_META[activeCategory].label.toLowerCase()} rates for ${selectedJob?.name || 'this job'}…`} className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]" />
             </div>
           </div>
 

@@ -7,7 +7,6 @@ import {
   HardHat, Receipt, Percent, Building2, Phone, Ruler, FileCheck2, ArrowRightLeft, LayoutTemplate, Plus,
   Upload, Eye, Download, RefreshCw,
 } from 'lucide-react';
-import ProjectSelect from '@/components/ProjectSelect';
 import SubcontractorAssignments from '@/components/SubcontractorAssignments';
 import DisciplineBuilder from '@/components/disciplines/DisciplineBuilder';
 import { getJobDisciplines, getDisciplineSubcategories } from '@/utils/jobDisciplines';
@@ -42,7 +41,7 @@ const DRILLING_METHODS = [
 const emptyForm = {
   name: '', job_reference: '', job_type: '', location: '', required_team_ids: [],
   status: 'planning', start_date: '', end_date: '', client_id: '', contractor_id: '',
-  project_id: '', project_manager: '', site_contact_name: '', site_contact_phone: '',
+  project_manager: '', site_contact_name: '', site_contact_phone: '',
   notes: '', budget_amount: '',
   site_lat: '', site_lng: '', geofence_radius_override: '',
   requisition_list_url: '', requisition_list_name: '',
@@ -68,7 +67,6 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list(), enabled: open });
   const { data: contractors = [] } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list(), enabled: open });
   const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order'), enabled: open });
-  const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 200), enabled: open });
 
   useEffect(() => {
     if (open) {
@@ -270,7 +268,6 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
       }
 
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['auto-job-financials', jobId] });
       queryClient.invalidateQueries({ queryKey: ['subcon-logs', jobId] });
       onCreated?.(saved);
@@ -390,14 +387,6 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                       <option value="">No client</option>
                       {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Project <span className="text-xs text-slate-400 font-normal">· group jobs together</span></label>
-                    <ProjectSelect
-                      value={form.project_id || ''}
-                      onChange={(pid) => set('project_id', pid)}
-                      onClientInherit={(cid) => set('client_id', form.client_id || cid)}
-                    />
                   </div>
                   {/* Additional Sites — for jobs spanning multiple locations */}
                   <div>
@@ -572,7 +561,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                           </div>
                         </div>
                       </div>
-                      <p className="text-[11px] text-slate-400">Leave metre rate blank to auto-price from the project rate card's depth-banded rates. Set a rate to bill a fixed £/m for all metres.</p>
+                      <p className="text-[11px] text-slate-400">Leave metre rate blank to auto-price from the job rate card's depth-banded rates. Set a rate to bill a fixed £/m for all metres.</p>
                     </div>
                   )}
 
@@ -645,19 +634,6 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                     </div>
                   </div>
 
-                  {/* Rate card warnings */}
-                  {!form.project_id && (
-                    <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-[11px] text-amber-700">No project assigned — this job will bill against the <strong>Global Master Price List</strong> only. Assign a project to use project-specific rate cards (e.g. EWR schedule of rates).</p>
-                    </div>
-                  )}
-                  {form.project_id && form.drilling_method !== 'not_applicable' && (
-                    <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
-                      <HardHat className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-[11px] text-emerald-700">Per-metre rates will auto-match from the project rate card's <strong>{form.drilling_method === 'cp' ? 'CP Drilling' : form.drilling_method === 'rotary' ? 'Rotary Drilling' : 'CP + Rotary'}</strong> section.</p>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -681,7 +657,6 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                     <ReviewRow label="Name" value={form.name} />
                     <ReviewRow label="Location" value={form.location} />
                     <ReviewRow label="Client" value={clients.find(c => c.id === form.client_id)?.name} />
-                    <ReviewRow label="Project" value={projects.find(p => p.id === form.project_id)?.name} />
                     <ReviewRow label="Schedule" value={form.start_date && form.end_date ? `${fmtDate(form.start_date)} → ${fmtDate(form.end_date)}` : ''} />
                     <ReviewRow label="Billing Method" value={methodLabel} highlight />
                     <ReviewRow label="Drilling Method" value={{ cp: 'Cable Percussion', rotary: 'Rotary', mixed: 'Mixed', not_applicable: 'N/A' }[form.drilling_method] || 'N/A'} />
@@ -738,7 +713,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" /> Live Snapshot
               </p>
-              <JobSnapshotCard form={form} clients={clients} jobTypes={jobTypes} projects={projects} fmtDate={fmtDate} methodLabel={methodLabel} />
+              <JobSnapshotCard form={form} clients={clients} jobTypes={jobTypes} fmtDate={fmtDate} methodLabel={methodLabel} />
             </div>
           </div>
         </div>
@@ -820,9 +795,8 @@ function GeocodeButton({ address, onResult }) {
   );
 }
 
-function JobSnapshotCard({ form, clients, jobTypes, projects, fmtDate, methodLabel }) {
+function JobSnapshotCard({ form, clients, jobTypes, fmtDate, methodLabel }) {
   const client = clients.find(c => c.id === form.client_id);
-  const project = projects.find(p => p.id === form.project_id);
   const color = getJobTypeColor(form.job_type, jobTypes);
 
   return (
@@ -830,12 +804,6 @@ function JobSnapshotCard({ form, clients, jobTypes, projects, fmtDate, methodLab
       <div className={`h-1.5 ${color?.bar || 'bg-slate-300'}`} />
       <div className="p-4 space-y-2">
         <h3 className="font-bold text-slate-900 text-sm break-words">{form.name || 'Untitled job'}</h3>
-        {project && (
-          <div className="flex items-center gap-1">
-            <FolderOpen className="w-3 h-3 text-indigo-500" />
-            <span className="text-[11px] text-indigo-600 truncate">{project.name}</span>
-          </div>
-        )}
         <div className="flex items-center gap-1.5 text-slate-500 text-xs">
           <MapPin className="w-3 h-3 flex-shrink-0" />
           <span className="truncate">{form.location || 'No location'}</span>

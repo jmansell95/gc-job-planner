@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { loadProjectRateCardItems, resolveProjectCharge } from '../../shared/projectRateMatcher.ts';
+import { loadJobRateCardItems, resolveJobCharge } from '../../shared/jobRateMatcher.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -33,8 +33,8 @@ Deno.serve(async (req) => {
       units,             // for per-unit calculations
       chargeable,        // if false, return 0
       custom_fee,         // if set, return this amount as override
-      project_id,        // linked project — enables project rate card auto-pricing
-      description,       // activity description — matched against project rate card
+      job_id,            // linked job — enables job rate card auto-pricing
+      description,       // activity description — matched against job rate card
       quantity,          // qty for per-unit rate card items (metres, hours, etc.)
       job_date           // working date — for effective-dated rate resolution
     } = body;
@@ -58,17 +58,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Project rate card auto-pricing (e.g. the East West Rail schedule of rates).
-    // When an investigation or task has a project_id and a description, look up the
-    // matching RateCardItem for that project and price it directly — before falling
+    // Job rate card auto-pricing (a job's own schedule of rates).
+    // When an investigation or task has a job_id and a description, look up the
+    // matching RateCardItem for that job and price it directly — before falling
     // back to the generic BillingRule mechanism.
-    if (project_id && description && (entity_type === 'investigation' || entity_type === 'task')) {
-      const rateCardItems = await loadProjectRateCardItems(base44, project_id, job_date);
+    if (job_id && description && (entity_type === 'investigation' || entity_type === 'task')) {
+      const rateCardItems = await loadJobRateCardItems(base44, job_id, job_date);
       const qty = Number(quantity ?? units) || 1;
-      const match = resolveProjectCharge(String(description), rateCardItems, qty);
+      const match = resolveJobCharge(String(description), rateCardItems, qty);
       if (match) {
         const breakdown = canViewCostings
-          ? { source: 'project_rate_card', rate_card_item_id: match.rateCardItem.id, rate_card_item: match.rateCardItem.description, unit_price: match.unitPrice, quantity: match.quantity, total: match.total }
+          ? { source: 'job_rate_card', rate_card_item_id: match.rateCardItem.id, rate_card_item: match.rateCardItem.description, unit_price: match.unitPrice, quantity: match.quantity, total: match.total }
           : { total: match.total };
         return Response.json({
           charge_amount: match.total,

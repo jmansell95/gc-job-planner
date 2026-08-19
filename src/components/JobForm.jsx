@@ -6,7 +6,6 @@ import { getJobDisciplines } from '@/utils/jobDisciplines';
 import EquipmentManager from '@/components/EquipmentManager';
 import FormSection from '@/components/forms/FormSection';
 import ChipMultiSelect from '@/components/forms/ChipMultiSelect';
-import ProjectSelect from '@/components/ProjectSelect';
 import DisciplineBuilder from '@/components/disciplines/DisciplineBuilder';
 import { useScopedEntity } from '@/hooks/useScopedEntity';
 
@@ -30,7 +29,6 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
   const setNum = (key, v) => setFormData({ ...formData, [key]: v === '' ? null : parseFloat(v) });
   const { data: teams = [] } = useScopedEntity('Team', { queryKey: ['teams'] });
   const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order') });
-  const { data: projects = [] } = useScopedEntity('Project', { queryKey: ['projects'], sort: '-created_date', limit: 200 });
 
   const disciplines = getJobDisciplines(formData);
   const showMeterage = disciplines.some(d => d.type === 'drilling');
@@ -82,13 +80,6 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
           <FormSection title="Job Details" icon={Briefcase}>
             <Field label="Job Name" required>
               <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required className={inputCls} />
-            </Field>
-            <Field label="Project" hint="Group jobs under one project" full>
-              <ProjectSelect
-                value={formData.project_id || ''}
-                onChange={(pid) => setFormData({ ...formData, project_id: pid })}
-                onClientInherit={(cid) => setFormData(prev => ({ ...prev, client_id: prev.client_id || cid }))}
-              />
             </Field>
             <Field label="Job Reference" hint="PO / quote no.">
               <input type="text" value={formData.job_reference || ''} onChange={(e) => setFormData({ ...formData, job_reference: e.target.value })} placeholder="e.g. PO-10245" className={inputCls} />
@@ -226,7 +217,6 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
           <FormSection title="Review & Confirm" icon={Check} columns={false}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <ReviewRow label="Name" value={formData.name} />
-              <ReviewRow label="Project" value={projects.find(p => p.id === formData.project_id)?.name} />
               <ReviewRow label="Location" value={formData.location} />
               <ReviewRow label="Disciplines" value={disciplines.map(d => {
                 const teamCount = (d.required_team_ids || []).length;

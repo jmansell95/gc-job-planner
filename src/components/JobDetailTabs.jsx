@@ -39,7 +39,7 @@ export default function JobDetailTabs({
   job, primaryType, assignedStaff, rotas, allStaff, vehicles, rotasByDate, sortedDates,
   client, contractor, suppliers, contractors, canSeeCosts, isDrillingJob, isGroundworksJob, totalCost,
   staffCosts, totalMeterage, hotelBookings, colors, statusBadge, statusLabels,
-  startDate, endDate, jobProject, siblingJobs, onProjectClick, jobTypes = []
+  startDate, endDate, jobTypes = []
 }) {
   const [activeTab, setActiveTab] = useState('context');
   const [summarySub, setSummarySub] = useState('overview');
@@ -97,9 +97,6 @@ export default function JobDetailTabs({
               statusLabels={statusLabels}
               startDate={startDate}
               endDate={endDate}
-              jobProject={jobProject}
-              siblingJobs={siblingJobs}
-              onProjectClick={onProjectClick}
               jobTypes={jobTypes}
               subTab="overview"
             />
@@ -142,9 +139,6 @@ export default function JobDetailTabs({
             statusLabels={statusLabels}
             startDate={startDate}
             endDate={endDate}
-            jobProject={jobProject}
-            siblingJobs={siblingJobs}
-            onProjectClick={onProjectClick}
             jobTypes={jobTypes}
             subTab="links"
           />

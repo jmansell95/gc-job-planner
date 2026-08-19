@@ -10,10 +10,6 @@
       "type": "string",
       "description": "The division this job belongs to. Set automatically from the active division when the job is created, or assigned via the migration. Drives division-scoped filtering on the dashboard and hubs."
     },
-    "project_id": {
-      "type": "string",
-      "description": "Linked Project \u2014 groups multiple jobs (e.g. 5 jobs across 2 sites) under one parent project. Blank for standalone jobs."
-    },
     "job_reference": {
       "type": "string",
       "description": "Internal job reference or PO number"
@@ -95,7 +91,7 @@
         }
       },
       "default": [],
-      "description": "Multiple sites within this job. A single job can span one or more sites \u2014 each with its own location, coordinates, status and dates. The legacy location/site_lat/site_lng fields represent the primary site for backward compatibility; entries here are additional sites managed within the same job. All billing rolls up to the parent Project."
+      "description": "Multiple sites within this job. A single job can span one or more sites \u2014 each with its own location, coordinates, status and dates. The legacy location/site_lat/site_lng fields represent the primary site for backward compatibility; entries here are additional sites managed within the same job."
     },
     "disciplines": {
       "type": "array",

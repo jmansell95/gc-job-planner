@@ -9,7 +9,6 @@ import JobDetail from '@/components/JobDetail';
 import JobWizardModal from '@/components/JobWizardModal';
 import PrintReportButton from '@/components/PrintReportButton';
 import JobCreatedModal from '@/components/JobCreatedModal';
-import ProjectManager from '@/components/ProjectManager';
 import JobKanbanBoard from '@/components/dashboard/JobKanbanBoard';
 import { getJobPrimaryType, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
@@ -74,7 +73,6 @@ const emptyForm = {
   project_manager: '', site_contact_name: '', site_contact_phone: '',
   notes: '', requisition_list_url: '', requisition_list_name: '',
   budget_amount: '', actual_cost: '', meterage: '', client_charge: '', client_charge_description: '',
-  project_id: '',
   equipment_items: []
 };
 
@@ -97,7 +95,6 @@ export default function JobManager({ onNavigateRota }) {
   const { data: contractors = [] } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list() });
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order') });
-  const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 200) });
   const { data: rotas = [] } = useScopedEntity('RotaAssignment', { queryKey: ['rotas-for-jobs'], sort: '-created_date', limit: 5000 });
   const { data: costItems = [] } = useScopedEntity('JobCostItem', { queryKey: ['cost-items-for-jobs'], sort: '-created_date', limit: 5000 });
   const { data: siteAssets = [] } = useQuery({ queryKey: ['site-assets-for-rig-count'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 5000) });
@@ -138,12 +135,6 @@ export default function JobManager({ onNavigateRota }) {
   const handleEdit = (job) => {
     setEditingJob(job);
     setShowWizard(true);
-  };
-
-  const handleAddJobToProject = (project) => {
-    setEditingJob({ project_id: project?.id || '', client_id: project?.client_id || '' });
-    setShowWizard(true);
-    setView('jobs');
   };
 
   const handleWizardCreated = (savedJob) => {
@@ -225,23 +216,13 @@ export default function JobManager({ onNavigateRota }) {
         actions={
           <>
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-              <button onClick={() => setView('jobs')} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition ${view === 'jobs' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                <Briefcase className="w-3.5 h-3.5" /> Jobs
+              <button onClick={() => setLayoutView('grid')} className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition ${layoutView === 'grid' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                <LayoutGrid className="w-3.5 h-3.5" /> Grid
               </button>
-              <button onClick={() => setView('projects')} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition ${view === 'projects' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                <FolderOpen className="w-3.5 h-3.5" /> Projects
+              <button onClick={() => setLayoutView('kanban')} className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition ${layoutView === 'kanban' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                <BarChart3 className="w-3.5 h-3.5" /> Kanban
               </button>
             </div>
-            {view === 'jobs' && (
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-                <button onClick={() => setLayoutView('grid')} className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition ${layoutView === 'grid' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                  <LayoutGrid className="w-3.5 h-3.5" /> Grid
-                </button>
-                <button onClick={() => setLayoutView('kanban')} className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition ${layoutView === 'kanban' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                  <BarChart3 className="w-3.5 h-3.5" /> Kanban
-                </button>
-              </div>
-            )}
             <PrintReportButton buildHtml={buildJobsPrintHtml} label="Print Jobs List" />
             <button
               onClick={() => { setEditingJob(null); setShowWizard(true); }}
@@ -262,25 +243,13 @@ export default function JobManager({ onNavigateRota }) {
         />
       )}
 
-      {/* Projects view — group jobs by project */}
-      {view === 'projects' && (
-        <ProjectManager
-          jobs={jobs}
-          teams={teams}
-          jobTypes={jobTypes}
-          clients={clients}
-          onSelectJob={(job) => setSelectedJob(job)}
-          onAddJob={handleAddJobToProject}
-        />
-      )}
-
-      {/* Workload Ownership — Direct vs Partner split (Jobs view only) */}
-      {view === 'jobs' && jobs.length > 0 && (
+      {/* Workload Ownership — Direct vs Partner split */}
+      {jobs.length > 0 && (
         <WorkloadOwnershipPanel />
       )}
 
       {/* Jobs KPI Stats Bar — quick overview of job portfolio health */}
-      {view === 'jobs' && jobs.length > 0 && (() => {
+      {jobs.length > 0 && (() => {
         const active = jobs.filter(j => ['planning', 'in_progress', 'decommissioning'].includes(j.status || 'planning')).length;
         const inProgress = jobs.filter(j => (j.status || 'planning') === 'in_progress').length;
         const totalCrew = Object.values(crewCountByJob).reduce((s, n) => s + n, 0);
@@ -309,8 +278,8 @@ export default function JobManager({ onNavigateRota }) {
         );
       })()}
 
-      {/* Status buttons + search — only in Jobs view */}
-      {view === 'jobs' && jobs.length > 0 && (
+      {/* Status buttons + search */}
+      {jobs.length > 0 && (
         <div className="mb-5 space-y-3">
           {/* Status buttons */}
           <div className="flex flex-wrap items-center gap-2">
@@ -354,7 +323,7 @@ export default function JobManager({ onNavigateRota }) {
         </div>
       )}
 
-      {/* Jobs Grid/Kanban — only in Jobs view */}
+      {/* Jobs Grid/Kanban */}
       {view === 'jobs' && (
         <>
           {layoutView === 'kanban' ? (
@@ -374,16 +343,12 @@ export default function JobManager({ onNavigateRota }) {
               {filteredJobs.map((job) => {
                 const client = clients.find(c => c.id === job.client_id);
                 const parentClient = client?.parent_client_id ? clients.find(c => c.id === client.parent_client_id) : null;
-                const project = projects.find(p => p.id === job.project_id);
-                const siblingCount = project ? jobs.filter(j => j.project_id === project.id).length : 0;
                 return (
                   <JobSummaryCard
                     key={job.id}
                     job={job}
                     client={client}
                     parentClient={parentClient}
-                    project={project}
-                    siblingCount={siblingCount}
                     crewCount={crewCountByJob[job.id] || 0}
                     rigCount={rigCountByJob[job.id] || 0}
                     jobTypes={jobTypes}
@@ -393,7 +358,6 @@ export default function JobManager({ onNavigateRota }) {
                     onEdit={(j) => handleEdit(j)}
                     onClone={(j) => handleClone(j)}
                     onDelete={(id) => handleDelete(id)}
-                    onProjectClick={() => setView('projects')}
                   />
                 );
               })}

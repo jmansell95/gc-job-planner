@@ -1,10 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import * as XLSX from 'npm:xlsx@0.18.5';
 
-// Deterministic SheetJS parser for a project-scoped rate card workbook (e.g. the
+// Deterministic SheetJS parser for a job-scoped rate card workbook (e.g. the
 // East West Rail "Application for Payment" file). Ingests RateCardItem records
-// tagged with the target project_id, so any job linked to that project bills
-// against these rates in preference to the global Master Price List.
+// tagged with the target job_id, so that job bills against these rates in
+// preference to the global Master Price List.
 //
 // AI extraction (ExtractDataFromUploadedFile) truncates large workbooks, so this
 // reads every row positionally — mirroring processMasterPriceListUpload.
@@ -44,14 +44,14 @@ export default async function(req) {
     if (user.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 });
 
     const body = await req.json();
-    const { file_url, project_id } = body;
-    if (!file_url || !project_id) {
-      return Response.json({ error: 'file_url and project_id are required' }, { status: 400 });
+    const { file_url, job_id } = body;
+    if (!file_url || !job_id) {
+      return Response.json({ error: 'file_url and job_id are required' }, { status: 400 });
     }
 
-    // Verify the project exists
-    const project = await base44.asServiceRole.entities.Project.get(project_id);
-    if (!project) return Response.json({ error: 'Project not found' }, { status: 404 });
+    // Verify the job exists
+    const job = await base44.asServiceRole.entities.Job.get(job_id);
+    if (!job) return Response.json({ error: 'Job not found' }, { status: 404 });
 
     const fileRes = await fetch(file_url);
     if (!fileRes.ok) return Response.json({ error: 'Could not download rate card file' }, { status: 422 });
@@ -103,7 +103,7 @@ export default async function(req) {
           notes: notesVal != null && notesVal !== '' ? String(notesVal).trim() : null,
           rate_card_source: 'our_company',
           supplier_id: null,
-          project_id,
+          job_id,
           sort_order: sortOrder++,
           is_active: true,
         });
@@ -150,7 +150,7 @@ export default async function(req) {
           notes: null,
           rate_card_source: 'our_company',
           supplier_id: null,
-          project_id,
+          job_id,
           sort_order: sortOrder++,
           is_active: true,
         });
@@ -178,7 +178,7 @@ export default async function(req) {
           price_text: priceText,
           unit: unitVal ? String(unitVal).trim() : null,
           men: null, size: null, notes: null,
-          rate_card_source: 'our_company', supplier_id: null, project_id,
+          rate_card_source: 'our_company', supplier_id: null, job_id,
           sort_order: sortOrder++, is_active: true,
         });
       }
@@ -205,7 +205,7 @@ export default async function(req) {
           price_text: priceText,
           unit: unitVal ? String(unitVal).trim() : null,
           men: null, size: null, notes: null,
-          rate_card_source: 'our_company', supplier_id: null, project_id,
+          rate_card_source: 'our_company', supplier_id: null, job_id,
           sort_order: sortOrder++, is_active: true,
         });
       }
@@ -215,8 +215,8 @@ export default async function(req) {
       return Response.json({ error: 'No rate card items could be read from this file' }, { status: 422 });
     }
 
-    // Idempotent re-upload: replace existing project-scoped items
-    await base44.asServiceRole.entities.RateCardItem.deleteMany({ project_id });
+    // Idempotent re-upload: replace existing job-scoped items
+    await base44.asServiceRole.entities.RateCardItem.deleteMany({ job_id });
 
     for (let i = 0; i < payload.length; i += 500) {
       await base44.asServiceRole.entities.RateCardItem.bulkCreate(payload.slice(i, i + 500));
@@ -225,7 +225,7 @@ export default async function(req) {
     return Response.json({
       status: 'success',
       ingested: payload.length,
-      project: project.name,
+      job: job.name,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

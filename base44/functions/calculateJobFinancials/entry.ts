@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { loadProjectRateCardItems, findBestRateCardMatch, type RateCardItemLike } from '../../shared/projectRateMatcher.ts';
+import { loadJobRateCardItems, findBestRateCardMatch, type RateCardItemLike } from '../../shared/jobRateMatcher.ts';
 import { resolveHireCharges } from '../../shared/supplierRateMatcher.ts';
 
 // ============================================================
@@ -60,18 +60,19 @@ export default async function(req: Request): Promise<Response> {
       } catch (_) { staffRates[sid] = []; }
     }
 
-    let projectRateItems: RateCardItemLike[] = [];
-    try { projectRateItems = await loadProjectRateCardItems(base44, job.project_id); } catch (_) { projectRateItems = []; }
+    let jobRateItems: RateCardItemLike[] = [];
+    try { jobRateItems = await loadJobRateCardItems(base44, job.id); } catch (_) { jobRateItems = []; }
 
     let globalItems: RateCardItemLike[] = [];
-    if (job.project_id) {
+    const hasJobRateCard = jobRateItems.length > 0 && jobRateItems.some((i: RateCardItemLike) => i.job_id === job.id);
+    if (hasJobRateCard) {
       try {
         const global = await base44.asServiceRole.entities.RateCardItem.filter({ rate_card_source: 'our_company', is_active: true }, '-sort_order', 500);
-        globalItems = (global || []).filter((i: RateCardItemLike) => i.price != null && !isNaN(Number(i.price)) && !i.project_id && !i.staff_id);
+        globalItems = (global || []).filter((i: RateCardItemLike) => i.price != null && !isNaN(Number(i.price)) && !i.job_id && !i.staff_id);
       } catch (_) {}
     } else {
-      // No project — projectRateItems already IS the global list
-      globalItems = projectRateItems;
+      // No job rate card — jobRateItems already IS the global list
+      globalItems = jobRateItems;
     }
 
     // ── Drilling method detection ──
@@ -194,27 +195,27 @@ export default async function(req: Request): Promise<Response> {
 
     // Build depth-banded rate tables (project first, then global fills gaps)
     const cpBandedRates: DepthBandedRate[] = [
-      ...parseDepthBandedRates(projectRateItems, 'CP Drilling', 'project'),
+      ...parseDepthBandedRates(jobRateItems, 'CP Drilling', 'job'),
       ...parseDepthBandedRates(globalItems, 'CP Drilling', 'global'),
     ];
     const rotaryBandedRates: DepthBandedRate[] = [
-      ...parseDepthBandedRates(projectRateItems, 'Rotary Drilling', 'project'),
+      ...parseDepthBandedRates(jobRateItems, 'Rotary Drilling', 'job'),
       ...parseDepthBandedRates(globalItems, 'Rotary Drilling', 'global'),
     ];
 
     const cpPerMetreRate = job.meterage_rate && jobDrillingMethod !== 'rotary'
       ? { price: Number(job.meterage_rate), description: 'Job metre rate', unit: 'm', source: 'job', id: '' }
-      : (findPerMetreDrillingRate('cp', projectRateItems) || findPerMetreDrillingRate('cp', globalItems));
+      : (findPerMetreDrillingRate('cp', jobRateItems) || findPerMetreDrillingRate('cp', globalItems));
     const rotaryPerMetreRate = job.meterage_rate && jobDrillingMethod !== 'cp'
       ? { price: Number(job.meterage_rate), description: 'Job metre rate', unit: 'm', source: 'job', id: '' }
-      : (findPerMetreDrillingRate('rotary', projectRateItems) || findPerMetreDrillingRate('rotary', globalItems));
+      : (findPerMetreDrillingRate('rotary', jobRateItems) || findPerMetreDrillingRate('rotary', globalItems));
 
     // ── Match each log to a rate card item (for SOR line revenue) ──
     interface MatchedEntry {
       log_id: string; date: string; log_type: string; borehole_ref: string;
       description: string; staff_name: string; logged_by_role: string;
       rate_card_item_id: string; rate_card_description: string;
-      rate_source: 'staff' | 'project' | 'global' | 'no_match';
+      rate_source: 'staff' | 'job' | 'global' | 'no_match';
       unit: string; unit_price: number; quantity: number; line_total: number;
     }
 
@@ -301,13 +302,13 @@ export default async function(req: Request): Promise<Response> {
       if (meaningfulDesc) {
         if (log.staff_id && staffRates[log.staff_id]) bestMatch = tryMatch(meaningfulDesc, staffRates[log.staff_id]);
         if (bestMatch) rateSource = 'staff';
-        if (!bestMatch) { bestMatch = tryMatch(meaningfulDesc, projectRateItems); if (bestMatch) rateSource = 'project'; }
+        if (!bestMatch) { bestMatch = tryMatch(meaningfulDesc, jobRateItems); if (bestMatch) rateSource = 'job'; }
         if (!bestMatch) { bestMatch = tryMatch(meaningfulDesc, globalItems); if (bestMatch) rateSource = 'global'; }
       }
       if (!bestMatch && keywordDesc) {
         if (log.staff_id && staffRates[log.staff_id]) bestMatch = tryMatch(keywordDesc, staffRates[log.staff_id]);
         if (bestMatch) rateSource = 'staff';
-        if (!bestMatch) { bestMatch = tryMatch(keywordDesc, projectRateItems); if (bestMatch) rateSource = 'project'; }
+        if (!bestMatch) { bestMatch = tryMatch(keywordDesc, jobRateItems); if (bestMatch) rateSource = 'job'; }
         if (!bestMatch) { bestMatch = tryMatch(keywordDesc, globalItems); if (bestMatch) rateSource = 'global'; }
       }
 
@@ -434,7 +435,7 @@ export default async function(req: Request): Promise<Response> {
         supplierRateItems = await base44.asServiceRole.entities.RateCardItem.filter({ rate_card_source: 'supplier', is_active: true }, '-sort_order', 1000) as RateCardItemLike[];
       } catch (_) { supplierRateItems = []; }
     }
-    const ourRateItemsForHire: RateCardItemLike[] = [...(projectRateItems || []), ...(globalItems || [])];
+    const ourRateItemsForHire: RateCardItemLike[] = [...(jobRateItems || []), ...(globalItems || [])];
     const hireMarkupPct = Number(job.markup_percentage) || 15;
     const hireBreakdown = resolveHireCharges(costItems, supplierRateItems, ourRateItemsForHire, hireMarkupPct);
 
@@ -477,7 +478,7 @@ export default async function(req: Request): Promise<Response> {
     // rate_card_item_id.
     const rateCardCostMap: Record<string, number> = {};
     const rateCardChargeMap: Record<string, number> = {};
-    for (const r of [...(projectRateItems || []), ...(globalItems || [])]) {
+    for (const r of [...(jobRateItems || []), ...(globalItems || [])]) {
       if (r.id) {
         rateCardCostMap[r.id] = r.cost_price != null ? Number(r.cost_price) : 0;
         rateCardChargeMap[r.id] = r.price != null ? Number(r.price) : 0;
@@ -577,7 +578,7 @@ export default async function(req: Request): Promise<Response> {
 
     // Build rate card description lookup from already-loaded items (zero extra API calls)
     const rateCardDescMap: Record<string, string> = {};
-    for (const r of [...(projectRateItems || []), ...(globalItems || [])]) {
+    for (const r of [...(jobRateItems || []), ...(globalItems || [])]) {
       if (r.id) rateCardDescMap[r.id] = r.description;
     }
 
@@ -821,23 +822,21 @@ export default async function(req: Request): Promise<Response> {
 
     const bySource = {
       staff: matched.filter(m => m.rate_source === 'staff').reduce((s, m) => s + m.line_total, 0),
-      project: matched.filter(m => m.rate_source === 'project').reduce((s, m) => s + m.line_total, 0),
+      job: matched.filter(m => m.rate_source === 'job').reduce((s, m) => s + m.line_total, 0),
       global: matched.filter(m => m.rate_source === 'global').reduce((s, m) => s + m.line_total, 0),
     };
 
     // ── Billing setup status (for the UI warning banner) ──
     const billingSetup = {
-      has_project: !!job.project_id,
+      has_job_rate_card: hasJobRateCard,
       has_meterage_rate: meterageRate > 0,
       has_drilling_method: jobDrillingMethod !== 'not_applicable',
       drilling_method: jobDrillingMethod,
-      has_project_rate_card: projectRateItems.length > 0 && !!job.project_id,
       cp_rate_found: !!cpPerMetreRate,
       rotary_rate_found: !!rotaryPerMetreRate,
-      rate_card_source: job.project_id ? (projectRateItems.length > 0 ? 'project' : 'global') : 'global',
+      rate_card_source: hasJobRateCard ? 'job' : 'global',
       warnings: [] as string[],
     };
-    if (!job.project_id) billingSetup.warnings.push('No project assigned — billing against the Global Master Price List only.');
     if (jobDrillingMethod === 'not_applicable' && logs.length > 0) billingSetup.warnings.push('Drilling method not set — per-metre rates may not match correctly.');
     if (meterageRate === 0 && !cpPerMetreRate && !rotaryPerMetreRate && totalMetres > 0) billingSetup.warnings.push('No per-metre drilling rate found in any rate card for this drilling method.');
     if (rigCostItems.length === 0 && totalMetres > 0) billingSetup.warnings.push('No rigs added — rig crew costs are £0. Add rigs in the Logistics tab.');
@@ -959,7 +958,7 @@ export default async function(req: Request): Promise<Response> {
       },
       rate_card_levels: {
         staff_rates_found: Object.keys(staffRates).filter(k => staffRates[k].length > 0).length,
-        project_rates_found: projectRateItems.length,
+        job_rates_found: jobRateItems.length,
         global_rates_found: globalItems.length,
       },
     });
