@@ -23,25 +23,39 @@ export async function resolvePandaToken(
   let token = config.api_token || '';
 
   // 2. Otherwise exchange the Client ID + Client Secret (issued on Asset Panda's
-  //    API Configuration page) for a fresh session token via POST /v3/session/token.
-  //    Asset Panda labels these "Client ID" and "Client Secret" in their UI; the
-  //    V3 session endpoint accepts them as the email/password pair. Session tokens
-  //    expire, so we generate a new one on every call rather than storing it.
-  if (!token && (config.client_id || config.email) && (config.client_secret || config.password)) {
+  //    API Configuration page) for a fresh session token. Asset Panda's V3
+  //    session endpoint accepts these as the email/password pair — the Client ID
+  //    is your Asset Panda service-account email, the Client Secret is its
+  //    password. Session tokens expire, so we generate a new one on every call.
+  //    Trim whitespace because copy-pasted credentials often carry stray spaces.
+  const email = String(config.client_id || config.email || '').trim();
+  const secret = String(config.client_secret || config.password || '').trim();
+  if (!token && email && secret) {
     try {
-      const tokenRes = await fetch(`${baseUrl}/v3/session/token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: config.client_id || config.email,
-          password: config.client_secret || config.password,
-        }),
-      });
-      if (!tokenRes.ok) {
-        const errBody = await tokenRes.text();
-        return { error: `Asset Panda authentication failed: ${errBody}` };
+      // The documented endpoint is /v3/session-token (hyphen). Try it first,
+      // then fall back to /v3/session/token (slash) for older base URLs.
+      const paths = ['/v3/session-token', '/v3/session/token'];
+      let tokenRes: Response | null = null;
+      let lastErrBody = '';
+      for (const path of paths) {
+        tokenRes = await fetch(`${baseUrl}${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', accept: 'application/json' },
+          body: JSON.stringify({ email, password: secret }),
+        });
+        if (tokenRes.ok) break;
+        lastErrBody = await tokenRes.text().catch(() => '');
+        // If we got a structured auth error (not a 404), don't retry the other path.
+        if (tokenRes.status !== 404) break;
       }
-      const tokenJson: any = await tokenRes.json();
+      if (tokenRes && !tokenRes.ok) {
+        return {
+          error:
+            `Asset Panda rejected the credentials: ${lastErrBody || `HTTP ${tokenRes.status}`}. ` +
+            `The Client ID must be your Asset Panda service-account email and the Client Secret its password — check both are correct and have no trailing spaces.`,
+        };
+      }
+      const tokenJson: any = await (tokenRes as Response).json();
       token =
         tokenJson.token ||
         tokenJson.access_token ||
