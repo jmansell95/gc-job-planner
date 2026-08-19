@@ -225,9 +225,8 @@ export default function StaffProfile() {
           <ProfileStats staffId={staff.id} jobType={staff.team?.job_type} />
         </div>
 
-        {/* Tab Bar — fixed below header */}
-        <div className="fixed left-0 right-0 z-20 pt-3 pb-2 bg-transparent" style={{ top: 'calc(3.75rem + env(safe-area-inset-top, 0px))' }}>
-          <div className="max-w-4xl mx-auto px-4 md:px-6">
+        {/* Tab Bar — in-flow, above the content */}
+        <div className="mt-5 pt-3 pb-2">
           <div className="flex md:grid md:grid-cols-4 gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 md:pb-0">
             {TABS.map(tab => {
               const Icon = tab.icon;
@@ -246,11 +245,10 @@ export default function StaffProfile() {
               );
             })}
           </div>
-          </div>
         </div>
 
         {/* Tab Content — sits directly on the page background, no white wrapper */}
-        <div style={{ paddingTop: 'calc(3.75rem + 1.5rem)' }}>
+        <div className="mt-4">
           {activeTab === 'performance' && (staff.id
             ? <div className="space-y-5">
                 <StaffPerformanceCard staffId={staff.id} />
