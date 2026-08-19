@@ -18,7 +18,7 @@ const COLORS = ['#2E5A1A', '#8DC63F', '#0ea5e9', '#f59e0b', '#e11d48', '#8b5cf6'
 export default function NativeReportSection({ hub, filters }) {
   const divQuery = filters.divisionId ? { division_id: filters.divisionId } : {};
 
-  const { data: jobs = [] } = useQuery({
+  const { data: jobs = [], isLoading: jobsLoading } = useQuery({
     queryKey: ['report-jobs', filters.divisionId],
     queryFn: () => base44.entities.Job.filter(divQuery, '-created_date', 500),
   });
@@ -35,20 +35,32 @@ export default function NativeReportSection({ hub, filters }) {
     queryFn: () => base44.entities.SiteAsset.filter(divQuery, '-created_date', 500),
   });
 
-  const jobsByStatus = useMemo(() => tally(jobs, 'status'), [jobs]);
-  const jobsByDivision = useMemo(() => tally(jobs, 'division_id'), [jobs]);
+  // Apply the date-range filter to jobs (overlap with start/end date)
+  const filteredJobs = useMemo(() => {
+    if (!filters.dateFrom && !filters.dateTo) return jobs;
+    return jobs.filter((j) => {
+      const jStart = j.start_date || '';
+      const jEnd = j.end_date || '';
+      if (filters.dateFrom && jEnd && jEnd < filters.dateFrom) return false;
+      if (filters.dateTo && jStart && jStart > filters.dateTo) return false;
+      return true;
+    });
+  }, [jobs, filters.dateFrom, filters.dateTo]);
+
+  const jobsByStatus = useMemo(() => tally(filteredJobs, 'status'), [filteredJobs]);
+  const jobsByDivision = useMemo(() => tally(filteredJobs, 'division_id'), [filteredJobs]);
   const staffByTeam = useMemo(() => tally(staff, 'team_id'), [staff]);
   const vehiclesByStatus = useMemo(() => tally(vehicles, 'status'), [vehicles]);
   const assetsByType = useMemo(() => tally(assets, 'asset_type'), [assets]);
   const assetCompliance = useMemo(() => tally(assets, 'compliance_status'), [assets]);
 
-  const revenueTotal = useMemo(() => jobs.reduce((s, j) => s + (Number(j.client_charge) || 0), 0), [jobs]);
+  const revenueTotal = useMemo(() => filteredJobs.reduce((s, j) => s + (Number(j.client_charge) || 0), 0), [filteredJobs]);
 
   const charts = useMemo(() => {
     const all = [
-      { id: 'jobs-status', title: 'Jobs by Status', icon: Briefcase, data: jobsByStatus, type: 'pie', rows: jobs },
-      { id: 'jobs-div', title: 'Jobs by Division', icon: Briefcase, data: jobsByDivision, type: 'bar', rows: jobs },
-      { id: 'revenue', title: 'Revenue (Client Charge)', icon: PoundSterling, data: [{ name: 'Total', value: revenueTotal }], type: 'stat', rows: jobs },
+      { id: 'jobs-status', title: 'Jobs by Status', icon: Briefcase, data: jobsByStatus, type: 'pie', rows: filteredJobs },
+      { id: 'jobs-div', title: 'Jobs by Division', icon: Briefcase, data: jobsByDivision, type: 'bar', rows: filteredJobs },
+      { id: 'revenue', title: 'Revenue (Client Charge)', icon: PoundSterling, data: [{ name: 'Total', value: revenueTotal }], type: 'stat', rows: filteredJobs },
       { id: 'staff-team', title: 'Staff by Team', icon: Users, data: staffByTeam, type: 'bar', rows: staff },
       { id: 'fleet-status', title: 'Fleet by Status', icon: Car, data: vehiclesByStatus, type: 'pie', rows: vehicles },
       { id: 'assets-type', title: 'Assets by Type', icon: Boxes, data: assetsByType, type: 'bar', rows: assets },
@@ -65,7 +77,15 @@ export default function NativeReportSection({ hub, filters }) {
     };
     const ids = sets[hub] || sets.overview;
     return all.filter(c => ids.includes(c.id));
-  }, [hub, jobsByStatus, jobsByDivision, revenueTotal, staffByTeam, vehiclesByStatus, assetsByType, assetCompliance, jobs, staff, vehicles, assets]);
+  }, [hub, jobsByStatus, jobsByDivision, revenueTotal, staffByTeam, vehiclesByStatus, assetsByType, assetCompliance, filteredJobs, staff, vehicles, assets]);
+
+  if (jobsLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="w-8 h-8 border-4 border-slate-200 border-t-[#2E5A1A] rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

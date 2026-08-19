@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   PoundSterling, Search, Plus, Pencil, Check, X, Users, Wrench, Package,
   Loader2, Receipt, Building2, TrendingUp, Percent, Copy, Upload, AlertTriangle,
-  HardHat, Calendar, FileSpreadsheet
+  HardHat, Calendar, FileSpreadsheet, Trash2, Download
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
@@ -42,6 +42,7 @@ function RateItemRow({ item, subcategory, onUpdate, viewMode = 'chargeable' }) {
     expiry_date: item.expiry_date ?? '',
   });
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Calculated daily charge-out: if the item has men (e.g. 2-man crew), the daily rate is price × men.
   const dailyCharge = item.men && item.men > 0 && item.price != null ? item.price * item.men : null;
@@ -68,6 +69,16 @@ function RateItemRow({ item, subcategory, onUpdate, viewMode = 'chargeable' }) {
       setEditing(false);
     } catch (e) { console.error(e); }
     setSaving(false);
+  };
+
+  const del = async () => {
+    if (!confirm(`Delete "${item.description}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await base44.entities.RateCardItem.delete(item.id);
+      onUpdate();
+    } catch (e) { console.error(e); }
+    setDeleting(false);
   };
 
   const priceDisplay = item.price != null ? fmt(item.price) : item.price_text || '—';
@@ -114,6 +125,9 @@ function RateItemRow({ item, subcategory, onUpdate, viewMode = 'chargeable' }) {
           <div className="flex gap-2">
             <button onClick={save} disabled={saving} className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] disabled:opacity-50">
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Save
+            </button>
+            <button onClick={del} disabled={deleting} className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100 transition disabled:opacity-50">
+              {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />} Delete
             </button>
             <button onClick={() => setEditing(false)} className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-300">
               <X className="w-3.5 h-3.5" /> Cancel
@@ -414,6 +428,32 @@ export default function RateCardManager() {
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['scoped', 'RateCardItem'] });
     queryClient.invalidateQueries({ queryKey: ['scoped', 'Supplier'] });
+  };
+
+  const exportCSV = () => {
+    const rows = filtered.map(i => ({
+      category: i.category || '',
+      subcategory: i.subcategory || '',
+      description: i.description || '',
+      charge_out: i.price ?? '',
+      price_text: i.price_text || '',
+      internal_cost: i.cost_price ?? '',
+      unit: i.unit || '',
+      men: i.men ?? '',
+      notes: (i.notes || '').replace(/[\r\n]+/g, ' '),
+      effective_date: i.effective_date || '',
+      expiry_date: i.expiry_date || '',
+    }));
+    if (rows.length === 0) { toast({ title: 'Nothing to export', variant: 'destructive' }); return; }
+    const headers = Object.keys(rows[0]);
+    const csv = [headers.join(','), ...rows.map(r => headers.map(h => `"${String(r[h]).replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rate-card-${activeView}-${activeCategory}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const isInternalCosts = activeView === 'internal';
@@ -739,6 +779,10 @@ export default function RateCardManager() {
         <button onClick={() => setShowSupplierUpload(true)}
           className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition bg-white text-[#2E5A1A] border border-[#2E5A1A]/20 hover:bg-[#2E5A1A]/5 flex-shrink-0">
           <Building2 className="w-4 h-4" /> <span className="hidden sm:inline">Upload Supplier</span><span className="sm:hidden">Supplier</span>
+        </button>
+        <button onClick={exportCSV}
+          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 flex-shrink-0">
+          <Download className="w-4 h-4" /> <span className="hidden sm:inline">Export CSV</span><span className="sm:hidden">CSV</span>
         </button>
       </div>
 

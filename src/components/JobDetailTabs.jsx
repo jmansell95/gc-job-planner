@@ -23,6 +23,7 @@ import JobWorkLog from '@/components/JobWorkLog';
 import MilestoneManager from '@/components/MilestoneManager';
 import PortalLinkManager from '@/components/PortalLinkManager';
 import JobScheduleOverview from '@/components/JobScheduleOverview';
+import PermanentCrewCard from '@/components/jobs/PermanentCrewCard';
 import DelayLogManager from '@/components/DelayLogManager';
 import JobHazardMap from '@/components/JobHazardMap';
 import JobContextView from '@/components/JobContextView';
@@ -172,6 +173,7 @@ export default function JobDetailTabs({
                 { icon: Clock, value: rotas.length, label: rotas.length === 1 ? 'Shift' : 'Total Shifts', iconColor: 'text-amber-600' },
               ]}
             />
+            <PermanentCrewCard job={job} />
             <JobScheduleOverview primaryType={primaryType} assignedStaff={assignedStaff} rotas={rotas} allStaff={allStaff} vehicles={vehicles} rotasByDate={rotasByDate} sortedDates={sortedDates} />
           </>
         ) : (

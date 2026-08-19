@@ -146,6 +146,12 @@ export default function OwnedItemPicker({ value, onChange, rateCardGroups = [], 
                       {isAP && (
                         <span className="text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full flex-shrink-0">AP</span>
                       )}
+                      {a.rate_card_link_status === 'confirmed' && (
+                        <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full flex-shrink-0" title="Rate card link confirmed — master price list price takes precedence">RC ✓</span>
+                      )}
+                      {a.rate_card_link_status === 'proposed' && (
+                        <span className="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full flex-shrink-0" title="Proposed rate card match — confirm in Settings → Asset Panda">RC?</span>
+                      )}
                       {comp && (
                         <span className={`inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium border flex-shrink-0 ${comp.cls}`}>
                           {CompIcon && <CompIcon className="w-2.5 h-2.5" />} {a.compliance_status}

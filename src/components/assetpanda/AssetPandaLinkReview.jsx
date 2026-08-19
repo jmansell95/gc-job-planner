@@ -50,6 +50,36 @@ export default function AssetPandaLinkReview() {
     setActing(null);
   };
 
+  const [bulkConfirming, setBulkConfirming] = useState(false);
+  const confirmAllProposed = async () => {
+    if (proposed.length === 0) return;
+    if (!confirm(`Confirm all ${proposed.length} proposed links? The Master Price List price will take precedence for each asset.`)) return;
+    setBulkConfirming(true);
+    let ok = 0;
+    let fail = 0;
+    for (const { asset, rateCardItem } of proposed) {
+      try {
+        await base44.functions.invoke('confirmAssetPandaLink', {
+          asset_id: asset.id,
+          action: 'confirm',
+          rate_card_item_id: rateCardItem?.id,
+        });
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: ['asset-panda-link-review'] });
+    queryClient.invalidateQueries({ queryKey: ['site-assets'] });
+    queryClient.invalidateQueries({ queryKey: ['site-assets-panda'] });
+    toast({
+      title: `${ok} links confirmed`,
+      description: fail > 0 ? `${fail} could not be confirmed.` : 'All proposed links are now confirmed.',
+      variant: fail > 0 ? 'destructive' : 'default',
+    });
+    setBulkConfirming(false);
+  };
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
@@ -90,9 +120,18 @@ export default function AssetPandaLinkReview() {
             {/* Proposed — the action items */}
             {proposed.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-600" /> Awaiting your confirmation ({proposed.length})
-                </p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-600" /> Awaiting your confirmation ({proposed.length})
+                  </p>
+                  <button
+                    onClick={confirmAllProposed}
+                    disabled={bulkConfirming}
+                    className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-semibold hover:bg-emerald-800 transition disabled:opacity-50"
+                  >
+                    {bulkConfirming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Confirm all ({proposed.length})
+                  </button>
+                </div>
                 {proposed.map(({ asset, rateCardItem }) => (
                   <div key={asset.id} className="border border-amber-200 rounded-lg p-3 bg-amber-50/40">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
