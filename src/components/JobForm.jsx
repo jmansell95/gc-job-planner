@@ -27,7 +27,7 @@ const STEP_LABELS = ['Details', 'Schedule & Contacts', 'Costing', 'Review'];
 export default function JobForm({ formData, setFormData, onSubmit, onCancel, editingId, clients, contractors, onFileUpload, uploadingFile }) {
   const [step, setStep] = useState(1);
   const num = (key) => formData[key] === undefined || formData[key] === null ? '' : formData[key];
-  const setNum = (key, v) => setFormData({ ...formData, [key]: v === '' ? '' : parseFloat(v) });
+  const setNum = (key, v) => setFormData({ ...formData, [key]: v === '' ? null : parseFloat(v) });
   const { data: teams = [] } = useScopedEntity('Team', { queryKey: ['teams'] });
   const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order') });
   const { data: projects = [] } = useScopedEntity('Project', { queryKey: ['projects'], sort: '-created_date', limit: 200 });
