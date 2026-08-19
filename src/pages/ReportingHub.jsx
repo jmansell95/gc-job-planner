@@ -43,8 +43,7 @@ export default function ReportingHub() {
   };
 
   return (
-    <div className="min-h-screen page-bg-vibrant">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+    <div className="space-y-4">
         {/* Header */}
         <div className="insight-card rounded-2xl p-5 flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-lg flex-shrink-0">
@@ -76,7 +75,6 @@ export default function ReportingHub() {
 
         {/* Report content */}
         {isPowerBI ? <PowerBIReportSection /> : <NativeReportSection hub={category} filters={filters} />}
-      </div>
     </div>
   );
 }
