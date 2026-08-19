@@ -846,6 +846,33 @@ export default async function(req: Request): Promise<Response> {
       const zeroMarginCount = hireBreakdown.rows.filter(r => r.source === 'no_margin').length;
       billingSetup.warnings.push(`${zeroMarginCount} hired plant item${zeroMarginCount === 1 ? '' : 's'} ha${zeroMarginCount === 1 ? 's' : 've'} no sell-side rate card match or markup — billed to client at cost (zero margin). Add a matching item to Our Rate Card or set a job markup %.`);
     }
+    // Rigs with no rate-card link (no day rate → rig crew cost is £0)
+    const rigsNoRate = rigCostItems.filter((c: any) => !c.rate_card_item_id && !(Number(c.unit_cost) > 0));
+    if (rigsNoRate.length > 0) {
+      billingSetup.warnings.push(`${rigsNoRate.length} rig${rigsNoRate.length === 1 ? '' : 's'} ha${rigsNoRate.length === 1 ? 's' : 've'} no rate-card link and no day rate — rig crew costs are £0. Confirm the Asset Panda link in Settings → Asset Panda → Review Links, or add a rig crew rate to the Master Price List.`);
+    }
+    // Sub-contractor logs with no buy rate or no sell rate
+    const subconNoBuy = subconLogs.filter((l: any) => (Number(l.purchase_cost_net) || 0) === 0);
+    const subconNoSell = subconLogs.filter((l: any) => (Number(l.client_charge_net) || 0) === 0 && (Number(l.purchase_cost_net) || 0) > 0);
+    if (subconNoBuy.length > 0) {
+      billingSetup.warnings.push(`${subconNoBuy.length} sub-contractor log${subconNoBuy.length === 1 ? '' : 's'} ha${subconNoBuy.length === 1 ? 's' : 've'} no purchase (buy) rate — sub-contractor costs are £0. Set the purchase rate on each sub-contractor log in the Financials → Sub-contractors tab.`);
+    }
+    if (subconNoSell.length > 0) {
+      billingSetup.warnings.push(`${subconNoSell.length} sub-contractor log${subconNoSell.length === 1 ? '' : 's'} ha${subconNoSell.length === 1 ? 's' : 've'} a buy rate but no sell (charge) rate — billed to client at £0 (negative margin). Set a markup % on each sub-contractor log to bill the client.`);
+    }
+    // Owned equipment cost items linked to a SiteAsset with no confirmed price
+    const assetsNoPrice = costItems.filter((c: any) => {
+      if (!c.site_asset_id) return false;
+      const asset = siteAssetMap[c.site_asset_id];
+      if (!asset) return false;
+      const hasRateCardLink = asset.rate_card_link_status === 'confirmed' || asset.rate_card_link_status === 'proposed';
+      const hasApCost = (asset.cost_price != null && Number(asset.cost_price) > 0) || (asset.charge_out_price != null && Number(asset.charge_out_price) > 0);
+      const hasUnitCost = Number(c.unit_cost) > 0;
+      return !hasRateCardLink && !hasApCost && !hasUnitCost;
+    });
+    if (assetsNoPrice.length > 0) {
+      billingSetup.warnings.push(`${assetsNoPrice.length} equipment item${assetsNoPrice.length === 1 ? '' : 's'} linked to an Asset Panda asset with no confirmed price — revenue is £0. Confirm the rate-card link in Settings → Asset Panda → Review Links, or set a cost on the item.`);
+    }
 
     return Response.json({
       status: 'success',

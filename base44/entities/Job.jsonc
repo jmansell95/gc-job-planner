@@ -431,6 +431,45 @@
     "client_charge_description": {
       "type": "string",
       "description": "Label shown alongside the client billing total on the portal (e.g. 'Agreed quote', 'Project Investment')"
+    },
+    "permanent_crew": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "staff_id": {
+            "type": "string",
+            "description": "Staff member assigned to the permanent crew."
+          },
+          "staff_name": {
+            "type": "string",
+            "description": "Staff name (denormalised for display)."
+          },
+          "working_days": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Days of week this crew member works (1=Mon \u2026 7=Sun). Drives the recurring pattern."
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date the recurring assignment starts."
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date the recurring assignment ends. Blank = until the job ends."
+          }
+        },
+        "required": [
+          "staff_id",
+          "working_days"
+        ]
+      },
+      "default": [],
+      "description": "Permanent recurring crew \u2014 staff assigned to repeat on a weekly pattern (e.g. Mon\u2013Fri) for the job's duration. When the job's end date is extended, the syncPermanentCrew automation auto-generates RotaAssignment rows for any new working days in the pattern so the crew stays assigned without re-assigning each week."
     }
   },
   "required": [

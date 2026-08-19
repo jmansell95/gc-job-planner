@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Calendar, Receipt, User, ShieldCheck, ShieldAlert, ShieldX, Factory, Tag, AlertCircle } from 'lucide-react';
 import { differenceInCalendarDays } from 'date-fns';
 import { inputCls, fmt } from './shared';
-import { findOwnedAssetRateCardItem } from '@/components/logistics/rigRateMatcher';
+import { resolveAssetPrice } from '@/components/logistics/rigRateMatcher';
 import OwnedItemPicker from './OwnedItemPicker';
 
 const assetTypeLabels = {
@@ -94,17 +94,20 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
       const asset = (ownedAssets || []).find((a) => a.id === id);
       if (!asset) return;
       // Owned assets are inventory only (Asset Panda) — their billable rate
-      // comes from the Master Price List (Our Rate Card), matched by name/type.
-      const rc = findOwnedAssetRateCardItem(asset, rateCardItems);
-      setPriceSource('asset-panda');
+      // comes from the Master Price List via resolveAssetPrice, which respects
+      // the admin's confirmed/proposed rate-card link status (the master
+      // catalogue is the single source of truth for asset pricing).
+      const price = resolveAssetPrice(asset, rateCardItems);
+      const rc = price.rateCardItem;
+      setPriceSource(price.source === 'rate-card' ? 'rate-card' : 'asset-panda');
       setForm({
         ...form,
         category: 'internal_equipment',
         description: asset.name || form.description,
         reference_number: asset.serial_number || form.reference_number,
         responsible_person: asset.responsible_person || form.responsible_person,
-        unit_cost: rc && rc.price != null ? String(rc.price) : (asset.daily_billing_rate != null ? String(asset.daily_billing_rate) : form.unit_cost),
-        unit_label: rc?.unit || 'day',
+        unit_cost: price.chargeOut > 0 ? String(price.chargeOut) : (asset.daily_billing_rate != null ? String(asset.daily_billing_rate) : form.unit_cost),
+        unit_label: price.unit || 'day',
         site_asset_id: asset.id,
         rate_card_item_id: rc?.id || '',
         is_poa: rc ? rc.price == null : false,

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Search, UserPlus, Loader2, CheckCircle2 } from 'lucide-react';
+import { Search, UserPlus, Loader2, CheckCircle2, Repeat, CalendarRange } from 'lucide-react';
 import { format, addDays, isWeekend } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CrewSuggesterAI from '@/components/jobs/CrewSuggesterAI';
@@ -15,13 +15,27 @@ const computeWeekStart = (dateStr) => {
   return format(monday, 'yyyy-MM-dd');
 };
 
+const DAY_LABELS = [
+  { val: 1, label: 'Mon' },
+  { val: 2, label: 'Tue' },
+  { val: 3, label: 'Wed' },
+  { val: 4, label: 'Thu' },
+  { val: 5, label: 'Fri' },
+  { val: 6, label: 'Sat' },
+  { val: 7, label: 'Sun' },
+];
+
 export default function QuickAssignStaffModal({ open, onClose, job, allStaff = [], rotas = [] }) {
   const queryClient = useQueryClient();
+  const [mode, setMode] = useState('range'); // 'range' | 'recurring'
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [startDate, setStartDate] = useState(job?.start_date || format(new Date(), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(job?.end_date || job?.start_date || format(new Date(), 'yyyy-MM-dd'));
   const [skipWeekends, setSkipWeekends] = useState(true);
+  // Recurring mode state
+  const [workingDays, setWorkingDays] = useState([1, 2, 3, 4, 5]); // Mon–Fri default
+  const [recurringEnd, setRecurringEnd] = useState(job?.end_date || '');
   const [saving, setSaving] = useState(false);
 
   const assignedStaffIds = useMemo(() => new Set(rotas.map(r => r.staff_id)), [rotas]);
@@ -39,6 +53,10 @@ export default function QuickAssignStaffModal({ open, onClose, job, allStaff = [
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
+  const toggleDay = (val) => {
+    setWorkingDays(prev => prev.includes(val) ? prev.filter(d => d !== val) : [...prev, val].sort());
+  };
+
   const buildDateRange = (startStr, endStr) => {
     const days = [];
     let d = new Date(startStr + 'T00:00:00');
@@ -50,11 +68,43 @@ export default function QuickAssignStaffModal({ open, onClose, job, allStaff = [
     return days;
   };
 
+  const buildRecurringDates = (startStr, endStr, days) => {
+    const dates = [];
+    let d = new Date(startStr + 'T00:00:00');
+    const end = new Date(endStr + 'T00:00:00');
+    while (d <= end) {
+      const jsDay = d.getDay();
+      const patternDay = jsDay === 0 ? 7 : jsDay; // 1=Mon … 7=Sun
+      if (days.includes(patternDay)) dates.push(format(d, 'yyyy-MM-dd'));
+      d = addDays(d, 1);
+    }
+    return dates;
+  };
+
   const handleAssign = async () => {
     if (selectedIds.length === 0) return;
     setSaving(true);
     try {
-      const dates = buildDateRange(startDate, endDate);
+      let dates;
+      let permanentCrew = [];
+      if (mode === 'recurring') {
+        const end = recurringEnd || job?.end_date || endDate;
+        dates = buildRecurringDates(startDate, end, workingDays);
+        // Build the permanent crew rule for auto-extension
+        permanentCrew = selectedIds.map(id => {
+          const s = allStaff.find(st => st.id === id);
+          return {
+            staff_id: id,
+            staff_name: s?.name || '',
+            working_days: [...workingDays],
+            start_date: startDate,
+            end_date: end || undefined,
+          };
+        });
+      } else {
+        dates = buildDateRange(startDate, endDate);
+      }
+
       const assignments = [];
       selectedIds.forEach(staffId => {
         dates.forEach(date => {
@@ -67,9 +117,25 @@ export default function QuickAssignStaffModal({ open, onClose, job, allStaff = [
           });
         });
       });
-      await base44.entities.RotaAssignment.bulkCreate(assignments);
+
+      if (assignments.length > 0) {
+        await base44.entities.RotaAssignment.bulkCreate(assignments);
+      }
+
+      // Save the permanent crew rule so future date extensions auto-fill
+      if (mode === 'recurring' && permanentCrew.length > 0) {
+        const existingCrew = Array.isArray(job.permanent_crew) ? job.permanent_crew : [];
+        // Merge: replace entries for the same staff, add new ones
+        const byId = new Map();
+        for (const m of existingCrew) byId.set(m.staff_id, m);
+        for (const m of permanentCrew) byId.set(m.staff_id, m);
+        const merged = [...byId.values()];
+        await base44.entities.Job.update(job.id, { permanent_crew: merged });
+      }
+
       queryClient.invalidateQueries({ queryKey: ['rotas-for-job', job.id] });
       queryClient.invalidateQueries({ queryKey: ['rotas'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
       setSelectedIds([]);
       setSearch('');
       onClose();
@@ -78,6 +144,8 @@ export default function QuickAssignStaffModal({ open, onClose, job, allStaff = [
     }
     setSaving(false);
   };
+
+  const canAssign = selectedIds.length > 0 && (mode === 'range' || workingDays.length > 0);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -90,6 +158,24 @@ export default function QuickAssignStaffModal({ open, onClose, job, allStaff = [
         <div className="space-y-3">
           <p className="text-sm text-slate-500">Add crew to <span className="font-semibold text-slate-700">{job?.name}</span></p>
 
+          {/* Mode toggle */}
+          <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setMode('range')}
+              className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${mode === 'range' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+            >
+              <CalendarRange className="w-3.5 h-3.5" /> Date Range
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('recurring')}
+              className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${mode === 'recurring' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+            >
+              <Repeat className="w-3.5 h-3.5" /> Recurring Weekly
+            </button>
+          </div>
+
           {/* AI Crew Suggester */}
           {job?.id && (
             <CrewSuggesterAI
@@ -100,21 +186,59 @@ export default function QuickAssignStaffModal({ open, onClose, job, allStaff = [
             />
           )}
 
-          {/* Date range */}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-xs font-medium text-slate-500">From</label>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-slate-500">To</label>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]" />
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-            <input type="checkbox" checked={skipWeekends} onChange={e => setSkipWeekends(e.target.checked)} className="rounded border-slate-300" />
-            Skip weekends
-          </label>
+          {/* Date inputs */}
+          {mode === 'range' ? (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-medium text-slate-500">From</label>
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500">To</label>
+                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]" />
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                <input type="checkbox" checked={skipWeekends} onChange={e => setSkipWeekends(e.target.checked)} className="rounded border-slate-300" />
+                Skip weekends
+              </label>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Working days</label>
+                <div className="flex gap-1">
+                  {DAY_LABELS.map(d => {
+                    const active = workingDays.includes(d.val);
+                    return (
+                      <button
+                        key={d.val}
+                        type="button"
+                        onClick={() => toggleDay(d.val)}
+                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${active ? 'bg-[#2E5A1A] text-white' : 'bg-white border border-slate-200 text-slate-500 hover:border-[#2E5A1A]/40'}`}
+                      >
+                        {d.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Starts</label>
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Until {recurringEnd ? '' : '(job end)'}</label>
+                  <input type="date" value={recurringEnd} onChange={e => setRecurringEnd(e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]" />
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Crew repeat every selected day from the start date until the end date (or the job's end date if blank). The crew stays assigned automatically when the job is extended.
+              </p>
+            </>
+          )}
 
           {/* Search */}
           <div className="relative">
@@ -154,7 +278,7 @@ export default function QuickAssignStaffModal({ open, onClose, job, allStaff = [
             </span>
             <div className="flex gap-2">
               <button onClick={onClose} className="px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition">Cancel</button>
-              <button onClick={handleAssign} disabled={saving || selectedIds.length === 0} className="flex items-center gap-1.5 px-4 py-2 bg-[#2E5A1A] text-white rounded-lg text-sm font-medium hover:bg-[#1c4a12] transition disabled:opacity-50">
+              <button onClick={handleAssign} disabled={saving || !canAssign} className="flex items-center gap-1.5 px-4 py-2 bg-[#2E5A1A] text-white rounded-lg text-sm font-medium hover:bg-[#1c4a12] transition disabled:opacity-50">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
                 {saving ? 'Assigning...' : 'Assign'}
               </button>
