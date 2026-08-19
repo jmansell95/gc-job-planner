@@ -24,10 +24,10 @@ export function StepIdentity({ form, setForm, divisions, divisionsLoading, apply
     <div className="space-y-4">
       <BlankSlateBanner stepLabel="Identity" />
       <div>
-        <label className={labelCls}>Division Name{requiredMark}</label>
+        <label className={labelCls}>Business Stream Name{requiredMark}</label>
         <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Geotechnical Site Investigation"
           className={inputClass(!form.name.trim())} autoFocus />
-        {!form.name.trim() && <p className="text-[11px] text-rose-500 mt-1 font-semibold">Division name is required</p>}
+        {!form.name.trim() && <p className="text-[11px] text-rose-500 mt-1 font-semibold">Business Stream name is required</p>}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -44,8 +44,8 @@ export function StepIdentity({ form, setForm, divisions, divisionsLoading, apply
       </div>
 
       <div>
-        <label className={labelCls + ' mb-1.5 block'}>Copy from an Existing Division</label>
-        <p className="text-[11px] text-slate-400 mb-2">Pick a division to copy its hubs, navigation, integrations and settings. You can tweak everything afterwards.</p>
+        <label className={labelCls + ' mb-1.5 block'}>Copy from an Existing Business Stream</label>
+        <p className="text-[11px] text-slate-400 mb-2">Pick a business stream to copy its hubs, navigation, integrations and settings. You can tweak everything afterwards.</p>
         <TemplatePicker divisions={divisions} selectedId={selectedTemplateId} onSelect={applyTemplate} isLoading={divisionsLoading} />
       </div>
 
@@ -162,12 +162,12 @@ export function StepIntegrations({ form, setForm }) {
           <p className="text-sm font-extrabold text-slate-900">Managed Centrally</p>
           <p className="text-[12px] text-slate-500 mt-1.5 leading-relaxed">
             All integrations (Geotab, SafetyCulture, Asset Panda, OpenGround, KeyLogBook, and more) are configured
-            once at the enterprise level and apply to every division automatically.
+            once at the enterprise level and apply to every business stream automatically.
           </p>
         </div>
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
           <p className="text-[11px] font-semibold text-emerald-700">
-            After launching this division, go to Enterprise Settings → Integrations to connect your services.
+            After launching this business stream, go to Enterprise Settings → Integrations to connect your services.
           </p>
         </div>
       </div>

@@ -9,7 +9,7 @@ import { HUB_LABELS } from './divisionWizardData';
 export default function DivisionPreviewCard({ form }) {
   const color = form.color || '#475569';
   const hubs = (form.enabled_hubs || []).slice(0, 6);
-  const name = form.name?.trim() || 'Your Division';
+  const name = form.name?.trim() || 'Your Business Stream';
   const code = form.code?.toUpperCase() || 'NEW';
   const typeLabel = form.division_type ? form.division_type.charAt(0).toUpperCase() + form.division_type.slice(1) : 'General';
 

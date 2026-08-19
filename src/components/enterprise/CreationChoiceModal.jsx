@@ -4,8 +4,8 @@ import { X, Layers, Building2, ArrowRight } from 'lucide-react';
 
 /**
  * CreationChoiceModal — two-card picker shown when the user clicks
- * "Add a Business Unit or Division". Picking a card closes this modal and
- * opens the corresponding popup (BU identity form or full Division wizard).
+ * "Add a Business Unit or Business Stream". Picking a card closes this modal and
+ * opens the corresponding popup (BU identity form or full Business Stream wizard).
  */
 export default function CreationChoiceModal({ onClose, onPickBU, onPickDivision }) {
   return (
@@ -34,13 +34,13 @@ export default function CreationChoiceModal({ onClose, onPickBU, onPickDivision 
           <ChoiceCard
             icon={Layers}
             title="Business Unit"
-            description="A top-level container that houses specialist divisions. Start here if you're adding a new operating brand."
+            description="A top-level container that houses specialist business streams. Start here if you're adding a new operating brand."
             accent="#2E5A1A"
             onClick={onPickBU}
           />
           <ChoiceCard
             icon={Building2}
-            title="Division"
+            title="Business Stream"
             description="A specialist operational workspace inside a business unit, with its own hubs, staff and fleet."
             accent="#0ea5e9"
             onClick={onPickDivision}
