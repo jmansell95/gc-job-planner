@@ -1,0 +1,104 @@
+{
+  "name": "PowerBIDataset",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Unique key for this cached dataset (e.g. 'datasetId:tableName'). Used to upsert on sync."
+    },
+    "label": {
+      "type": "string",
+      "description": "Display label shown in the Reporting Hub."
+    },
+    "dataset_id": {
+      "type": "string",
+      "description": "Power BI dataset ID this data was pulled from."
+    },
+    "table_name": {
+      "type": "string",
+      "description": "Power BI table name the rows were pulled from."
+    },
+    "columns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Column names in the pulled data, in order."
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "default": [],
+      "description": "Pulled data rows. Each row is an object keyed by column name. Capped at the configured max rows per table (default 500, max 2000) to respect field-size limits."
+    },
+    "row_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of rows currently cached."
+    },
+    "chart_type": {
+      "type": "string",
+      "enum": [
+        "bar",
+        "line",
+        "pie",
+        "area",
+        "table"
+      ],
+      "default": "table",
+      "description": "Suggested chart type for rendering this dataset in the Reporting Hub."
+    },
+    "x_field": {
+      "type": "string",
+      "description": "Column name to use for the x-axis / category when charting."
+    },
+    "y_field": {
+      "type": "string",
+      "description": "Column name to use for the y-axis / value when charting."
+    },
+    "last_synced_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last successful sync."
+    },
+    "sync_status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failed",
+        "pending",
+        "never"
+      ],
+      "default": "never",
+      "description": "Outcome of the last sync attempt for this dataset."
+    },
+    "sync_error": {
+      "type": "string",
+      "description": "Error message if the last sync failed."
+    }
+  },
+  "required": [
+    "key",
+    "label"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

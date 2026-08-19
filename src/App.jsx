@@ -36,6 +36,7 @@ import KeyLogBookDocs from './pages/KeyLogBookDocs';
 import ImprovementRoadmap from './pages/ImprovementRoadmap';
 import Microsoft365SetupGuide from './pages/Microsoft365SetupGuide';
 import PATTestingConsole from './pages/PATTestingConsole';
+import ReportingHub from './pages/ReportingHub';
 import CompliancePage from './pages/CompliancePage';
 import BillingPage from './pages/BillingPage';
 import StaffPage from './pages/StaffPage';
@@ -116,6 +117,7 @@ const AuthenticatedApp = () => {
             <Route path="/pat-testing" element={<RouteGuard><PATTestingConsole /></RouteGuard>} />
             <Route path="/compliance" element={<RouteGuard><HubReadinessGate featureId="compliance"><CompliancePage /></HubReadinessGate></RouteGuard>} />
             <Route path="/billing" element={<RouteGuard><HubReadinessGate featureId="billing"><BillingPage /></HubReadinessGate></RouteGuard>} />
+            <Route path="/reports" element={<RouteGuard><HubReadinessGate featureId="reports"><ReportingHub /></HubReadinessGate></RouteGuard>} />
             <Route path="/staff" element={<RouteGuard><HubReadinessGate featureId="staff"><StaffPage /></HubReadinessGate></RouteGuard>} />
             <Route path="/safety" element={<Navigate to="/compliance" replace />} />
             <Route path="/assets" element={<RouteGuard><HubReadinessGate featureId="assets"><AssetHub /></HubReadinessGate></RouteGuard>} />
