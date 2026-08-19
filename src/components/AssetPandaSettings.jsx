@@ -18,7 +18,8 @@ export default function AssetPandaSettings() {
   const [pushing, setPushing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    api_token: '', base_url: 'https://api.assetpanda.com', group_id: '',
+    api_token: '', client_id: '', client_secret: '',
+    base_url: 'https://api.assetpanda.com', group_id: '',
     groups: [],
     field_name: '', field_serial: '', field_daily_rate: '', field_stock_status: '', field_asset_type: '',
     field_map: [], webhook_secret: '',
@@ -35,6 +36,8 @@ export default function AssetPandaSettings() {
     if (config) {
       setForm({
         api_token: config.api_token || '',
+        client_id: config.client_id || config.email || '',
+        client_secret: config.client_secret || config.password || '',
         base_url: config.base_url || 'https://api.assetpanda.com',
         group_id: config.group_id || '',
         groups: config.groups || [],
@@ -103,7 +106,7 @@ export default function AssetPandaSettings() {
     setSyncing(false);
   };
 
-  const ready = !!((form.group_id || (form.groups || []).some(g => g.group_id)) && form.api_token);
+  const ready = !!((form.group_id || (form.groups || []).some(g => g.group_id)) && (form.api_token || (form.client_id && form.client_secret)));
 
   const handlePushAll = async () => {
     setPushing(true);

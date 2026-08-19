@@ -8,15 +8,23 @@
     },
     "api_token": {
       "type": "string",
-      "description": "Asset Panda API bearer token. Obtained from the Asset Panda API Configuration page. If left blank and email/password are set, the sync will request a fresh token on each run."
+      "description": "Pre-generated Asset Panda session token. Optional \u2014 if blank, the sync auto-generates a fresh token on each run using client_id/client_secret. Session tokens expire, so prefer using client_id/client_secret instead."
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Asset Panda Client ID \u2014 issued on the Asset Panda API Configuration page (Settings \u2192 API Configuration). Used with client_secret to auto-generate a fresh session token on every sync/push call, so expired tokens are never an issue."
+    },
+    "client_secret": {
+      "type": "string",
+      "description": "Asset Panda Client Secret \u2014 issued alongside the Client ID on the API Configuration page. Used with client_id to auto-generate a session token via POST /v3/session/token."
     },
     "email": {
       "type": "string",
-      "description": "Asset Panda account email \u2014 used to auto-generate a session token when api_token is blank."
+      "description": "DEPRECATED \u2014 use client_id. Legacy Asset Panda account email. Kept for backward compatibility; the sync falls back to this when client_id is blank."
     },
     "password": {
       "type": "string",
-      "description": "Asset Panda account password \u2014 used with email to auto-generate a session token when api_token is blank."
+      "description": "DEPRECATED \u2014 use client_secret. Legacy Asset Panda account password. Kept for backward compatibility; the sync falls back to this when client_secret is blank."
     },
     "base_url": {
       "type": "string",
