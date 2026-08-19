@@ -179,12 +179,13 @@ export async function pushAssetUpdateToPanda(base44, asset_id, action = 'update'
   const groupId = resolveGroupIdForAsset(config, asset);
   if (!groupId) return { attempted: false, reason: 'No Asset Panda group configured for this asset' };
 
-  // Build the field payload using the full field map (custom + legacy)
+  // Build the field payload using the full field map (custom + legacy).
+  // Push EVERY mapped system field that has a value on the asset, so the app
+  // is a full bidirectional peer with Asset Panda — not just stock/name/serial.
   const fieldMap = buildFullFieldMap(config);
   const body: any = {};
-  if (fieldMap.name) body[fieldMap.name] = asset.name || '';
-  if (fieldMap.serial_number) body[fieldMap.serial_number] = asset.serial_number || '';
-  if (fieldMap.asset_type) body[fieldMap.asset_type] = asset.asset_type || '';
+
+  // Special handling for the stock-level field (derived status string).
   if (fieldMap.stock_level || config.field_stock_status) {
     const stockField = fieldMap.stock_level || config.field_stock_status;
     let status = 'In Stock';
@@ -195,12 +196,18 @@ export async function pushAssetUpdateToPanda(base44, asset_id, action = 'update'
     else if (asset.stock_level === 'low_stock') status = 'Low Stock';
     body[stockField] = status;
   }
-  // Push cost/charge-out if mapped
-  if (fieldMap.cost_price && asset.cost_price != null) body[fieldMap.cost_price] = asset.cost_price;
-  if (fieldMap.charge_out_price && asset.charge_out_price != null) body[fieldMap.charge_out_price] = asset.charge_out_price;
-  // Push storage location / responsible person if mapped
-  if (fieldMap.storage_location && asset.storage_location) body[fieldMap.storage_location] = asset.storage_location;
-  if (fieldMap.responsible_person && asset.responsible_person) body[fieldMap.responsible_person] = asset.responsible_person;
+
+  // Generic push: every other mapped system field is copied straight across
+  // when the asset has a non-null value for it. This covers name, serial,
+  // asset_type, cost_price, charge_out_price, storage_location,
+  // responsible_person, compliance_expiry_date, compliance_status, and any
+  // custom field the admin has mapped.
+  for (const [systemField, pandaKey] of Object.entries(fieldMap)) {
+    if (systemField === 'stock_level') continue; // handled above
+    const value = (asset as any)[systemField];
+    if (value === undefined || value === null || value === '') continue;
+    body[pandaKey] = value;
+  }
 
   try {
     if (action === 'create' && !asset.panda_asset_id) {

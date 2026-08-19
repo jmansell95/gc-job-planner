@@ -19,36 +19,12 @@ export async function resolvePandaToken(
   config: any,
   baseUrl: string
 ): Promise<{ token?: string; error?: string; skipped?: boolean }> {
-  let token = config.api_token || '';
-  if (!token && config.email && config.password) {
-    try {
-      const tokenRes = await fetch(`${baseUrl}/v3/session/token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: config.email, password: config.password }),
-      });
-      if (!tokenRes.ok) {
-        const errBody = await tokenRes.text();
-        return { error: `Asset Panda authentication failed: ${errBody}` };
-      }
-      const tokenJson: any = await tokenRes.json();
-      token =
-        tokenJson.token ||
-        tokenJson.access_token ||
-        tokenJson.accessToken ||
-        (typeof tokenJson === 'string' ? tokenJson : '');
-      if (!token) {
-        return { error: 'Asset Panda did not return a session token. Check your email/password.' };
-      }
-    } catch (e: any) {
-      return { error: `Token request failed: ${e.message}` };
-    }
-  }
+  const token = config.api_token || '';
   if (!token) {
     return {
       skipped: true,
       error:
-        'No API token configured. Enter your Asset Panda token (or email + password) in Settings → Asset Panda.',
+        'No API token configured. Paste your Asset Panda API token in Settings → Asset Panda.',
     };
   }
   return { token };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Database, RefreshCw } from 'lucide-react';
+import { Database, RefreshCw, UploadCloud } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import AssetPandaCredentials from '@/components/assetpanda/AssetPandaCredentials';
 import AssetPandaGroups from '@/components/assetpanda/AssetPandaGroups';
@@ -15,9 +15,10 @@ export default function AssetPandaSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [syncing, setSyncing] = useState(false);
+  const [pushing, setPushing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    api_token: '', email: '', password: '', base_url: 'https://api.assetpanda.com', group_id: '',
+    api_token: '', base_url: 'https://api.assetpanda.com', group_id: '',
     groups: [],
     field_name: '', field_serial: '', field_daily_rate: '', field_stock_status: '', field_asset_type: '',
     field_map: [], webhook_secret: '',
@@ -34,8 +35,6 @@ export default function AssetPandaSettings() {
     if (config) {
       setForm({
         api_token: config.api_token || '',
-        email: config.email || '',
-        password: config.password || '',
         base_url: config.base_url || 'https://api.assetpanda.com',
         group_id: config.group_id || '',
         groups: config.groups || [],
@@ -104,7 +103,27 @@ export default function AssetPandaSettings() {
     setSyncing(false);
   };
 
-  const ready = !!((form.group_id || (form.groups || []).some(g => g.group_id)) && (form.api_token || (form.email && form.password)));
+  const ready = !!((form.group_id || (form.groups || []).some(g => g.group_id)) && form.api_token);
+
+  const handlePushAll = async () => {
+    setPushing(true);
+    try {
+      const res = await base44.functions.invoke('pushAllToAssetPanda', {});
+      const data = res?.data || res;
+      queryClient.invalidateQueries({ queryKey: ['site-assets-panda'] });
+      queryClient.invalidateQueries({ queryKey: ['site-assets'] });
+      toast({
+        title: data?.success ? `Pushed ${data.pushed || 0} assets` : 'Push failed',
+        description: data?.success
+          ? `${data.created || 0} created, ${data.updated || 0} updated${data.failed ? `, ${data.failed} failed` : ''}`
+          : data?.error || 'Push did not complete.',
+        variant: data?.success ? 'default' : 'destructive',
+      });
+    } catch (err) {
+      toast({ title: 'Push failed', description: err?.message || 'Please try again.', variant: 'destructive' });
+    }
+    setPushing(false);
+  };
 
   return (
     <div className="space-y-5">
@@ -113,11 +132,18 @@ export default function AssetPandaSettings() {
         title="Asset Panda Sync"
         description="Live inventory, stock levels & billing rates from Asset Panda"
         actions={
-          <button onClick={handleSync} disabled={syncing || isLoading || !ready}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition text-sm font-semibold disabled:opacity-50">
-            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Syncing…' : 'Sync Now'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={handlePushAll} disabled={pushing || isLoading || !form.api_token}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition text-sm font-semibold disabled:opacity-50 border border-slate-300 text-slate-700 hover:bg-slate-50">
+              <UploadCloud className={`w-4 h-4 ${pushing ? 'animate-spin' : ''}`} />
+              {pushing ? 'Pushing…' : 'Push All'}
+            </button>
+            <button onClick={handleSync} disabled={syncing || isLoading || !ready}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition text-sm font-semibold disabled:opacity-50">
+              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing…' : 'Sync Now'}
+            </button>
+          </div>
         }
       />
 
