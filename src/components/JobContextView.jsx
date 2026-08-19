@@ -18,6 +18,7 @@ import QuickAssignStaffModal from '@/components/jobs/QuickAssignStaffModal';
 import DecommissioningBanner from '@/components/decommissioning/DecommissioningBanner';
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
 import DisciplineEditorModal from '@/components/disciplines/DisciplineEditorModal';
+import SubcontractorCrewCard from '@/components/jobs/SubcontractorCrewCard';
 import { Pencil } from 'lucide-react';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -305,6 +306,9 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
 
       {/* Visual crew composition — direct / subcontractor / agency breakdown */}
       <CrewCompositionBar assignedStaff={assignedStaff} rotas={rotas} contractors={contractors} />
+
+      {/* Sub-contractors & agency staff from the Sub-Contractors wizard step */}
+      <SubcontractorCrewCard job={job} />
 
       {/* Main 3-pane grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
