@@ -70,11 +70,11 @@
     },
     "staff_id": {
       "type": "string",
-      "description": "Linked Staff member \u2014 when set, this is a personal rate card for an individual (e.g. a specific driller's day rate). The auto-financials engine matches logged activities to the staff member's own rates first, then the project rate card, then the global Master Price List. Blank for crew/team rates and material/plant items that apply to everyone."
+      "description": "Linked Staff member \u2014 when set, this is a personal rate card for an individual (e.g. a specific driller's day rate). The auto-financials engine matches logged activities to the staff member's own rates first, then the job rate card, then the global Master Price List. Blank for crew/team rates and material/plant items that apply to everyone."
     },
-    "project_id": {
+    "job_id": {
       "type": "string",
-      "description": "Linked Project \u2014 when set, this rate item belongs to a project-specific rate card (e.g. the East West Rail / EWR schedule of rates). Jobs linked to that project bill against these rates in preference to the global Master Price List. Blank for global company rate card items."
+      "description": "Linked Job \u2014 when set, this rate item belongs to a job-specific rate card (e.g. a particular project's schedule of rates). The linked job bills against these rates in preference to the global Master Price List. Blank for global company rate card items."
     },
     "effective_date": {
       "type": "string",
