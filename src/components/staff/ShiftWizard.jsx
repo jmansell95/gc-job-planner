@@ -114,7 +114,12 @@ function ArriveStep({ job, jobLocation, inductionRequired, saving, staffId }) {
       )}
 
       {/* Weather */}
-      <WeatherCard lat={job?.site_lat} lng={job?.site_lng} locationName={job?.location} />
+      <WeatherCard
+        lat={job?.site_lat}
+        lng={job?.site_lng}
+        locationName={job?.location}
+        isDrillingJob={job?.drilling_method && job.drilling_method !== 'not_applicable'}
+      />
 
       {/* Job context — site contact, notes, safety info */}
       <JobContextCard job={job} />

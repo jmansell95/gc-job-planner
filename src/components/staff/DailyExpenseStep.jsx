@@ -3,8 +3,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   Receipt, Plus, Trash2, Camera, Loader2, CheckCircle2, Fuel, Coffee,
-  Package, Car, Wrench, PoundSterling, FileText, X, ChevronRight, AlertCircle,
+  Package, Car, Wrench, PoundSterling, FileText, X, ChevronRight, AlertCircle, Sparkles,
 } from 'lucide-react';
+import { useExpenseDefaults } from '@/hooks/useExpenseDefaults';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -46,6 +47,9 @@ export default function DailyExpenseStep({ job, staffId, assignment, expenses, s
     queryKey: ['expense-presets', 'active'],
     queryFn: () => base44.entities.ExpensePreset.filter({ is_active: true }, 'sort_order', 50),
   });
+
+  // Load global expense category defaults (pre-fill custom form)
+  const { data: expenseDefaults = {} } = useExpenseDefaults();
 
   const totalNet = expenses.reduce((s, e) => s + (Number(e.amount_net) || 0), 0);
   const totalVat = expenses.reduce((s, e) => s + (Number(e.amount_vat) || 0), 0);
@@ -148,13 +152,32 @@ export default function DailyExpenseStep({ job, staffId, assignment, expenses, s
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1.5">Category</label>
             <div className="grid grid-cols-4 gap-1.5">
-              {Object.entries(CATEGORY_META).map(([key, m]) => (
-                <button key={key} type="button" onClick={() => setCustomForm({ ...customForm, category: key })}
-                  className={`flex flex-col items-center gap-0.5 p-2 rounded-lg border text-[10px] font-medium transition ${customForm.category === key ? `${m.bg} border-2` : 'bg-white border-slate-200 text-slate-500'}`}>
-                  <m.icon className="w-3.5 h-3.5" />
-                  {m.label.split(' ')[0]}
-                </button>
-              ))}
+              {Object.entries(CATEGORY_META).map(([key, m]) => {
+                const dflt = expenseDefaults[key];
+                const hasDefault = dflt && dflt.default_amount != null && dflt.default_amount > 0;
+                return (
+                  <button key={key} type="button"
+                    onClick={() => {
+                      const d = expenseDefaults[key];
+                      setCustomForm({
+                        ...customForm,
+                        category: key,
+                        amount_net: d && d.default_amount != null ? String(d.default_amount) : customForm.amount_net,
+                        vat_rate: d && d.vat_rate != null ? String(d.vat_rate) : customForm.vat_rate,
+                        description: d?.description || customForm.description || m.label,
+                      });
+                    }}
+                    className={`flex flex-col items-center gap-0.5 p-2 rounded-lg border text-[10px] font-medium transition relative ${customForm.category === key ? `${m.bg} border-2` : 'bg-white border-slate-200 text-slate-500'}`}>
+                    <m.icon className="w-3.5 h-3.5" />
+                    {m.label.split(' ')[0]}
+                    {hasDefault && (
+                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center" title="Has default value">
+                        <Sparkles className="w-2 h-2 text-white" />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
           <div>
@@ -165,7 +188,20 @@ export default function DailyExpenseStep({ job, staffId, assignment, expenses, s
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Amount (£)</label>
+              <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 mb-1">
+                Amount (£)
+                {(() => {
+                  const d = expenseDefaults[customForm.category];
+                  if (d && d.default_amount != null && d.default_amount > 0 && parseFloat(customForm.amount_net) === d.default_amount) {
+                    return (
+                      <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
+                        <Sparkles className="w-2.5 h-2.5" /> Default applied
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
+              </label>
               <div className="relative">
                 <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                 <input type="number" min="0" step="0.01" value={customForm.amount_net} onChange={e => setCustomForm({ ...customForm, amount_net: e.target.value })}

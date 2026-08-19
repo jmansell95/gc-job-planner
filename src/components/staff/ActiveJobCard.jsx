@@ -12,6 +12,8 @@ import SitePhotoUpload from '@/components/SitePhotoUpload';
 import EquipmentComplianceSection from '@/components/staff/EquipmentComplianceSection';
 import JobDocumentViewer from '@/components/staff/JobDocumentViewer';
 import PredictiveHazardAlerts from '@/components/jobs/PredictiveHazardAlerts';
+import WeatherLeaveSiteAlert from '@/components/weather/WeatherLeaveSiteAlert';
+import StaffWeatherCard from '@/components/weather/StaffWeatherCard';
 
 const statusConfig = {
   assigned: { label: 'Assigned', icon: Clock, color: 'text-slate-600', bg: 'bg-gradient-to-r from-slate-50 to-slate-100/50' },
@@ -152,6 +154,16 @@ export default function ActiveJobCard({
         {/* Primary action — always visible */}
         <div className="mt-4">{primaryButton}</div>
 
+        {/* Severe weather auto-prompt — shown when conditions are unsafe */}
+        {isStarted && canPerformActions && !hasLeftSite && job.site_lat != null && job.site_lng != null && (
+          <WeatherLeaveSiteAlert
+            lat={job.site_lat}
+            lng={job.site_lng}
+            isDrillingJob={job.drilling_method && job.drilling_method !== 'not_applicable'}
+            onLeaveSite={() => onLeaveSite?.(assignment.id)}
+          />
+        )}
+
         {/* Early start notice */}
         {isAssigned && isEarlyStart && canPerformActions && (
           <div className="mt-2.5 flex items-center gap-2 px-3.5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-medium">
@@ -203,6 +215,14 @@ export default function ActiveJobCard({
             className="overflow-hidden border-t border-slate-100"
           >
             <div className="p-4 space-y-4">
+              {/* Live weather — severity indicator + safety note */}
+              <StaffWeatherCard
+                lat={job.site_lat}
+                lng={job.site_lng}
+                locationName={job.location}
+                isDrillingJob={job.drilling_method && job.drilling_method !== 'not_applicable'}
+              />
+
               {/* Predictive hazard alerts — shown first so crews see risks before working */}
               <PredictiveHazardAlerts job={job} compact />
 

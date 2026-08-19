@@ -37,6 +37,7 @@ import SafetyCultureSettings from '@/components/SafetyCultureSettings';
 import SystemLogicGuide from '@/components/SystemLogicGuide';
 import PermissionGroupManager from '@/components/PermissionGroupManager';
 import ExpensePresetManager from '@/components/settings/ExpensePresetManager';
+import ExpenseDefaultsManager from '@/components/settings/ExpenseDefaultsManager';
 import ConcurSyncSettings from '@/components/settings/ConcurSyncSettings';
 import SubconMarkupRules from '@/components/settings/SubconMarkupRules';
 import GLCodeMapping from '@/components/settings/GLCodeMapping';
@@ -167,6 +168,7 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'system-guide': return <SystemLogicGuide />;
       case 'custom-reports': return <CustomReportBuilder />;
       case 'expense-presets': return <ExpensePresetManager />;
+      case 'expense-defaults': return <ExpenseDefaultsManager />;
       case 'concur-sync': return <ConcurSyncSettings />;
       case 'subcon-markup': return <SubconMarkupRules />;
       case 'gl-mapping': return <GLCodeMapping />;

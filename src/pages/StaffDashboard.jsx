@@ -246,6 +246,31 @@ export default function StaffDashboard() {
         left_site_at: new Date().toISOString()
       });
       queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
+
+      // When the departure is weather-related, create a delay log so the
+      // office is notified and the job is flagged for manager review.
+      if (reason && /weather/i.test(reason)) {
+        try {
+          const job = jobs.find(j => j.id === assignment.job_id);
+          await base44.entities.JobDelayLog.create({
+            job_id: assignment.job_id,
+            job_name: job?.name || '',
+            staff_id: assignment.staff_id || '',
+            staff_name: staff?.name || '',
+            reported_by_role: 'staff',
+            reported_at: new Date().toISOString(),
+            delay_type: 'weather',
+            impacted_days: 0,
+            impacted_hours: 0,
+            description: `Weather-related early departure: ${reason}${note ? ' — ' + note : ''}`,
+            manager_review_status: 'pending',
+          });
+          queryClient.invalidateQueries({ queryKey: ['delay-logs'] });
+        } catch (dlErr) {
+          console.error('Delay log creation failed:', dlErr);
+        }
+      }
+
       toast({ title: 'Left site recorded', description: `Enter your travel home & submit your timesheet within ${Number(bizConfig?.post_leave_site_window_hours) || 5} hours.` });
     } catch (error) {
       console.error('Error recording leave site:', error);

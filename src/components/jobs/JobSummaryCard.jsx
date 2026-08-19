@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   MapPin, CalendarClock, Users, Ruler, PoundSterling, Layers,
   FileText, Eye, Edit2, Copy, Trash2, FolderOpen, User, Phone, Mountain, Wrench, StickyNote,
-  TrendingUp, Clock, CheckCircle2, AlertTriangle, CircleDashed, Building2,
+  TrendingUp, Clock, CheckCircle2, AlertTriangle, CircleDashed, Building2, Zap,
 } from 'lucide-react';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
+import WeatherBadge from '@/components/weather/WeatherBadge';
+import QuickEditJobModal from '@/components/jobs/QuickEditJobModal';
 
 const STATUS_META = {
   planning: { label: 'Planning', icon: CircleDashed, grad: 'from-slate-500 to-slate-600', chip: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200' },
@@ -67,6 +69,7 @@ export default function JobSummaryCard({
   job, client, parentClient, project, siblingCount, crewCount, rigCount, jobTypes, teams, cloningId,
   onView, onEdit, onClone, onDelete, onProjectClick,
 }) {
+  const [showQuickEdit, setShowQuickEdit] = useState(false);
   const duration = calcDuration(job.start_date, job.end_date);
   const isDrillingJob = ['cp', 'rotary', 'mixed'].includes(job.drilling_method);
   const methodLabel = { cp: 'CP', rotary: 'Rotary', mixed: 'CP + Rotary' }[job.drilling_method] || '';
@@ -94,6 +97,9 @@ export default function JobSummaryCard({
                 <StatusIcon className="w-3 h-3" /> {status.label}
               </span>
               <DisciplinePills job={job} size="sm" />
+              {job.site_lat != null && job.site_lng != null && (job.status === 'in_progress' || job.status === 'decommissioning') && (
+                <WeatherBadge lat={job.site_lat} lng={job.site_lng} />
+              )}
             </div>
             {/* Partner badge — shows parent group + operating entity */}
             {showPartnerBadge && (
@@ -224,11 +230,17 @@ export default function JobSummaryCard({
           <Eye className="w-4 h-4" /> View Details
         </button>
         <div className="flex gap-1">
-          <button onClick={() => onEdit(job)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Edit"><Edit2 className="w-4 h-4" /></button>
+          <button onClick={() => setShowQuickEdit(true)} className="inline-flex items-center gap-1 px-2 py-1.5 text-[#2E5A1A] hover:bg-[#2E5A1A]/10 rounded-lg transition text-xs font-semibold" title="Quick edit location, dates, status & notes">
+            <Zap className="w-3.5 h-3.5" /> Quick Edit
+          </button>
+          <button onClick={() => onEdit(job)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Full edit"><Edit2 className="w-4 h-4" /></button>
           <button onClick={() => onClone(job)} disabled={cloningId === job.id} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition disabled:opacity-50" title="Clone job"><Copy className="w-4 h-4" /></button>
           <button onClick={() => onDelete(job.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition" title="Delete"><Trash2 className="w-4 h-4" /></button>
         </div>
       </div>
+
+      {/* Quick edit modal */}
+      <QuickEditJobModal open={showQuickEdit} onClose={() => setShowQuickEdit(false)} job={job} />
     </div>
   );
 }

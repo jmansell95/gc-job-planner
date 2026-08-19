@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, DoorOpen, Clock, CheckCircle2, FileText } from 'lucide-react';
 
 const DEFAULT_REASONS = [
+  'Weather — unsafe conditions',
   'Doctor/Dentist Appointment',
   'Illness / Feeling Unwell',
   'Client-Approved Early Finish',
