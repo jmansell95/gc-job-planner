@@ -161,6 +161,7 @@ export default function StaffProfile() {
       title="My Profile"
       subtitle={`${staff.name}${staff.team?.name ? ' · ' + staff.team.name : ''}`}
       icon={UserCircle}
+      fixedHeader
       onBack={() => navigate(-1)}
       actions={
         <button onClick={() => setShowEditDrawer(true)} type="button"

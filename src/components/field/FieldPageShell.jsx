@@ -22,11 +22,12 @@ export default function FieldPageShell({
   contentClassName = '',
   headerTone = 'light',
   accentColor,
+  fixedHeader = false,
 }) {
   return (
     <div className="min-h-screen page-bg-vibrant">
-      {/* Sticky header — glass morphism with gradient accent */}
-      <div className="sticky top-0 z-30 bg-white/75 backdrop-blur-xl border-b border-slate-200/70 safe-area-top shadow-sm shadow-slate-900/[0.03]">
+      {/* Header — glass morphism with gradient accent (fixed or sticky) */}
+      <div className={(fixedHeader ? "fixed top-0 left-0 right-0 " : "sticky top-0 ") + "z-30 bg-white/75 backdrop-blur-xl border-b border-slate-200/70 safe-area-top shadow-sm shadow-slate-900/[0.03]"}>
         {/* Division accent strip — always visible at the top of the screen */}
         {accentColor && (
           <div className="h-1 w-full flex-shrink-0" style={{ background: accentColor }} />
@@ -92,7 +93,7 @@ export default function FieldPageShell({
       </div>
 
       {/* Content */}
-      <div className={contentClassName}>
+      <div className={contentClassName} style={fixedHeader ? { paddingTop: 'calc(3.75rem + env(safe-area-inset-top, 0px))' } : undefined}>
         {children}
       </div>
     </div>
