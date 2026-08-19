@@ -79,7 +79,7 @@ export default function DivisionSwitcher({ variant = 'sidebar' }) {
       {open && (
         <div className={panelCls} onClick={(e) => e.stopPropagation()}>
           <div className="px-3 py-2 border-b border-slate-100">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Switch Division</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Switch Business Stream</p>
           </div>
           <div className="py-1 max-h-72 overflow-y-auto">
             <button
@@ -113,7 +113,7 @@ export default function DivisionSwitcher({ variant = 'sidebar' }) {
                 onClick={() => { setOpen(false); navigate('/enterprise'); }}
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-semibold text-[#2E5A1A] hover:bg-slate-50 transition text-left">
                 <Plus className="w-4 h-4" />
-                Manage Divisions
+                Manage Business Streams
               </button>
             </div>
           )}

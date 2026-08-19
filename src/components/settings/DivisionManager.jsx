@@ -70,8 +70,8 @@ export default function DivisionManager() {
             <Building2 className="w-6 h-6 text-white" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-lg font-extrabold text-slate-900">Divisions</h2>
-            <p className="text-sm text-slate-500">Operational divisions and standalone units. Business Units are managed in the <strong>Business Units</strong> tab. Staff assignment and access levels are managed in the <strong>Access Levels</strong> tab.</p>
+            <h2 className="text-lg font-extrabold text-slate-900">Business Streams</h2>
+            <p className="text-sm text-slate-500">Operational business streams and standalone units. Business Units are managed in the <strong>Business Units</strong> tab. Staff assignment and access levels are managed in the <strong>Access Levels</strong> tab.</p>
           </div>
         </div>
       </div>
@@ -80,7 +80,7 @@ export default function DivisionManager() {
       <div className="space-y-3">
         <div className="flex justify-end">
           <button onClick={() => setShowWizard(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl command-gradient text-white text-sm font-semibold shadow-md hover:shadow-lg transition">
-            <Plus className="w-4 h-4" /> New Division
+            <Plus className="w-4 h-4" /> New Business Stream
           </button>
         </div>
         {isLoading ? (
@@ -88,8 +88,8 @@ export default function DivisionManager() {
         ) : divisions.length === 0 ? (
           <div className="insight-card rounded-2xl p-8 text-center">
             <Building2 className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-            <p className="text-sm font-semibold text-slate-600">No divisions yet</p>
-            <p className="text-xs text-slate-400 mt-1">Create your first division, or run the migration to auto-create the Geotechnical division.</p>
+            <p className="text-sm font-semibold text-slate-600">No business streams yet</p>
+            <p className="text-xs text-slate-400 mt-1">Create your first business stream, or run the migration to auto-create the Geotechnical stream.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -210,7 +210,7 @@ function DeleteDivisionModal({ division, staffCount, onCancel, onDeleted }) {
     setDeleting(true);
     try {
       await base44.entities.Division.delete(division.id);
-      toast({ title: 'Division deleted' });
+      toast({ title: 'Business Stream deleted' });
       onDeleted();
     } catch (e) {
       toast({ title: 'Delete failed', description: e.message, variant: 'destructive' });
@@ -237,13 +237,13 @@ function DeleteDivisionModal({ division, staffCount, onCancel, onDeleted }) {
           </div>
           <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
             <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-700">Records keep their <code>division_id</code> tag but the division card disappears from the switcher and Enterprise Dashboard. Staff assigned here will become "unassigned" until reassigned via the Access Levels tab.</p>
+            <p className="text-xs text-amber-700">Records keep their <code>division_id</code> tag but the business stream card disappears from the switcher and Enterprise Dashboard. Staff assigned here will become "unassigned" until reassigned via the Access Levels tab.</p>
           </div>
         </div>
         <div className="flex justify-end gap-2">
           <button onClick={onCancel} className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Cancel</button>
           <button onClick={doDelete} disabled={deleting} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-rose-600 text-white text-sm font-bold shadow-md hover:bg-rose-700 disabled:opacity-60 transition">
-            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Delete Division
+            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Delete Business Stream
           </button>
         </div>
       </div>

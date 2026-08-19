@@ -26,7 +26,7 @@ export const HUB_DESCRIPTIONS = {
   investigation: 'Boreholes & AGS (geotech)',
   compliance: 'Audits, safety & certs',
   billing: 'Invoices & rate cards',
-  settings: 'Division configuration',
+  settings: 'Business Stream configuration',
 };
 
 // Tabs within each hub — granular sub-sections that can be individually

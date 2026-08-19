@@ -50,7 +50,7 @@ export default function DivisionLoadingScreen({ division, onComplete, duration =
   }, [duration, onComplete]);
 
   const divColor = division?.color || '#2E5A1A';
-  const divName = division?.name || 'Division';
+  const divName = division?.name || 'Business Stream';
   const subtitle = division?.tagline || division?.description || '';
   const Scene = SCENES[division?.division_type] || GeneralScene;
 

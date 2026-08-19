@@ -111,10 +111,10 @@ export default function DivisionEditor({ division, onClose, onSaved }) {
       };
       if (division) {
         await base44.entities.Division.update(division.id, payload);
-        toast({ title: 'Division updated' });
+        toast({ title: 'Business Stream updated' });
       } else {
         await base44.entities.Division.create(payload);
-        toast({ title: 'Division created' });
+        toast({ title: 'Business Stream created' });
       }
       onSaved();
     } catch (e) {
@@ -136,7 +136,7 @@ export default function DivisionEditor({ division, onClose, onSaved }) {
             <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style={{ background: 'linear-gradient(135deg, ' + form.color + ', ' + form.color + 'cc)' }}>
               <Building2 className="w-5 h-5 text-white" />
             </div>
-            <h3 className="text-base font-extrabold text-slate-900">{division ? 'Edit Division' : 'New Division'}</h3>
+            <h3 className="text-base font-extrabold text-slate-900">{division ? 'Edit Business Stream' : 'New Business Stream'}</h3>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100"><X className="w-5 h-5 text-slate-400" /></button>
         </div>
@@ -172,7 +172,7 @@ export default function DivisionEditor({ division, onClose, onSaved }) {
                 </div>
               </div>
               <div>
-                <label className={labelCls}>Division Type</label>
+                <label className={labelCls}>Business Stream Type</label>
                 <p className="text-[11px] text-slate-400 mt-0.5">Determines default hubs and navigation.</p>
                 <div className="mt-1.5 grid grid-cols-3 gap-1.5">
                   {DIVISION_TYPES.map(t => (
@@ -312,8 +312,8 @@ export default function DivisionEditor({ division, onClose, onSaved }) {
           {/* ═══ Settings ═══ */}
           {subTab === 'settings' && (
             <div className="space-y-4">
-              <label className={labelCls + ' flex items-center gap-1.5'}><SettingsIcon className="w-3.5 h-3.5" /> Division-Specific Settings</label>
-              <p className="text-[11px] text-slate-400 mt-0.5">These override platform defaults for this division's users only.</p>
+              <label className={labelCls + ' flex items-center gap-1.5'}><SettingsIcon className="w-3.5 h-3.5" /> Business Stream-Specific Settings</label>
+              <p className="text-[11px] text-slate-400 mt-0.5">These override platform defaults for this stream's users only.</p>
 
               {/* Financial */}
               <div className="insight-card rounded-xl p-3 space-y-3">
@@ -367,7 +367,7 @@ export default function DivisionEditor({ division, onClose, onSaved }) {
         <div className="sticky bottom-0 bg-white border-t border-slate-100 px-5 py-3 flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Cancel</button>
           <button onClick={save} disabled={saving} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg command-gradient text-white text-sm font-bold shadow-md disabled:opacity-60 transition">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} {division ? 'Save Changes' : 'Create Division'}
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} {division ? 'Save Changes' : 'Create Business Stream'}
           </button>
         </div>
       </div>

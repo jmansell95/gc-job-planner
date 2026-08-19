@@ -36,7 +36,7 @@ export default function BusinessUnitCard({ unit, childStats, onEnter }) {
           <div className="min-w-0">
             <p className="text-[9px] sm:text-[10px] text-white/70 font-bold uppercase tracking-widest">Business Unit</p>
             <h3 className="text-base sm:text-xl font-extrabold text-white truncate drop-shadow-sm leading-tight">{d.name}</h3>
-            <p className="text-[10px] sm:text-xs text-white/80 font-semibold truncate mt-0.5">{childCount} divisions housed</p>
+            <p className="text-[10px] sm:text-xs text-white/80 font-semibold truncate mt-0.5">{childCount} business streams housed</p>
           </div>
         </div>
         <span className="relative inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-bold bg-white/20 backdrop-blur-sm text-white ring-1 ring-white/30 flex-shrink-0">
@@ -61,7 +61,7 @@ export default function BusinessUnitCard({ unit, childStats, onEnter }) {
 
         {/* Division preview strip */}
         <div className="space-y-1.5 mb-4">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Divisions</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Business Streams</p>
           {childStats.slice(0, 4).map((c) => (
             <div key={c.division.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 group-hover:bg-white transition">
               <div className="flex items-center gap-2 min-w-0">
@@ -78,7 +78,7 @@ export default function BusinessUnitCard({ unit, childStats, onEnter }) {
 
         {/* CTA */}
         <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-xs text-slate-400 font-medium">View all divisions</span>
+          <span className="text-xs text-slate-400 font-medium">View all business streams</span>
           <span className="inline-flex items-center gap-1 text-sm font-bold text-[#2E5A1A] group-hover:gap-2 transition-all">
             Drill Down <ArrowRight className="w-4 h-4" />
           </span>

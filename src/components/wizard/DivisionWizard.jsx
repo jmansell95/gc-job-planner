@@ -130,7 +130,7 @@ export default function DivisionWizard({ onClose, onCreated }) {
               <Rocket className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-slate-900">Create a Division</h3>
+              <h3 className="text-base font-extrabold text-slate-900">Create a Business Stream</h3>
               <p className="text-[11px] text-slate-400">Step {step + 1} of {STEPS.length} {'\u00B7'} {STEPS[step].label}</p>
             </div>
           </div>

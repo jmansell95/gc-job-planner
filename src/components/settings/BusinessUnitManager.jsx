@@ -71,7 +71,7 @@ export default function BusinessUnitManager() {
           </div>
           <div className="min-w-0">
             <h2 className="text-lg font-extrabold text-slate-900">Business Units</h2>
-            <p className="text-sm text-slate-500">Top-level containers that house specialist divisions. Add divisions inside a BU from the <strong>Divisions</strong> tab.</p>
+            <p className="text-sm text-slate-500">Top-level containers that house specialist business streams. Add business streams inside a BU from the <strong>Business Streams</strong> tab.</p>
           </div>
         </div>
       </div>
@@ -89,7 +89,7 @@ export default function BusinessUnitManager() {
           <div className="insight-card rounded-2xl p-8 text-center">
             <Layers className="w-10 h-10 text-slate-300 mx-auto mb-2" />
             <p className="text-sm font-semibold text-slate-600">No business units yet</p>
-            <p className="text-xs text-slate-400 mt-1">Create a top-level business unit, then add divisions inside it from the Divisions tab.</p>
+            <p className="text-xs text-slate-400 mt-1">Create a top-level business unit, then add business streams inside it from the Business Streams tab.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -124,7 +124,7 @@ export default function BusinessUnitManager() {
                         <Building2 className="w-4 h-4 text-slate-400 flex-shrink-0" />
                         <div>
                           <p className="text-sm font-bold text-slate-900 tabular-nums leading-none">{children.length}</p>
-                          <p className="text-[9px] text-slate-400 uppercase font-bold">Divisions</p>
+                          <p className="text-[9px] text-slate-400 uppercase font-bold">Streams</p>
                         </div>
                       </div>
                       <div className="bg-slate-50 rounded-xl p-2.5 flex items-center gap-1.5">
@@ -204,7 +204,7 @@ function DeleteBusinessUnitModal({ bu, initialChildren, allDivisions, onCancel, 
       await base44.entities.Division.update(childId, { parent_division_id: targetId || null });
       setChildren(prev => prev.filter(c => c.id !== childId));
       onReassigned();
-      toast({ title: targetId ? 'Division reassigned' : 'Division made standalone' });
+      toast({ title: targetId ? 'Business Stream reassigned' : 'Business Stream made standalone' });
     } catch (e) {
       toast({ title: 'Reassign failed', description: e.message, variant: 'destructive' });
     }
@@ -215,7 +215,7 @@ function DeleteBusinessUnitModal({ bu, initialChildren, allDivisions, onCancel, 
       await base44.entities.Division.delete(childId);
       setChildren(prev => prev.filter(c => c.id !== childId));
       onReassigned();
-      toast({ title: 'Division removed' });
+      toast({ title: 'Business Stream removed' });
     } catch (e) {
       toast({ title: 'Remove failed', description: e.message, variant: 'destructive' });
     }
@@ -246,7 +246,7 @@ function DeleteBusinessUnitModal({ bu, initialChildren, allDivisions, onCancel, 
           </div>
           <div>
             <h3 className="text-base font-extrabold text-slate-900">Delete "{bu.name}"?</h3>
-            <p className="text-xs text-slate-500">{blocked ? 'Reassign or remove its divisions first.' : 'This action cannot be undone.'}</p>
+            <p className="text-xs text-slate-500">{blocked ? 'Reassign or remove its business streams first.' : 'This action cannot be undone.'}</p>
           </div>
         </div>
 
@@ -254,7 +254,7 @@ function DeleteBusinessUnitModal({ bu, initialChildren, allDivisions, onCancel, 
           <div className="space-y-3 mb-4">
             <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
               <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-700">This business unit contains <strong>{children.length}</strong> division{children.length === 1 ? '' : 's'}. Reassign each to another BU (or make it standalone) before you can delete this BU.</p>
+              <p className="text-xs text-amber-700">This business unit contains <strong>{children.length}</strong> business stream{children.length === 1 ? '' : 's'}. Reassign each to another BU (or make it standalone) before you can delete this BU.</p>
             </div>
             <div className="space-y-2">
               {children.map(c => (

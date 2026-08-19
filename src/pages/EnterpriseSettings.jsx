@@ -14,7 +14,7 @@ import IntegrationConfigDrawer from '@/components/settings/IntegrationConfigDraw
 
 const TABS = [
   { id: 'business-units', label: 'Business Units', icon: Layers, gradient: 'from-emerald-600 to-teal-700' },
-  { id: 'divisions', label: 'Divisions', icon: Building2, gradient: 'from-blue-600 to-cyan-700' },
+  { id: 'divisions', label: 'Business Streams', icon: Building2, gradient: 'from-blue-600 to-cyan-700' },
   { id: 'backup', label: 'Backup & Restore', icon: Database, gradient: 'from-indigo-600 to-blue-700' },
   { id: 'integrations', label: 'Integrations', icon: Link2, gradient: 'from-blue-600 to-indigo-700' },
   { id: 'access', label: 'Access Levels', icon: KeyRound, gradient: 'from-amber-500 to-orange-600' },
@@ -59,7 +59,7 @@ export default function EnterpriseSettings() {
               <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-none truncate">
                 Enterprise Settings
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-0.5">Self-contained — no division context</p>
+              <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-0.5">Self-contained — no business stream context</p>
             </div>
           </div>
         </div>
