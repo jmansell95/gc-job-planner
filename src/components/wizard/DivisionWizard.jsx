@@ -16,11 +16,19 @@ const STEPS = [
   { id: 'review', label: 'Launch', icon: Rocket },
 ];
 
+const _generalDefaults = defaultsForType('general');
 const EMPTY_FORM = {
   name: '', code: '', division_type: 'general', description: '',
   logo_url: '', is_active: true, status: 'setup', sort_order: 0,
   landing_page: '',
-  ...defaultsForType('general'),
+  // Brand defaults from the type blueprint, but hubs start empty — the admin
+  // chooses which hubs to enable from a blank slate (no pre-selection).
+  color: _generalDefaults.color,
+  tagline: _generalDefaults.tagline,
+  nav_items: _generalDefaults.nav_items,
+  settings: _generalDefaults.settings,
+  enabled_hubs: [],
+  enabled_tabs: {},
 };
 
 export default function DivisionWizard({ onClose, onCreated }) {
@@ -46,7 +54,10 @@ export default function DivisionWizard({ onClose, onCreated }) {
     setFormRaw(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
       if (next.division_type !== prev.division_type) {
-        return { ...next, ...defaultsForType(next.division_type) };
+        // Apply the type's brand defaults (colour, tagline, nav, settings) but
+        // do NOT pre-fill hubs — the admin chooses hubs from a blank slate.
+        const d = defaultsForType(next.division_type);
+        return { ...next, color: d.color, tagline: d.tagline, nav_items: d.nav_items, settings: d.settings };
       }
       return next;
     });
@@ -80,7 +91,11 @@ export default function DivisionWizard({ onClose, onCreated }) {
     setSelectedTemplateId(template.id);
   };
 
-  const canProceed = step === 0 ? form.name.trim() && form.code.trim() : true;
+  const canProceed = step === 0
+    ? form.name.trim() && form.code.trim()
+    : step === 1
+      ? (form.enabled_hubs || []).length > 0
+      : true;
 
   const next = () => { if (step < STEPS.length - 1) { setDirection(1); setStep(step + 1); } };
   const back = () => { if (step > 0) { setDirection(-1); setStep(step - 1); } };

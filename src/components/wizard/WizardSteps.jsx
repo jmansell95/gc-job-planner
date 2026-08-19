@@ -143,7 +143,10 @@ export function StepHubs({ form, setForm }) {
           );
         })}
       </div>
-      <p className="text-[11px] text-slate-500 pt-1">{form.enabled_hubs.length} of {ALL_HUBS.length} hubs enabled</p>
+      <p className={'text-[11px] pt-1 ' + ((form.enabled_hubs || []).length === 0 ? 'text-rose-500 font-semibold' : 'text-slate-500')}>
+        {(form.enabled_hubs || []).length} of {ALL_HUBS.length} hubs selected
+        {(form.enabled_hubs || []).length === 0 && ' — select at least one hub to continue'}
+      </p>
     </div>
   );
 }
