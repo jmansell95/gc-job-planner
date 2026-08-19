@@ -12,6 +12,7 @@ import StaffDirectoryGrid from '@/components/staff/StaffDirectoryGrid';
 import StaffCostAnalytics from '@/components/staff/StaffCostAnalytics';
 import StaffUtilizationWidget from '@/components/dashboard/StaffUtilizationWidget';
 import TrainingMatrixHub from '@/components/staff/TrainingMatrixHub';
+import RunReportButton from '@/components/reports/RunReportButton';
 
 // Map legacy tab IDs onto the new 4-tab structure so deep links don't break
 const TAB_MAP = {
@@ -96,6 +97,7 @@ export default function StaffPage() {
       icon={Users}
       title="People & Team Management"
       subtitle="Manage crew members, timesheets, clients, subcontractors and suppliers"
+      actions={<RunReportButton hub="staff" />}
       tabs={TABS.map(t => ({ id: t.id, label: t.label, icon: t.icon }))}
       activeTab={tab}
       onTabChange={handleTabChange}

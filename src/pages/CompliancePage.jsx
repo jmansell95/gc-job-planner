@@ -19,6 +19,7 @@ import SiteReadinessGateWidget from '@/components/dashboard/SiteReadinessGateWid
 import CrewCertificationPulseWidget from '@/components/dashboard/CrewCertificationPulseWidget';
 import CarbonFootprintWidget from '@/components/dashboard/CarbonFootprintWidget';
 import HubStatsBar from '@/components/dashboard/HubStatsBar';
+import RunReportButton from '@/components/reports/RunReportButton';
 import { resolveRole } from '@/utils/access';
 
 const SC_URL = 'https://app.safetyculture.com';
@@ -133,15 +134,18 @@ export default function CompliancePage() {
                 </p>
               </div>
             </div>
-            <a
-              href={SC_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/15 backdrop-blur-md text-white text-sm font-semibold hover:bg-white/25 transition ring-1 ring-white/20 flex-shrink-0"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Open SafetyCulture
-            </a>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <RunReportButton hub="compliance" />
+              <a
+                href={SC_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/15 backdrop-blur-md text-white text-sm font-semibold hover:bg-white/25 transition ring-1 ring-white/20"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Open SafetyCulture
+              </a>
+            </div>
           </div>
         </div>
       </div>

@@ -17,6 +17,7 @@ import ContractsAndOrdersTab from '@/components/billing/ContractsAndOrdersTab';
 import MarginGuardTab from '@/components/billing/MarginGuardTab';
 import AfPPipelineWidget from '@/components/billing/AfPPipelineWidget';
 import GenerateInvoiceModal from '@/components/billing/GenerateInvoiceModal';
+import RunReportButton from '@/components/reports/RunReportButton';
 
 // ─── 3-step billing pipeline (now inline within the Pipeline tab) ──────────
 const PIPELINE_STEPS = [
@@ -122,6 +123,7 @@ export default function BillingPage() {
       icon={PoundSterling}
       title="Financial Control"
       subtitle="Invoicing, debtors, billing rules, rate cards & financial reports"
+      actions={<RunReportButton hub="billing" />}
       tabs={tabs}
       activeTab={tab}
       onTabChange={setTab}

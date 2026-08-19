@@ -7,6 +7,7 @@ import HubShell from '@/components/HubShell';
 import HubStatsBar from '@/components/dashboard/HubStatsBar';
 import Vehicles from '@/pages/Vehicles';
 import { differenceInDays } from 'date-fns';
+import RunReportButton from '@/components/reports/RunReportButton';
 
 function getVehicleStatus(v) {
   const today = new Date();
@@ -95,6 +96,7 @@ export default function FleetHub() {
       icon={Truck}
       title="Fleet Hub"
       subtitle="Vehicles, live GPS tracking, MOT & service schedules — Geotab & Holman synced"
+      actions={<RunReportButton hub="fleet" />}
       kpiStrip={
         stats.total > 0 ? (
           <HubStatsBar tiles={[
