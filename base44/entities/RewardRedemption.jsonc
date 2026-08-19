@@ -1,0 +1,100 @@
+{
+  "name": "RewardRedemption",
+  "type": "object",
+  "properties": {
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member who redeemed the reward."
+    },
+    "staff_name": {
+      "type": "string",
+      "description": "Staff member name (denormalised for the admin ledger)."
+    },
+    "reward_id": {
+      "type": "string",
+      "description": "The Reward that was redeemed."
+    },
+    "reward_name": {
+      "type": "string",
+      "description": "Reward name at the time of redemption (denormalised so the ledger survives reward edits/deletes)."
+    },
+    "reward_type": {
+      "type": "string",
+      "enum": [
+        "gift_card",
+        "merchandise",
+        "experience",
+        "custom"
+      ],
+      "default": "gift_card",
+      "description": "Reward type at the time of redemption (denormalised)."
+    },
+    "points_spent": {
+      "type": "number",
+      "description": "Points deducted from the staff member's balance for this redemption."
+    },
+    "gift_card_value_gbp": {
+      "type": "number",
+      "description": "For gift_card redemptions, the face value in GBP at the time of redemption (denormalised for the fulfilment ledger)."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "fulfilled",
+        "cancelled"
+      ],
+      "default": "pending",
+      "description": "Fulfilment lifecycle. 'pending' = staff requested, awaiting admin review; 'approved' = admin approved, awaiting fulfilment; 'fulfilled' = reward delivered to the staff member; 'cancelled' = admin cancelled the request (points refunded to the balance)."
+    },
+    "requested_at": {
+      "type": "string",
+      "description": "ISO timestamp when the staff member submitted the redemption."
+    },
+    "fulfilled_at": {
+      "type": "string",
+      "description": "ISO timestamp when the redemption was marked fulfilled."
+    },
+    "fulfilled_by": {
+      "type": "string",
+      "description": "Name of the admin who approved/fulfilled the redemption."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Admin notes on the redemption (e.g. gift card code sent, tracking number, cancellation reason)."
+    }
+  },
+  "required": [
+    "staff_id",
+    "reward_id",
+    "reward_name",
+    "points_spent",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.staff_id": "{{user.data.staff_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

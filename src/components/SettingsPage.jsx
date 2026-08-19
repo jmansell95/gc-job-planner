@@ -68,6 +68,7 @@ import PushNotificationSettings from '@/components/settings/PushNotificationSett
 import Microsoft365Hub from '@/components/settings/Microsoft365Hub';
 import IncrementalImportSettings from '@/components/settings/IncrementalImportSettings';
 import OpenGroundSettings from '@/components/settings/OpenGroundSettings';
+import RewardsManager from '@/components/settings/RewardsManager';
 import ReadinessManager from '@/components/settings/ReadinessManager';
 import DivisionManager from '@/components/settings/DivisionManager';
 import SettingsAccessGuard from '@/components/settings/SettingsAccessGuard';
@@ -195,6 +196,7 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'push-notifications': return <PushNotificationSettings />;
       case 'incremental-import': return <IncrementalImportSettings />;
       case 'openground-sync': return <OpenGroundSettings />;
+      case 'rewards': return <RewardsManager />;
       default: return null;
     }
   };

@@ -9,6 +9,7 @@ import {
   History, Gauge, Link2, Search, ChevronRight, GitBranch, Lock, AlertTriangle,
   Database, Webhook, Bell, Settings2, Coins, Wrench, FileUp, Layers,
   Satellite, Radio, Landmark, ShieldAlert, Cloud, MapPin, MessageCircle, CreditCard,
+  Gift,
 } from 'lucide-react';
 
 const INTEGRATION_SETTING_KEYS = [
@@ -80,6 +81,7 @@ export default function SettingsHubOverview({ onNavigate }) {
       { id: 'planner-import', icon: FileSpreadsheet, label: 'Planner Import', value: '—', sub: 'Upload weekly rota spreadsheet', color: 'blue' },
       { id: 'incremental-import', icon: Layers, label: 'Incremental Import', value: '—', sub: 'Non-destructive smart imports', color: 'violet' },
       { id: 'system-guide', icon: BookOpen, label: 'System Logic Guide', value: 'PDF', sub: 'Every stat & rule explained', color: 'emerald' },
+      { id: 'rewards', icon: Gift, label: 'Rewards Manager', value: '—', sub: 'Gift cards, points catalogue & redemptions', color: 'amber' },
     ]},
   ];
 

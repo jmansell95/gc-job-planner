@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes,   Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Radio, ArrowUpDown, Satellite, QrCode, Link2, Cloud, MapPin, MessageCircle, CreditCard, GitBranch, FileText, FileBarChart, Star, CalendarDays, UserCheck, Warehouse, AlertOctagon, Coins, Bell, Webhook, Layers, Activity } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes,   Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Radio, ArrowUpDown, Satellite, QrCode, Link2, Cloud, MapPin, MessageCircle, CreditCard, GitBranch, FileText, FileBarChart, Star, CalendarDays, UserCheck, Warehouse, AlertOctagon, Coins, Bell, Webhook, Layers, Activity, Gift } from 'lucide-react';
 import { normalizePermissions } from '@/utils/permissions';
 
 // Items that have migrated to operational hubs (Financial Control, Compliance,
@@ -43,6 +43,7 @@ export const settingsGroups = [
       { id: 'planner-import', label: 'Planner Import', icon: FileSpreadsheet, desc: 'Upload weekly rota spreadsheet' },
       { id: 'incremental-import', label: 'Incremental Import', icon: Layers, desc: 'Non-destructive smart imports' },
       { id: 'system-guide', label: 'System Logic Guide', icon: BookOpen, desc: 'Download a PDF explaining every stat, rule and automation in the system', roles: ['admin', 'manager', 'viewer'] },
+      { id: 'rewards', label: 'Rewards Manager', icon: Gift, desc: 'Create gift cards & rewards for the points catalogue, and fulfil staff redemptions', roles: ['admin'] },
     ],
   },
   // Hidden groups — items remain here for access control / lockdown but are

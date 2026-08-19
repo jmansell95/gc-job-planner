@@ -63,14 +63,14 @@ export default function StaffPerformanceCard({ staffId }) {
   ];
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">
+    <div className="insight-card rounded-2xl p-4 md:p-5">
       <div className="flex items-center gap-2.5 mb-4">
         <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
           <HardHat className="w-4 h-4 text-emerald-600" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-slate-900">My Performance</h2>
-          <p className="text-xs text-slate-400">Week of {format(new Date(weekStart + 'T00:00:00'), 'dd MMM yyyy')}</p>
+          <h2 className="text-sm font-extrabold text-slate-900">My Performance</h2>
+          <p className="text-[11px] text-slate-500">Week of {format(new Date(weekStart + 'T00:00:00'), 'dd MMM yyyy')}</p>
         </div>
       </div>
 

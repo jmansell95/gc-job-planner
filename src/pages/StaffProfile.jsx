@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { HardHat, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, UserCog, UserCircle, CalendarClock, TrendingUp, Trophy, ClipboardList, GraduationCap, FileText, UserPlus, Loader2, IdCard } from 'lucide-react';
+import {
+  HardHat, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock,
+  Wrench, ShieldCheck, Users, UserCog, UserCircle, TrendingUp, Trophy, ClipboardList,
+  GraduationCap, Gift, Loader2,
+} from 'lucide-react';
 import { format } from 'date-fns';
 import TimesheetHistory from '@/components/staff/TimesheetHistory';
 import StaffBookings from '@/components/staff/StaffBookings';
 import ProfileStats from '@/components/staff/ProfileStats';
-import TrainingHistory from '@/components/staff/TrainingHistory';
-import StaffDocuments from '@/components/staff/StaffDocuments';
 import ComplianceWallet from '@/components/staff/ComplianceWallet';
 import TeamMiniFeed from '@/components/staff/TeamMiniFeed';
 import ManagerTimesheetApprovals from '@/components/ManagerTimesheetApprovals';
@@ -16,12 +18,13 @@ import { useStaffAssistant } from '@/components/StaffAssistantChat';
 import { useAuth } from '@/lib/AuthContext';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useToast } from '@/components/ui/use-toast';
-import { EmptyState } from '@/components/StateViews';
 import { resolveRole, isOfficeStaff } from '@/utils/access';
 import StaffProfileEditDrawer from '@/components/staff/StaffProfileEditDrawer';
 import StaffPerformanceCard from '@/components/staff/StaffPerformanceCard';
 import StaffPerformanceCharts from '@/components/staff/StaffPerformanceCharts';
 import IncentiveDashboard from '@/components/staff/IncentiveDashboard';
+import RewardsCatalogue from '@/components/staff/RewardsCatalogue';
+import TrainingTab from '@/components/staff/TrainingTab';
 import NoCrewProfileState from '@/components/staff/NoCrewProfileState';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 import FieldPageShell from '@/components/field/FieldPageShell';
@@ -34,6 +37,17 @@ const ABSENCE_REASONS = [
   { value: 'personal', label: 'Personal' },
   { value: 'training', label: 'Training' },
   { value: 'other', label: 'Other' },
+];
+
+const TABS = [
+  { key: 'performance', label: 'Performance', icon: TrendingUp },
+  { key: 'incentives', label: 'Incentives', icon: Trophy },
+  { key: 'rewards', label: 'Rewards', icon: Gift },
+  { key: 'timesheets', label: 'Timesheets', icon: ClipboardList },
+  { key: 'bookings', label: 'Bookings', icon: Wrench },
+  { key: 'training', label: 'Training', icon: GraduationCap },
+  { key: 'wallet', label: 'Wallet', icon: ShieldCheck },
+  { key: 'crew', label: 'My Crew', icon: Users },
 ];
 
 export default function StaffProfile() {
@@ -60,12 +74,9 @@ export default function StaffProfile() {
         if (res.data?.id || res.data?.is_admin) {
           setStaff(res.data);
         } else if (isPlatformAdmin) {
-          // Platform admin with no linked crew profile — show the page
-          // instead of the "No crew profile found" dead-end.
           setStaff({ id: null, name: user?.full_name || user?.email, email: user?.email, is_admin: true, system_role: 'admin', team: null, no_staff_profile: true });
         }
       } catch (e) {
-        console.error(e);
         if (isPlatformAdmin) {
           setStaff({ id: null, name: user?.full_name || user?.email, email: user?.email, is_admin: true, system_role: 'admin', team: null, no_staff_profile: true });
         }
@@ -88,19 +99,12 @@ export default function StaffProfile() {
   const handleCreateCrewProfile = async () => {
     setCreatingProfile(true);
     try {
-      // Fetch teams so the admin can pick one (or default to first)
       const teams = await base44.entities.Team.list();
       const firstTeam = teams[0];
-      const newStaff = await base44.entities.Staff.create({
-        name: user?.full_name || user?.email,
-        email: user?.email,
-        worker_type: 'direct_employee',
-        team_id: firstTeam?.id || '',
-        user_id: user?.id,
-        is_active: true,
-        system_role: 'admin',
+      await base44.entities.Staff.create({
+        name: user?.full_name || user?.email, email: user?.email, worker_type: 'direct_employee',
+        team_id: firstTeam?.id || '', user_id: user?.id, is_active: true, system_role: 'admin',
       });
-      // Reload the profile
       const res = await base44.functions.invoke('getMyStaffProfile');
       if (res.data) setStaff(res.data);
       toast({ title: 'Crew profile created', description: 'You can now track your own performance, incentives and timesheets.' });
@@ -127,7 +131,7 @@ export default function StaffProfile() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+      <div className="flex items-center justify-center min-h-screen page-bg-vibrant">
         <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
       </div>
     );
@@ -135,7 +139,7 @@ export default function StaffProfile() {
 
   if (!staff) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50 px-6">
+      <div className="flex items-center justify-center min-h-screen page-bg-vibrant px-6">
         <div className="text-center max-w-sm">
           <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
             <HardHat className="w-7 h-7 text-slate-400" />
@@ -150,6 +154,7 @@ export default function StaffProfile() {
   const role = resolveRole(staff, staff.is_admin);
   const roleLabel = staff.permission_group?.name || (role ? role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : null);
   const canAccessAdmin = isOfficeStaff(staff, staff.is_admin);
+  const noProfile = !staff.id;
 
   return (
     <FieldPageShell
@@ -166,65 +171,72 @@ export default function StaffProfile() {
     >
       <DivisionIdentityBar />
       <RedAlertBanner />
-      <div className="max-w-4xl mx-auto px-4 pt-3">
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-          {canAccessAdmin && (
-            <button onClick={() => navigate('/admin')} type="button"
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Admin</span>
-            </button>
-          )}
-          <button onClick={() => setShowAbsenceForm(true)} type="button"
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
-            <CalendarPlus className="w-4 h-4" />
-            <span>Time Off</span>
-          </button>
-          {reporters.length > 0 && (
-            <button onClick={() => setShowApprovals(true)} type="button"
-              className="relative flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
-              <ClipboardCheck className="w-4 h-4" />
-              <span>Approvals</span>
-              {pendingCount > 0 && (
-                <span className="min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center">{pendingCount}</span>
+
+      {/* ── Vibrant Hero ── */}
+      <div className="relative overflow-hidden">
+        <div className="hero-gradient relative px-4 md:px-6 pt-5 pb-6 text-white shadow-lg">
+          <div className="absolute -top-12 -right-10 w-44 h-44 rounded-full bg-yellow-300/10 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-16 -left-10 w-44 h-44 rounded-full bg-emerald-300/10 blur-3xl pointer-events-none" />
+          <div className="relative max-w-4xl mx-auto">
+            <div className="flex items-center gap-4">
+              <ProfileAvatar name={staff.name} avatarUrl={staff.avatar_url} size={64} />
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight leading-tight truncate">{staff.name}</h1>
+                <p className="text-emerald-100 text-sm font-medium truncate mt-0.5">
+                  {roleLabel || staff.team?.name || 'Crew Member'}
+                  {staff.team?.name ? ` · ${staff.team.name}` : ''}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick actions */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mt-4 -mx-1 px-1">
+              {canAccessAdmin && (
+                <button onClick={() => navigate('/admin')} type="button"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 ring-1 ring-white/20 text-white text-sm font-semibold active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0 backdrop-blur-sm hover:bg-white/25">
+                  <LayoutDashboard className="w-4 h-4" /> Admin
+                </button>
               )}
-            </button>
-          )}
-          <button onClick={openChat} type="button"
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
-            <Sparkles className="w-4 h-4" />
-            <span>Assistant</span>
-          </button>
+              <button onClick={() => setShowAbsenceForm(true)} type="button"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 ring-1 ring-white/20 text-white text-sm font-semibold active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0 backdrop-blur-sm hover:bg-white/25">
+                <CalendarPlus className="w-4 h-4" /> Time Off
+              </button>
+              {reporters.length > 0 && (
+                <button onClick={() => setShowApprovals(true)} type="button"
+                  className="relative flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 ring-1 ring-white/20 text-white text-sm font-semibold active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0 backdrop-blur-sm hover:bg-white/25">
+                  <ClipboardCheck className="w-4 h-4" /> Approvals
+                  {pendingCount > 0 && <span className="min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center">{pendingCount}</span>}
+                </button>
+              )}
+              <button onClick={openChat} type="button"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 ring-1 ring-white/20 text-white text-sm font-semibold active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0 backdrop-blur-sm hover:bg-white/25">
+                <Sparkles className="w-4 h-4" /> Assistant
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 md:px-6 pt-5 md:pt-8" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
-        {/* Quick Stats — always visible */}
-        <ProfileStats staffId={staff.id} jobType={staff.team?.job_type} />
+      {/* ── Stats + Tabs + Content ── */}
+      <div className="max-w-4xl mx-auto px-4 md:px-6" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
+        {/* Quick Stats */}
+        <div className="-mt-4 relative z-10">
+          <ProfileStats staffId={staff.id} jobType={staff.team?.job_type} />
+        </div>
 
-        {/* Tab Bar — horizontal scroll on mobile, grid on desktop */}
-        <div className="sticky top-0 z-20 -mx-4 md:-mx-6 px-4 md:px-6 pt-3 pb-2 bg-slate-50/95 backdrop-blur-md mt-5">
-          <div className="flex md:grid md:grid-cols-4 gap-1.5 sm:gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 md:pb-0">
-            {[
-              { key: 'performance', label: 'Performance', icon: TrendingUp },
-              { key: 'incentives', label: 'Incentives', icon: Trophy },
-              { key: 'timesheets', label: 'Timesheets', icon: ClipboardList },
-              { key: 'bookings', label: 'Bookings', icon: Wrench },
-              { key: 'training', label: 'Training', icon: GraduationCap },
-              { key: 'wallet', label: 'Wallet', icon: IdCard },
-              { key: 'documents', label: 'Documents', icon: FileText },
-              { key: 'crew', label: 'My Crew', icon: Users },
-            ].map(tab => {
+        {/* Tab Bar — glass, sticky */}
+        <div className="sticky top-16 z-20 -mx-4 md:-mx-6 px-4 md:px-6 pt-3 pb-2 mt-5 bg-transparent">
+          <div className="flex md:grid md:grid-cols-4 gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 md:pb-0">
+            {TABS.map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.key;
               const disabled = tab.key === 'crew' && !staff.team_id;
               return (
                 <button key={tab.key} onClick={() => !disabled && setActiveTab(tab.key)} type="button" disabled={disabled}
                   className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition touch-manipulation whitespace-nowrap flex-shrink-0 ${
-                    isActive ? 'bg-[#2E5A1A] text-white shadow-sm' :
-                    disabled ? 'bg-slate-100 text-slate-300' :
-                    'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+                    isActive ? 'command-gradient text-white shadow-md' :
+                    disabled ? 'bg-slate-100/60 text-slate-300' :
+                    'bg-white/70 backdrop-blur-sm text-slate-600 ring-1 ring-slate-200/70 hover:bg-white'
                   }`}>
                   <Icon className="w-4 h-4 flex-shrink-0" />
                   <span className="leading-tight">{tab.label}</span>
@@ -234,7 +246,7 @@ export default function StaffProfile() {
           </div>
         </div>
 
-        {/* Tab Content */}
+        {/* Tab Content — sits directly on the page background, no white wrapper */}
         <div className="mt-4">
           {activeTab === 'performance' && (staff.id
             ? <div className="space-y-5">
@@ -245,18 +257,21 @@ export default function StaffProfile() {
           {activeTab === 'incentives' && (staff.id
             ? <IncentiveDashboard staffId={staff.id} staffName={staff.name} teamId={staff.team_id} />
             : <NoCrewProfileState tab="incentives" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
+          {activeTab === 'rewards' && (staff.id
+            ? <RewardsCatalogue staffId={staff.id} staffName={staff.name} />
+            : <NoCrewProfileState tab="rewards" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
           {activeTab === 'timesheets' && (staff.id
             ? <TimesheetHistory staffId={staff.id} />
             : <NoCrewProfileState tab="timesheets" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
           {activeTab === 'bookings' && (staff.id ? (
             <div className="space-y-5">
               {upcomingAbsences.length > 0 && (
-                <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">
-                  <div className="flex items-center gap-2.5 mb-4">
+                <div className="insight-card rounded-2xl p-4 md:p-5">
+                  <div className="flex items-center gap-2.5 mb-3">
                     <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
                       <Clock className="w-4 h-4 text-amber-600" />
                     </div>
-                    <h2 className="text-lg font-bold text-slate-900">Upcoming Time Off</h2>
+                    <h2 className="text-sm font-extrabold text-slate-900">Upcoming Time Off</h2>
                   </div>
                   <div className="space-y-2">
                     {upcomingAbsences.map(a => (
@@ -275,26 +290,23 @@ export default function StaffProfile() {
                   </div>
                 </div>
               )}
-              <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">
-                <div className="flex items-center gap-2.5 mb-4">
+              <div className="insight-card rounded-2xl p-4 md:p-5">
+                <div className="flex items-center gap-2.5 mb-3">
                   <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
                     <Wrench className="w-4 h-4 text-amber-600" />
                   </div>
-                  <h2 className="text-lg font-bold text-slate-900">Bookings History</h2>
+                  <h2 className="text-sm font-extrabold text-slate-900">Bookings History</h2>
                 </div>
                 <StaffBookings staffId={staff.id} />
               </div>
             </div>
           ) : <NoCrewProfileState tab="bookings" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
           {activeTab === 'training' && (staff.id
-            ? <TrainingHistory staffId={staff.id} staffName={staff.name} />
+            ? <TrainingTab staffId={staff.id} staffName={staff.name} teamId={staff.team_id} canManageTeam={canAccessAdmin} />
             : <NoCrewProfileState tab="training" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
           {activeTab === 'wallet' && (staff.id
             ? <ComplianceWallet staffId={staff.id} staffName={staff.name} />
             : <NoCrewProfileState tab="wallet" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
-          {activeTab === 'documents' && (staff.id
-            ? <StaffDocuments staffId={staff.id} staffName={staff.name} />
-            : <NoCrewProfileState tab="documents" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
           {activeTab === 'crew' && (staff.team_id
             ? <TeamMiniFeed teamId={staff.team_id} currentStaffId={staff.id} />
             : <NoCrewProfileState tab="crew" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
