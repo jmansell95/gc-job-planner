@@ -422,6 +422,19 @@ function logSignature(log: any): string {
   ].join('|');
 }
 
+// Logs each incoming KeyLogBook webhook request (parsed AGS group summary +
+// matched job reference) so admins can confirm the correct data is pulling to
+// the correct job ref. Retains only the 10 most recent records.
+async function logWebhookRequest(base44: any, entry: any) {
+  try {
+    await base44.asServiceRole.entities.KeyLogBookWebhookLog.create(entry);
+    const all = await base44.asServiceRole.entities.KeyLogBookWebhookLog.list('-created_date', 50);
+    if (all.length > 10) {
+      await base44.asServiceRole.entities.KeyLogBookWebhookLog.deleteMany({ id: { $in: all.slice(10).map((r: any) => r.id) } });
+    }
+  } catch (e) { /* best-effort logging — never block the import */ }
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -571,6 +584,13 @@ Deno.serve(async (req) => {
         } catch (e) { /* best-effort */ }
       }
 
+      await logWebhookRequest(base44, {
+        event_type: klbEventType, hole_id: klbHoleId, project_name: klbProjectName, project_number: klbProjectNumber,
+        group_summary: [], matched_job_id: delJob?.id || '', matched_job_name: delJob?.name || '',
+        matched_job_reference: delJob?.job_reference || '', created_job: false,
+        outcome: 'deleted', log_count: deletedLogs,
+        summary: `Hole ${klbHoleId} deleted — removed ${deletedLogs} log entries${delJob ? ` from ${delJob.name}` : ''}.`,
+      });
       return Response.json({
         status: 'success', event: 'hole_deleted', hole_id: klbHoleId,
         job_id: delJob?.id || null, job_name: delJob?.name || null, deleted_logs: deletedLogs,
@@ -613,6 +633,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'An AGS file is required.' }, { status: 400 });
     }
     const groups = parseAGS(text);
+    const groupSummary = Object.entries(groups).map(([name, g]) => ({ name, row_count: g.rows.length }));
 
     // Resolve the target job
     let createdJob = false;
@@ -1216,6 +1237,15 @@ Deno.serve(async (req) => {
 
     if (logs.length === 0) {
       const found = Object.keys(groups).sort().join(', ');
+      await logWebhookRequest(base44, {
+        event_type: isKlbWebhook ? klbEventType : (isExternalPush ? 'scheduled_push' : 'manual_upload'),
+        hole_id: isKlbWebhook ? klbHoleId : '', project_name: isKlbWebhook ? klbProjectName : '', project_number: isKlbWebhook ? klbProjectNumber : '',
+        group_summary: groupSummary, matched_job_id: job.id, matched_job_name: job.name,
+        matched_job_reference: job.job_reference || '', created_job: createdJob,
+        outcome: 'no_data', log_count: 0,
+        summary: `No LOCA/GEOL/CORE/SAMP/SPT/TREM/WSTG records found. Groups: ${found || '(none)'}.`,
+        error: 'No data groups found in AGS file.',
+      });
       return Response.json({
         error: `No LOCA, GEOL, CORE, SAMP, SPT/ISPT, TREM or WSTG records were found in this AGS file. Groups found: ${found || '(none)'}.`
       }, { status: 422 });
@@ -1294,6 +1324,14 @@ Deno.serve(async (req) => {
       } catch (e) { /* best-effort status update */ }
     }
 
+    await logWebhookRequest(base44, {
+      event_type: isKlbWebhook ? klbEventType : (isExternalPush ? 'scheduled_push' : 'manual_upload'),
+      hole_id: isKlbWebhook ? klbHoleId : '', project_name: isKlbWebhook ? klbProjectName : '', project_number: isKlbWebhook ? klbProjectNumber : '',
+      group_summary: groupSummary, matched_job_id: job.id, matched_job_name: job.name,
+      matched_job_reference: job.job_reference || '', created_job: createdJob,
+      outcome: 'success', log_count: inserted,
+      summary: `Imported ${inserted} log entries into ${job.name}.`,
+    });
     return Response.json({
       status: 'success', job_id: job.id, job_name: job.name,
       job_reference: job.job_reference, created_job: createdJob,

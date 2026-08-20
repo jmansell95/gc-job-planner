@@ -1,0 +1,109 @@
+{
+  "name": "KeyLogBookWebhookLog",
+  "type": "object",
+  "properties": {
+    "event_type": {
+      "type": "string",
+      "description": "Webhook event type from KeyLogBook \u2014 'hole_created', 'hole_updated', 'hole_deleted' for event-based webhooks, 'scheduled_push' for legacy timed pushes, or 'manual_upload' for files uploaded via the settings UI."
+    },
+    "hole_id": {
+      "type": "string",
+      "description": "Borehole / hole ID from the webhook payload (KLB contextual field). Blank for scheduled pushes and manual uploads."
+    },
+    "project_name": {
+      "type": "string",
+      "description": "Project name from the KLB webhook payload (denormalised for display)."
+    },
+    "project_number": {
+      "type": "string",
+      "description": "Project number / reference from the KLB webhook payload. Used to match the incoming data to the correct job."
+    },
+    "group_summary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "AGS group name (e.g. LOCA, GEOL, CORE, SAMP, SPT, TREM, WSTG, PROJ)."
+          },
+          "row_count": {
+            "type": "number",
+            "description": "Number of data rows parsed from this AGS group."
+          }
+        },
+        "required": [
+          "name",
+          "row_count"
+        ]
+      },
+      "default": [],
+      "description": "Parsed AGS group summary \u2014 one entry per group found in the file with its row count. Lets admins confirm the correct data groups were pulled without storing the full raw file."
+    },
+    "matched_job_id": {
+      "type": "string",
+      "description": "ID of the Job this webhook was matched to (existing match or auto-created). Blank when no job could be resolved."
+    },
+    "matched_job_name": {
+      "type": "string",
+      "description": "Name of the matched (or auto-created) job, denormalised for display in the viewer."
+    },
+    "matched_job_reference": {
+      "type": "string",
+      "description": "Job reference of the matched (or auto-created) job. This is the key field admins check to confirm data is pulling to the correct job ref. Blank when no match and no auto-create."
+    },
+    "created_job": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when no existing job matched and a new job was auto-created from the AGS file's PROJ/LOCA metadata."
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "success",
+        "no_data",
+        "deleted",
+        "error"
+      ],
+      "description": "Processing outcome. 'success' = log entries imported, 'no_data' = file parsed but no LOCA/GEOL/etc records found, 'deleted' = hole_deleted event (logs removed), 'error' = processing failed."
+    },
+    "log_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of InvestigationLog entries inserted (success) or deleted (deleted event). 0 for no_data/error."
+    },
+    "summary": {
+      "type": "string",
+      "description": "Short human-readable summary of the result (e.g. 'Imported 42 log entries into Cambridge North')."
+    },
+    "error": {
+      "type": "string",
+      "description": "Error message when outcome is 'error' or 'no_data'. Blank on success."
+    }
+  },
+  "required": [
+    "outcome"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

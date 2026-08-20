@@ -9,6 +9,7 @@ import {
   ShieldCheck, FileCode, Webhook, Eye, EyeOff, RefreshCw,
 } from 'lucide-react';
 import KeyLogBookSyncTest from './KeyLogBookSyncTest';
+import KeyLogBookWebhookLogViewer from './KeyLogBookWebhookLogViewer';
 
 function generateToken(prefix = 'klb') {
   const chars = '0123456789abcdef';
@@ -277,6 +278,9 @@ export default function AGSAutoSyncSection() {
         </div>
         <KeyLogBookSyncTest config={config} />
       </div>
+
+      {/* Recent webhook requests */}
+      <KeyLogBookWebhookLogViewer />
 
       {/* Save button */}
       <button onClick={handleSave} disabled={saving || isLoading}
