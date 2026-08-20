@@ -277,21 +277,34 @@ Deno.serve(async (req) => {
     }
 
     const genericLogs = Array.isArray(body.logs) ? body.logs : [];
+    // Log types that represent driller remarks/diary text rather than technical
+    // borehole data. Routed to the Site Logs tab (keylogbook_remarks, pending
+    // review) so REM/DREM/TREM remark entries show up for manager approval.
+    const REMARK_LOG_TYPES = new Set(['rem', 'drem', 'trem', 'remark', 'remarks', 'remark_log', 'diary', 'daily', 'driller_remark', 'note', 'notes']);
     for (const gl of genericLogs) {
+      const glType = str(gl.log_type).toLowerCase();
+      const isRemarkLog = REMARK_LOG_TYPES.has(glType) || REMARK_LOG_TYPES.has(str(gl.group || gl.source_group).toLowerCase());
+      const desc = str(gl.description || gl.remarks || gl.notes) || (isRemarkLog ? 'Driller remark' : 'log entry');
       logs.push({
         job_id: job.id,
-        staff_id: null,
+        staff_id: isRemarkLog ? (leadDrillerId || null) : null,
+        staff_name: isRemarkLog ? (leadDrillerName || '') : '',
         date: str(gl.date) || workDate,
-        log_type: str(gl.log_type) || 'borehole_progress',
+        log_type: isRemarkLog ? 'other' : (str(gl.log_type) || 'borehole_progress'),
         borehole_ref: str(gl.borehole_ref || gl.reference) || null,
         depth_from: num(gl.depth_from),
         depth_to: num(gl.depth_to),
-        description: `Imported from KeyLogBook — ${str(gl.description || gl.remarks || gl.notes) || 'log entry'}`,
-        source: 'ags_import',
+        start_time: str(gl.start_time) || undefined,
+        end_time: str(gl.end_time) || undefined,
+        duration_minutes: num(gl.duration_minutes) || undefined,
+        description: isRemarkLog ? desc : `Imported from KeyLogBook — ${desc}`,
+        source: isRemarkLog ? 'keylogbook_remarks' : 'ags_import',
+        logged_by_role: isRemarkLog ? 'driller' : undefined,
         completed_by_type: 'internal_staff',
-        completed_by_name: 'KeyLogBook Webhook',
-        manager_review_status: 'approved',
+        completed_by_name: isRemarkLog ? (leadDrillerName || 'KeyLogBook Webhook') : 'KeyLogBook Webhook',
+        manager_review_status: isRemarkLog ? 'pending' : 'approved',
         chargeable: false,
+        billing_status: 'no_charge',
       });
     }
 
