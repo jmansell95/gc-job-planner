@@ -3,9 +3,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import {
-  ScanLine, X, Package, Truck, Trash2, CheckCircle2,
+  ScanLine, X, Package, Truck, CheckCircle2,
   AlertCircle, Lock, Unlock, ArrowLeft, Layers, Store, PackageOpen,
-  Search, Wrench, ChevronRight, ShieldCheck, Undo2,
+  Search, Wrench, ChevronRight, ShieldCheck, Undo2, Maximize2,
 } from 'lucide-react';
 import BarcodeScanner from '@/components/staff/BarcodeScanner';
 import UnifiedScanBasket from '@/components/assetcommand/UnifiedScanBasket';
@@ -15,6 +15,9 @@ import AssetCommandDrawer from '@/components/assetcommand/AssetCommandDrawer';
 import DriveAwayModal from '@/components/assetcommand/DriveAwayModal';
 import ReportFaultModal from '@/components/assetcommand/ReportFaultModal';
 import BookToVehicleModal from '@/components/assetcommand/BookToVehicleModal';
+import FullScreenScanner from '@/components/assetcommand/FullScreenScanner';
+import RecentScansStrip from '@/components/assetcommand/RecentScansStrip';
+import OfflineScanQueueBanner from '@/components/assetcommand/OfflineScanQueueBanner';
 import FieldHubTabs from '@/components/fieldhub/FieldHubTabs';
 import MyGearTab from '@/components/fieldhub/MyGearTab';
 import MyTodayTab from '@/components/fieldhub/MyTodayTab';
@@ -27,22 +30,37 @@ import { useToast } from '@/components/ui/use-toast';
 
 const TYPE_ICONS = { rig: Wrench, machinery: Wrench, trailer: Package, vehicle: Truck, lifting: Package, portable_appliance: Wrench };
 
+const RECENT_KEY = 'gc-scanner-recent';
+const OFFLINE_KEY = 'gc-scanner-offline';
+
+function loadJSON(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key) || 'null') || fallback; } catch { return fallback; }
+}
+function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+
+const COMPLIANCE_COLOR = {
+  compliant: 'emerald',
+  expiring: 'amber',
+  expired: 'red',
+  unknown: 'slate',
+};
+
 /**
- * Asset Scanner — full-screen, kiosk-style page optimised for tablets.
- * Unified basket handles both Sign Out (to job) and Return (to yard).
- * Goods-In mode uses a delivery-note-driven flow for consumables.
+ * Asset Scanner — Field Pro Clean redesign.
+ * Full-screen scanner overlay, recent-scan history, offline scan queue,
+ * and a bright scan-first layout with compliance ring badges.
  */
 export default function AssetScannerPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [basket, setBasket] = useState([]);
-  const [direction, setDirection] = useState('signout'); // 'signout' | 'return'
+  const [direction, setDirection] = useState('signout');
   const [lastScan, setLastScan] = useState('');
   const [scanError, setScanError] = useState('');
   const [showBook, setShowBook] = useState(false);
   const [kioskLocked, setKioskLocked] = useState(isKioskScannerMode());
-  const [mode, setMode] = useState('assets'); // 'assets' | 'goods-in' | 'site-collect'
+  const [mode, setMode] = useState('assets');
   const [scanDelivery, setScanDelivery] = useState(null);
   const [staffProfile, setStaffProfile] = useState(null);
   const [scanResult, setScanResult] = useState(null);
@@ -57,6 +75,10 @@ export default function AssetScannerPage() {
   const [committing, setCommitting] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState('');
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
+  const [showFullScreen, setShowFullScreen] = useState(false);
+  const [recent, setRecent] = useState(() => loadJSON(RECENT_KEY, []));
+  const [offlineScans, setOfflineScans] = useState(() => loadJSON(OFFLINE_KEY, []));
+  const [retrying, setRetrying] = useState(false);
   const searchRef = useRef(null);
 
   useEffect(() => {
@@ -86,7 +108,6 @@ export default function AssetScannerPage() {
     enabled: !!staffProfile?.id,
   });
 
-  // Jobs the staff member is working on today (for sign-out)
   const todaysJobs = useMemo(() => {
     const activeJobIds = myAssignments
       .filter(a => (a.status || 'assigned') !== 'completed' && a.job_id)
@@ -95,7 +116,6 @@ export default function AssetScannerPage() {
     return uniqueIds.map(id => jobs.find(j => j.id === id)).filter(Boolean);
   }, [myAssignments, jobs]);
 
-  // Jobs with outstanding asset assignments (for return)
   const { data: outstandingAssignments = [] } = useQuery({
     queryKey: ['outstanding-asset-assignments', staffProfile?.id],
     queryFn: () => base44.entities.JobAssetAssignment.filter({ status: { $in: ['assigned', 'on_site'] } }),
@@ -109,7 +129,6 @@ export default function AssetScannerPage() {
 
   const availableJobs = direction === 'signout' ? todaysJobs : returnJobs;
 
-  // Real-time search
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q || q.length < 2) return [];
@@ -134,6 +153,15 @@ export default function AssetScannerPage() {
   }, [assets]);
 
   const [resolving, setResolving] = useState(false);
+
+  const pushRecent = useCallback((asset) => {
+    setRecent(prev => {
+      const filtered = prev.filter(r => r.id !== asset.id);
+      const next = [{ id: asset.id, name: asset.name, serial_number: asset.serial_number, compliance_status: asset.compliance_status }, ...filtered].slice(0, 10);
+      saveJSON(RECENT_KEY, next);
+      return next;
+    });
+  }, []);
 
   const handleScan = useCallback(async (val) => {
     const q = val.trim();
@@ -169,6 +197,7 @@ export default function AssetScannerPage() {
       setPendingPanda(null);
       setSearchQuery('');
       setShowSearch(false);
+      pushRecent(found);
       queryClient.invalidateQueries({ queryKey: ['site-assets'] });
       setBasket((prev) => {
         if (prev.find((a) => a.id === found.id)) {
@@ -181,13 +210,55 @@ export default function AssetScannerPage() {
         toast({ title: 'New from Asset Panda', description: `${found.name} added to local inventory` });
       }
     } catch (e) {
+      // Network/resolve failure — queue offline for retry
       playError();
+      setOfflineScans(prev => {
+        const next = [...prev, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, value: q, timestamp: new Date().toISOString() }];
+        saveJSON(OFFLINE_KEY, next);
+        return next;
+      });
       setScanError(val);
       setLastScan('');
       setScanResult(null);
     }
     setResolving(false);
-  }, [toast, queryClient]);
+  }, [toast, queryClient, pushRecent]);
+
+  // Auto-retry offline scans when connectivity returns
+  useEffect(() => {
+    const onOnline = () => {
+      if (offlineScans.length === 0) return;
+      setRetrying(true);
+      (async () => {
+        const pending = [...offlineScans];
+        for (const item of pending) {
+          await handleScan(item.value);
+        }
+        setOfflineScans([]);
+        saveJSON(OFFLINE_KEY, []);
+        setRetrying(false);
+      })();
+    };
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, [offlineScans, handleScan]);
+
+  const retryOffline = async () => {
+    if (offlineScans.length === 0) return;
+    setRetrying(true);
+    const pending = [...offlineScans];
+    for (const item of pending) {
+      await handleScan(item.value);
+    }
+    setOfflineScans([]);
+    saveJSON(OFFLINE_KEY, []);
+    setRetrying(false);
+  };
+
+  const dismissOffline = () => {
+    setOfflineScans([]);
+    saveJSON(OFFLINE_KEY, []);
+  };
 
   const handleSelectResult = (asset) => {
     playSuccess();
@@ -196,6 +267,7 @@ export default function AssetScannerPage() {
     setScanResult(asset);
     setSearchQuery('');
     setShowSearch(false);
+    pushRecent(asset);
     setBasket((prev) => {
       if (prev.find((a) => a.id === asset.id)) {
         toast({ title: 'Already in basket', description: asset.name });
@@ -236,6 +308,7 @@ export default function AssetScannerPage() {
         setScanResult(created);
         setLastScan(created.name);
         setPendingPanda(null);
+        pushRecent(created);
         toast({ title: 'Linked to Asset Panda', description: `${created.name} added to your inventory` });
       } else {
         toast({ title: 'Could not link', description: res.data?.error || 'Unknown error', variant: 'destructive' });
@@ -246,7 +319,6 @@ export default function AssetScannerPage() {
     setConfirming(false);
   };
 
-  // Unified commit — handles both sign-out and return
   const handleCommit = async () => {
     if (!selectedJobId || basket.length === 0) return;
     const job = availableJobs.find(j => j.id === selectedJobId);
@@ -274,7 +346,6 @@ export default function AssetScannerPage() {
         playConfirm();
         toast({ title: 'Signed Out', description: `${data.assignments_created || assetIds.length} item(s) assigned to ${jobName}.` });
       } else {
-        // Return — reuse the existing processAssetReturn function
         const res = await base44.functions.invoke('processAssetReturn', {
           job_id: selectedJobId,
           job_name: jobName,
@@ -315,7 +386,7 @@ export default function AssetScannerPage() {
   if (mode === 'site-collect') {
     return (
       <>
-        <div className="fixed inset-0 bg-slate-50 flex flex-col">
+        <div className="fixed inset-0 bg-[#F5FBF6] flex flex-col">
           <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between flex-shrink-0 safe-area-top">
             <div className="flex items-center gap-2.5">
               <button onClick={() => setMode('assets')} className="p-2.5 text-slate-500 hover:bg-slate-100 rounded-xl transition active:scale-95">
@@ -344,19 +415,20 @@ export default function AssetScannerPage() {
   }
 
   const isSignOut = direction === 'signout';
+  const resultColor = COMPLIANCE_COLOR[scanResult?.compliance_status] || 'slate';
 
   return (
-    <div className="fixed inset-0 page-bg-vibrant flex flex-col">
+    <div className="fixed inset-0 bg-[#F5FBF6] flex flex-col">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-lg border-b border-slate-200 px-4 py-3 flex items-center justify-between flex-shrink-0 safe-area-top">
+      <header className="bg-white/90 backdrop-blur-lg border-b border-slate-200 px-4 py-3 flex items-center justify-between flex-shrink-0 safe-area-top">
         <div className="flex items-center gap-2.5 min-w-0">
           {!kioskLocked && (
             <button onClick={() => navigate(isHubAdmin ? '/admin' : '/staff-schedule')} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition flex-shrink-0 active:scale-95 touch-manipulation">
               <ArrowLeft className="w-5 h-5 text-slate-600" />
             </button>
           )}
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm flex-shrink-0">
-            <ScanLine className="w-4 h-4 text-white" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm flex-shrink-0">
+            <ScanLine className="w-4.5 h-4.5 text-white" />
           </div>
           <div className="min-w-0">
             <h1 className="text-base font-bold text-slate-900 leading-tight">Asset Scanner</h1>
@@ -377,7 +449,7 @@ export default function AssetScannerPage() {
       </header>
 
       {/* Mode toggles — segmented control */}
-      <div className="bg-white/80 backdrop-blur-lg border-b border-slate-200 px-4 py-2.5 flex gap-2 flex-shrink-0 overflow-x-auto no-scrollbar">
+      <div className="bg-white/90 backdrop-blur-lg border-b border-slate-200 px-4 py-2.5 flex gap-2 flex-shrink-0 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setMode('assets')}
           className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition active:scale-95 ${mode === 'assets' ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200'}`}
@@ -428,6 +500,21 @@ export default function AssetScannerPage() {
 
           {hubTab === 'scan' && (
             <>
+              {/* Offline queue banner */}
+              <OfflineScanQueueBanner
+                count={offlineScans.length}
+                retrying={retrying}
+                onRetry={retryOffline}
+                onDismiss={dismissOffline}
+              />
+
+              {/* Recent scans strip */}
+              <RecentScansStrip
+                recent={recent}
+                onSelect={handleSelectResult}
+                onClear={() => { setRecent([]); saveJSON(RECENT_KEY, []); }}
+              />
+
               {/* Quick stats */}
               <div className="grid grid-cols-3 gap-2.5">
                 <div className="bg-white rounded-2xl border border-slate-200 p-3 flex items-center gap-2.5">
@@ -459,10 +546,26 @@ export default function AssetScannerPage() {
                 </div>
               </div>
 
+              {/* Hero scan card — tap to open full-screen scanner */}
+              <div className="relative rounded-3xl overflow-hidden border border-slate-200 insight-card">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-white to-[#F5FBF6]" />
+                <div className="relative p-6 flex flex-col items-center text-center">
+                  <button
+                    onClick={() => setShowFullScreen(true)}
+                    className="relative w-24 h-24 rounded-full bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-lg active:scale-95 transition group"
+                  >
+                    <span className="absolute -inset-2 rounded-full bg-emerald-400/30 blur-xl animate-pulse group-hover:bg-emerald-400/40" />
+                    <Maximize2 className="w-9 h-9 text-white relative z-10" />
+                  </button>
+                  <p className="mt-4 text-base font-bold text-slate-900">Tap to Scan</p>
+                  <p className="text-sm text-slate-500 mt-0.5">Opens full-screen camera viewfinder</p>
+                </div>
+              </div>
+
               {/* Scanner + My Gear split (tablet) / stacked (mobile) */}
               <div className="md:grid md:grid-cols-2 md:gap-4">
                 <div className="space-y-4">
-                  {/* Scanner card with live search */}
+                  {/* Manual scanner card with live search */}
                   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 relative">
                     <BarcodeScanner
                       onScan={handleScan}
@@ -471,7 +574,7 @@ export default function AssetScannerPage() {
                       autoFocus={false}
                       continuous
                     />
-                    {resolving && (
+                    {resolving && !showFullScreen && (
                       <div className="absolute inset-0 bg-white/70 backdrop-blur-sm rounded-2xl flex items-center justify-center gap-2.5">
                         <div className="w-5 h-5 border-2 border-[#2E5A1A] border-t-transparent rounded-full animate-spin" />
                         <p className="text-sm font-medium text-[#2E5A1A]">Checking Asset Panda…</p>
@@ -562,7 +665,7 @@ export default function AssetScannerPage() {
                         <ScanLine className="w-10 h-10 text-emerald-300" />
                       </div>
                       <p className="text-slate-700 font-bold text-base">Ready to Scan</p>
-                      <p className="text-slate-400 text-sm mt-1">Point your camera at a QR code or barcode — items appear in the basket below.</p>
+                      <p className="text-slate-400 text-sm mt-1">Tap the scan button above or use manual entry — items appear in the basket below.</p>
                     </div>
                   )}
                 </div>
@@ -609,6 +712,18 @@ export default function AssetScannerPage() {
           vehicles={vehicles}
           selectedVehicleId={selectedVehicleId}
           onSelectVehicle={setSelectedVehicleId}
+        />
+      )}
+
+      {/* Full-screen scanner overlay */}
+      {showFullScreen && (
+        <FullScreenScanner
+          onScan={handleScan}
+          onClose={() => setShowFullScreen(false)}
+          resolving={resolving}
+          lastResult={scanResult}
+          lastError={scanError}
+          resultColor={resultColor}
         />
       )}
 
