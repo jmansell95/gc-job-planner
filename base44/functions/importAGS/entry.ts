@@ -702,100 +702,29 @@ Deno.serve(async (req) => {
       }
     }
     if (!job) {
-      // No existing job matched — auto-create one from the AGS file's PROJ / LOCA
-      // metadata so an upload is never blocked by a missing job. Every required
-      // field (name, location, dates) is populated from whatever the file carries,
-      // falling back to sensible defaults, and a matching client / project is
-      // linked when one exists so the new job slots straight into billing.
-      let newJobName = '';
-      let newJobRef = '';
-      let newLocation = '';
-      let clientId = '';
-      let projectId = '';
-      let startDate = '';
-      let endDate = '';
-
-      if (groups.PROJ && groups.PROJ.rows.length) {
-        const proj = buildRow(groups.PROJ, groups.PROJ.rows[0]);
-        newJobRef = pick(proj, 'PROJ_ID', 'PROJ_REF', 'PROJ_CODE', 'PROJECT_ID', 'PROJECT_NO', 'PROJECT_CODE', 'ID', 'REF');
-        newJobName = pick(proj, 'PROJ_NAME', 'PROJECT_NAME', 'PROJ_TITLE', 'NAME', 'TITLE', 'PROJ_DESC', 'DESC');
-        newLocation = pick(proj, 'PROJ_LOC', 'PROJ_LOCATION', 'PROJ_ADDR', 'PROJ_ADDRESS', 'LOCATION', 'LOC', 'SITE', 'PROJ_SITE');
-        const clientRef = pick(proj, 'PROJ_CL_REF', 'PROJ_CLIENT', 'PROJ_CLIENT_REF', 'CLIENT', 'CLIENT_REF', 'CL_REF');
-        if (clientRef) {
-          try {
-            const clients = await base44.asServiceRole.entities.Client.list('-created_date', 500);
-            const lc = clientRef.toLowerCase();
-            const matched = clients.find((c: any) => c.name && c.name.toLowerCase() === lc)
-              || clients.find((c: any) => (c as any).reference && (c as any).reference.toLowerCase() === lc)
-              || clients.find((c: any) => c.name && c.name.toLowerCase().includes(lc));
-            if (matched) clientId = matched.id;
-          } catch (e) { /* leave blank */ }
-        }
-        // Link to a project (e.g. EWR) when the file's reference/name matches one
-        if (newJobRef || newJobName) {
-          try {
-            const projects = await base44.asServiceRole.entities.Project.list('-created_date', 200);
-            const cands = [newJobRef, newJobName].filter(Boolean).map((s) => s.toLowerCase());
-            for (const cand of cands) {
-              const matched = projects.find((p: any) => (p.reference || '').toLowerCase() === cand)
-                || projects.find((p: any) => (p.name || '').toLowerCase() === cand)
-                || projects.find((p: any) => (p.reference || '').toLowerCase().includes(cand))
-                || projects.find((p: any) => (p.name || '').toLowerCase().includes(cand));
-              if (matched) { projectId = matched.id; break; }
-            }
-          } catch (e) { /* leave blank */ }
-        }
-        const projStart = normaliseDate(pick(proj, 'PROJ_STAR', 'PROJ_DATE', 'PROJ_START', 'STAR', 'DATE', 'START'));
-        const projEnd = normaliseDate(pick(proj, 'PROJ_ENDD', 'PROJ_END', 'PROJ_FINISH', 'ENDD', 'END', 'FINISH'));
-        if (projStart) startDate = projStart;
-        if (projEnd) endDate = projEnd;
-      }
-
-      // Derive location + dates from the LOCA group when PROJ didn't supply them
-      if (groups.LOCA && groups.LOCA.rows.length) {
-        let earliest = '';
-        let latest = '';
-        let firstCoords = '';
-        for (const row of groups.LOCA.rows) {
-          const r = buildRow(groups.LOCA, row);
-          const s = normaliseDate(pick(r, 'LOCA_STAR', 'LOCA_START', 'STAR'));
-          const e = normaliseDate(pick(r, 'LOCA_ENDD', 'LOCA_END', 'ENDD'));
-          if (s && (!earliest || s < earliest)) earliest = s;
-          if (e && (!latest || e > latest)) latest = e;
-          if (!firstCoords) {
-            const x = pick(r, 'LOCA_NATE', 'LOCA_X', 'LOCA_EAST', 'NATE', 'EASTING', 'EAST', 'X');
-            const y = pick(r, 'LOCA_NATN', 'LOCA_Y', 'LOCA_NORTH', 'NATN', 'NORTHING', 'NORTH', 'Y');
-            if (x && y) firstCoords = `${x}, ${y}`;
-          }
-        }
-        if (!startDate && earliest) startDate = earliest;
-        if (!endDate && latest) endDate = latest;
-        if (!endDate && startDate) endDate = startDate;
-        if (!newLocation && firstCoords) newLocation = firstCoords;
-      }
-
-      if (!newJobName) newJobName = newJobRef || 'AGS Import';
-      const nowIso = new Date().toISOString().slice(0, 10);
-      if (!startDate) startDate = nowIso;
-      if (!endDate) endDate = startDate;
-
-      try {
-        const createPayload: any = {
-          name: newJobName,
-          location: newLocation || 'See AGS file',
-          start_date: startDate,
-          end_date: endDate,
-          status: 'in_progress',
-          notes: `Auto-created from KeyLogBook AGS import on ${nowIso}.`,
-        };
-        if (newJobRef) createPayload.job_reference = newJobRef;
-        if (clientId) createPayload.client_id = clientId;
-        if (projectId) createPayload.project_id = projectId;
-        job = await base44.asServiceRole.entities.Job.create(createPayload);
-        createdJob = true;
-      } catch (e) {
-        return Response.json({ error: `Could not match an existing job and failed to auto-create one: ${e.message}` }, { status: 500 });
-      }
+      // No existing job matched — do NOT auto-create one. If there's no job to
+      // attach the data to, nothing happens. Log the failed outcome and reject.
+      const refHint = isKlbWebhook
+        ? (klbProjectNumber || klbProjectName || klbHoleId || '')
+        : (groups.PROJ && groups.PROJ.rows.length
+            ? pick(buildRow(groups.PROJ, groups.PROJ.rows[0]), 'PROJ_ID', 'PROJ_REF', 'PROJ_NAME', 'PROJECT_NAME', 'ID', 'REF')
+            : '');
+      await logWebhookRequest(base44, {
+        event_type: isKlbWebhook ? klbEventType : (isExternalPush ? 'scheduled_push' : 'manual_upload'),
+        hole_id: isKlbWebhook ? klbHoleId : '',
+        project_name: isKlbWebhook ? klbProjectName : '',
+        project_number: isKlbWebhook ? klbProjectNumber : '',
+        group_summary: groupSummary,
+        matched_job_id: '', matched_job_name: '', matched_job_reference: '',
+        created_job: false,
+        outcome: 'error',
+        log_count: 0,
+        summary: `No matching job found for "${refHint || '—'}" — no data imported.`,
+        error: 'Could not match an existing job. No job was created.',
+      });
+      return Response.json({
+        error: 'Could not match an existing job. No job was created and no data was imported.',
+      }, { status: 422 });
     }
 
     // Resolve staff_id for the imported logs. When the caller couldn't be
