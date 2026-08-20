@@ -74,7 +74,11 @@ export default function AssetHub() {
 
   const { data: allAssets = [], isLoading } = useQuery({
     queryKey: ['site-assets'],
-    queryFn: () => base44.entities.SiteAsset.list('-created_date', 500),
+    queryFn: async () => {
+      // Load beyond the default 500-record cap so locally-created assets
+      // buried under a large Asset Panda sync resurface in the inventory.
+      return await base44.entities.SiteAsset.filter({}, '-created_date', 2000);
+    },
   });
 
   // Vehicles are managed in the dedicated Fleet Hub — exclude them from the Assets inventory
@@ -82,6 +86,9 @@ export default function AssetHub() {
 
   const rigs = useMemo(() => assets.filter(a => a.asset_type === 'rig'), [assets]);
   const equipment = useMemo(() => assets.filter(a => a.asset_type !== 'rig'), [assets]);
+
+  const pandaCount = useMemo(() => assets.filter(a => a.panda_asset_id).length, [assets]);
+  const localCount = useMemo(() => assets.filter(a => !a.panda_asset_id).length, [assets]);
 
   // Category counts
   const categoryCounts = useMemo(() => {
@@ -177,6 +184,8 @@ export default function AssetHub() {
       {assets.length > 0 && (
         <HubStatsBar tiles={[
           { icon: Boxes, label: 'Total Assets', value: assets.length, sublabel: 'Excl. vehicles', color: 'brand' },
+          { icon: Database, label: 'Panda Synced', value: pandaCount, sublabel: 'From Asset Panda', color: 'amber' },
+          { icon: CircleDot, label: 'Locally Created', value: localCount, sublabel: 'Manual entries', color: 'blue' },
           { icon: Cog, label: 'Rigs', value: categoryCounts.rig, sublabel: 'Drilling units', color: 'amber' },
           { icon: Anchor, label: 'Lifting', value: categoryCounts.lifting, sublabel: 'LOLER gear', color: 'blue' },
           { icon: Wrench, label: 'Machinery', value: categoryCounts.machinery, sublabel: 'Plant & equip', color: 'violet' },

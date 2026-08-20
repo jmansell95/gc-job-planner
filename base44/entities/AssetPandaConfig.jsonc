@@ -62,6 +62,11 @@
             "default": "auto",
             "description": "Hint for the asset_type of objects in this group. 'auto' = detect from the object's name/type fields. When set to a specific type, all objects in this group are classified as that type unless the object's own type field overrides it."
           },
+          "is_asset_group": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether this group contains physical assets/equipment to sync into the SiteAsset inventory. Set to false for Asset Panda reference-table groups (Operators, Customers, Locations, Asset Types, etc.) so they are not synced. When false, existing matched records are still updated in place (so previously-synced records get re-mapped with correct field data) but no NEW records are created \u2014 preventing operators/customers/locations from polluting the asset inventory. Auto-detected on first sync: groups whose names contain reference keywords (operator, customer, location, asset type, staff, etc.) default to false."
+          },
           "field_map_overrides": {
             "type": "array",
             "items": {
@@ -181,5 +186,27 @@
   },
   "required": [
     "key"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

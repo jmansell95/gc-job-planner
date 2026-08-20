@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useScopedEntity } from '@/hooks/useScopedEntity';
-import { Truck, Search, LayoutGrid, List, Filter, Clock, PlayCircle, CheckCircle2, AlertTriangle, ArrowRightLeft, Package, Store, Boxes } from 'lucide-react';
+import { Truck, Search, LayoutGrid, List, Filter, Clock, PlayCircle, CheckCircle2, AlertTriangle, ArrowRightLeft, Package, Store, Boxes, Navigation } from 'lucide-react';
 import { format, isToday, isFuture, isPast } from 'date-fns';
 import DeliveryBoard from '@/components/admin/DeliveryBoard';
 import DeliveryTable from '@/components/admin/DeliveryTable';
@@ -11,6 +11,8 @@ import BulkDeliveryReconciliation from '@/components/delivery/BulkDeliveryReconc
 import GoodsInPanel from '@/components/logistics/GoodsInPanel';
 import ConsumableInventoryManager from '@/components/settings/ConsumableInventoryManager';
 import DeliveryDetailDrawer from '@/components/logistics/DeliveryDetailDrawer';
+import DriverRunBoard from '@/components/admin/DriverRunBoard';
+import DriverDayPlan from '@/components/admin/DriverDayPlan';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import HubShell from '@/components/HubShell';
 import SubPills from '@/components/SubPills';
@@ -105,9 +107,14 @@ export default function AdminDeliveryHub() {
     >
       <SubPills active={sub} onChange={setSub} pills={
         group === 'operations'
-          ? [{ id: 'board', label: 'Delivery Board', icon: LayoutGrid }, { id: 'reconcile', label: 'Reconcile', icon: CheckCircle2 }]
+          ? [{ id: 'board', label: 'Delivery Board', icon: LayoutGrid }, { id: 'day-plan', label: 'Day Plan', icon: Clock }, { id: 'reconcile', label: 'Reconcile', icon: CheckCircle2 }]
           : [{ id: 'goods-in', label: 'Goods In', icon: Store }, { id: 'stock', label: 'Consumable Stock', icon: Boxes }]
       } />
+
+      {/* Driver Day-Plan tab — per-driver vertical timeline of today's stops */}
+      {sub === 'day-plan' && (
+        <DriverDayPlan deliveries={deliveries} jobs={jobs} drivers={staff} onSelectDelivery={setSelected} />
+      )}
 
       {/* Reconciliation tab — bulk proof-of-delivery approval */}
       {sub === 'reconcile' && (
@@ -145,6 +152,9 @@ export default function AdminDeliveryHub() {
             </button>
             <button onClick={() => setView('list')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition ${view === 'list' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500'}`}>
               <List className="w-4 h-4" /> List
+            </button>
+            <button onClick={() => setView('route')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition ${view === 'route' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500'}`}>
+              <Navigation className="w-4 h-4" /> Route
             </button>
           </div>
         </div>
@@ -191,6 +201,23 @@ export default function AdminDeliveryHub() {
         );
       })()}
 
+      {/* Overdue & at-risk alert strip */}
+      {(() => {
+        const overdue = filtered.filter(d => d.status === 'pending' && d.scheduled_date && new Date(d.scheduled_date + 'T23:59:59') < new Date());
+        const atRisk = filtered.filter(d => d.status === 'pending' && d.scheduled_date && new Date(d.scheduled_date + 'T23:59:59') >= new Date() && new Date(d.scheduled_date) < new Date(Date.now() + 24 * 60 * 60 * 1000));
+        if (overdue.length === 0 && atRisk.length === 0) return null;
+        return (
+          <div className={`rounded-xl border px-4 py-2.5 flex items-center gap-3 ${overdue.length > 0 ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200'}`}>
+            <AlertTriangle className={`w-4 h-4 flex-shrink-0 ${overdue.length > 0 ? 'text-rose-600' : 'text-amber-600'}`} />
+            <p className="text-sm text-slate-700">
+              {overdue.length > 0 && <span className="font-semibold text-rose-700">{overdue.length} overdue</span>}
+              {overdue.length > 0 && atRisk.length > 0 && <span className="text-slate-400"> · </span>}
+              {atRisk.length > 0 && <span className="font-semibold text-amber-700">{atRisk.length} at risk (next 24h)</span>}
+            </p>
+          </div>
+        );
+      })()}
+
       {/* Content */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -202,6 +229,8 @@ export default function AdminDeliveryHub() {
         </div>
       ) : view === 'board' ? (
         <DeliveryBoard deliveries={filtered} jobs={jobs} drivers={staff} onSelectDelivery={setSelected} />
+      ) : view === 'route' ? (
+        <DriverRunBoard deliveries={filtered} jobs={jobs} drivers={staff} onSelectDelivery={setSelected} />
       ) : (
         <DeliveryTable deliveries={filtered} jobs={jobs} drivers={staff} onSelectDelivery={setSelected} />
       )}

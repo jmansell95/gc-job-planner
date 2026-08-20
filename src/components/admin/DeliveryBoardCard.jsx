@@ -33,6 +33,7 @@ export default function DeliveryBoardCard({ delivery, job, driver, onClick }) {
 
   const itemLines = (delivery.items || '').split(/\n|,(?=\s)/).map(s => s.trim()).filter(Boolean);
   const isOverdue = delivery.status === 'pending' && delivery.scheduled_date && new Date(delivery.scheduled_date + 'T23:59:59') < new Date();
+  const isAtRisk = delivery.status === 'pending' && delivery.scheduled_date && !isOverdue && new Date(delivery.scheduled_date) < new Date(Date.now() + 24 * 60 * 60 * 1000);
 
   return (
     <motion.div
@@ -40,7 +41,7 @@ export default function DeliveryBoardCard({ delivery, job, driver, onClick }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
       onClick={() => onClick?.(delivery)}
-      className={`bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden cursor-pointer hover:shadow-md hover:border-slate-300 transition ${isOverdue ? 'ring-2 ring-amber-300' : ''}`}
+      className={`bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden cursor-pointer hover:shadow-md hover:border-slate-300 transition ${isOverdue ? 'ring-2 ring-rose-300' : isAtRisk ? 'ring-2 ring-amber-200' : ''}`}
     >
       <div className={`h-1 ${type.accent}`} />
       <div className="p-3 space-y-2">
@@ -59,8 +60,13 @@ export default function DeliveryBoardCard({ delivery, job, driver, onClick }) {
               </span>
             )}
             {isOverdue && (
-              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
                 <AlertTriangle className="w-2.5 h-2.5" />overdue
+              </span>
+            )}
+            {isAtRisk && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                <Clock className="w-2.5 h-2.5" />at risk
               </span>
             )}
           </div>

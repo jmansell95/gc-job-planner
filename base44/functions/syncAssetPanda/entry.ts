@@ -44,13 +44,23 @@ Deno.serve(async (req) => {
       if (allGroups.length === 0) {
         return Response.json({ skipped: true, reason: 'No groups found in your Asset Panda account.' });
       }
+      // Reference-table groups (Operators, Customers, Locations, Asset Types,
+      // etc.) are not physical equipment — default them to is_asset_group=false
+      // so they don't pollute the inventory. Admins can override per-group.
+      const REFERENCE_KEYWORDS = ['operator', 'line manager', 'manager', 'customer', 'location', 'asset type', 'service location', 'staff', 'employee', 'supplier', 'vendor', 'contact', 'people', 'personnel', 'team', 'user'];
+      const isReferenceGroup = (label: string) => {
+        const l = String(label || '').toLowerCase();
+        return REFERENCE_KEYWORDS.some((k) => l.includes(k));
+      };
       groups = allGroups.map((g) => {
         const cfg = configuredByGroupId[g.id] || configuredByGroupId[g.key];
+        const refByDefault = isReferenceGroup(g.name);
         return {
           group_id: g.id,
           label: cfg?.label || g.name,
           asset_type_hint: cfg?.asset_type_hint || 'auto',
           field_map_overrides: Array.isArray(cfg?.field_map_overrides) ? cfg.field_map_overrides : [],
+          is_asset_group: cfg?.is_asset_group != null ? cfg.is_asset_group : !refByDefault,
         };
       });
       autoDiscovered = true;
@@ -62,6 +72,7 @@ Deno.serve(async (req) => {
           label: g.label || g.group_id,
           asset_type_hint: g.asset_type_hint || 'auto',
           field_map_overrides: Array.isArray(g.field_map_overrides) ? g.field_map_overrides : [],
+          is_asset_group: g.is_asset_group !== false,
         }));
       } else if (config.group_id) {
         groups = [{ group_id: String(config.group_id), label: 'Asset Panda', asset_type_hint: 'auto', field_map_overrides: [] }];
@@ -149,6 +160,7 @@ Deno.serve(async (req) => {
       const groupId = group.group_id;
       const groupLabel = group.label;
       const typeHint = group.asset_type_hint;
+      const isAssetGroup = group.is_asset_group !== false;
 
       // --- Always fetch the group's field definitions for auto-mapping ---
       let groupFields: { key: string; label: string }[] = [];
@@ -188,6 +200,57 @@ Deno.serve(async (req) => {
         if (!fieldMap.charge_out_price) fieldMap.charge_out_price = findByLabel(['charge', 'charge out', 'sell', 'sale price', 'charge-out', 'price']);
       }
 
+      // --- Sample-object validation & fallback ---
+      // Fetch one real object to (a) validate the label-detected name field is
+      // actually populated on real data, and (b) fall back to picking the first
+      // non-empty, non-id string field if label detection picked an empty/wrong
+      // field. Also infers serial if still missing.
+      try {
+        const sampleRes = await fetch(`${baseUrl}/v3/groups/${groupId}/search/objects?limit=1&offset=0`, {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ view_archived: 'all' }),
+        });
+        if (sampleRes.ok) {
+          const sampleJson: any = await sampleRes.json();
+          const sampleObjs = Array.isArray(sampleJson) ? sampleJson : (sampleJson.objects || sampleJson.data || sampleJson.results || sampleJson.group_objects || []);
+          const sample = sampleObjs[0];
+          if (sample) {
+            const idKeys = new Set(['id', '_id', 'object_id', 'group_id', 'created_at', 'updated_at', 'archived', 'created_by', 'modified_at', 'modified_by']);
+            // Validate: is the detected name field actually populated on a real object?
+            const currentNameVal = fieldMap.name ? fieldValue(sample, fieldMap.name) : '';
+            if (!currentNameVal) {
+              // Label detection missed or picked an empty field — pick the first
+              // non-empty, non-id string field from labelled fields, then any key.
+              let picked = '';
+              for (const f of groupFields) {
+                if (idKeys.has(f.key) || f.key === fieldMap.name) continue;
+                const v = fieldValue(sample, f.key);
+                if (v && v.length >= 2 && v.length <= 120) { picked = f.key; break; }
+              }
+              if (!picked) {
+                for (const key of Object.keys(sample)) {
+                  if (idKeys.has(key) || key === fieldMap.name) continue;
+                  const v = fieldValue(sample, key);
+                  if (v && v.length >= 2 && v.length <= 120) { picked = key; break; }
+                }
+              }
+              if (picked) fieldMap.name = picked;
+            }
+            // Infer serial if still missing
+            if (!fieldMap.serial) {
+              for (const f of groupFields) {
+                if (idKeys.has(f.key) || f.key === fieldMap.name) continue;
+                const v = fieldValue(sample, f.key);
+                if (v && v.length >= 2 && v.length <= 60 && /[a-z0-9]/i.test(v)) { fieldMap.serial = f.key; break; }
+              }
+            }
+          }
+        }
+      } catch (sampleErr) {
+        console.error(`Sample fallback failed for group "${groupLabel}":`, (sampleErr as Error).message);
+      }
+
       // Merge the custom field_map (global) + per-group overrides into the core map
       const globalFullMap = buildFullFieldMap(config);
       const mergedMap = { ...globalFullMap };
@@ -225,6 +288,7 @@ Deno.serve(async (req) => {
         label: groupLabel,
         asset_type_hint: typeHint || 'auto',
         field_map_overrides: group.field_map_overrides || [],
+        is_asset_group: isAssetGroup,
       });
 
       // --- Paginate through all objects in this group ---
@@ -310,7 +374,10 @@ Deno.serve(async (req) => {
             }
             toUpdate.push({ id: match.id, ...payload });
             groupSynced++;
-          } else {
+          } else if (isAssetGroup) {
+            // Only create new records for asset groups — reference-table groups
+            // (Operators, Customers, etc.) update existing matches in place
+            // but don't create new inventory records.
             toCreate.push({
               ...payload,
               rate_card_link_status: 'unmatched',
@@ -325,11 +392,20 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Deduplicate by ID — multiple panda objects can match the same existing
+      // record (e.g. by name when many were "Unnamed Asset"), which produces
+      // duplicate IDs that bulkUpdate rejects.
+      const seenIds = new Set<string>();
+      const dedupedUpdate = toUpdate.filter((u: any) => {
+        if (seenIds.has(u.id)) return false;
+        seenIds.add(u.id);
+        return true;
+      });
       // Apply updates in batches
-      if (toUpdate.length > 0) {
-        for (let i = 0; i < toUpdate.length; i += 100) {
+      if (dedupedUpdate.length > 0) {
+        for (let i = 0; i < dedupedUpdate.length; i += 100) {
           try {
-            await base44.asServiceRole.entities.SiteAsset.bulkUpdate(toUpdate.slice(i, i + 100));
+            await base44.asServiceRole.entities.SiteAsset.bulkUpdate(dedupedUpdate.slice(i, i + 100));
           } catch (bulkErr) {
             console.error('bulkUpdate error:', (bulkErr as Error).message);
             allErrors.push(`bulkUpdate batch failed: ${(bulkErr as Error).message}`);
@@ -426,6 +502,7 @@ Deno.serve(async (req) => {
           label: g.label,
           asset_type_hint: g.asset_type_hint,
           field_map_overrides: g.field_map_overrides || [],
+          is_asset_group: g.is_asset_group,
         }));
       } else if (Array.isArray(config.groups) && config.groups.length > 0) {
         updateData.groups = config.groups.map((g: any) => {

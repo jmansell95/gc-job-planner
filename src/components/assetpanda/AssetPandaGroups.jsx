@@ -109,6 +109,15 @@ export default function AssetPandaGroups({ form, setForm, config, onSave, saving
                 </select>
               </div>
             </div>
+            <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer mt-1.5">
+              <input
+                type="checkbox"
+                checked={g.is_asset_group !== false}
+                onChange={(e) => updateGroup(idx, { is_asset_group: e.target.checked })}
+                className="rounded border-slate-300"
+              />
+              <span>Sync as asset group {g.is_asset_group === false && <span className="text-amber-600 font-medium">— reference table (updates existing only, no new records)</span>}</span>
+            </label>
           </div>
         ))}
 
