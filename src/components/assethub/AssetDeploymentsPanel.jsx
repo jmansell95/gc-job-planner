@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { MapPin, Package, Truck, Anchor, Wrench, Cog, Plug, ArrowRight, Boxes, Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { MapPin, Package, Truck, Anchor, Wrench, Cog, Plug, ArrowRight, Boxes, Clock, CheckCircle2, AlertTriangle, ChevronDown } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 
 const TYPE_ICON = {
@@ -16,6 +16,13 @@ const STATUS_META = {
 
 export default function AssetDeploymentsPanel({ assets = [] }) {
   const [statusFilter, setStatusFilter] = useState('active');
+  const [expanded, setExpanded] = useState(() => new Set());
+  const toggleExpand = (jobId) => setExpanded((prev) => {
+    const n = new Set(prev);
+    if (n.has(jobId)) n.delete(jobId);
+    else n.add(jobId);
+    return n;
+  });
 
   const { data: assignments = [], isLoading } = useQuery({
     queryKey: ['asset-deployments'],
@@ -78,18 +85,22 @@ export default function AssetDeploymentsPanel({ assets = [] }) {
           {filtered.map(({ job, items }) => {
             const visible = statusFilter === 'on_site' ? items.filter(i => i.status === 'on_site') : items;
             if (visible.length === 0) return null;
+            const isOpen = expanded.has(job.id);
             return (
               <div key={job.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-[#2E5A1A] flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-slate-900 text-sm truncate">{job.name || 'Unknown Job'}</p>
-                      {job.location && <p className="text-xs text-slate-400 truncate">{job.location}</p>}
-                    </div>
-                    <span className="text-xs font-bold text-slate-500 bg-white px-2 py-0.5 rounded-full">{visible.length}</span>
+                <button
+                  onClick={() => toggleExpand(job.id)}
+                  className="w-full px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center gap-2 hover:bg-slate-100/60 transition text-left"
+                >
+                  <ChevronDown className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
+                  <MapPin className="w-4 h-4 text-[#2E5A1A] flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-slate-900 text-sm truncate">{job.name || 'Unknown Job'}</p>
+                    {job.location && <p className="text-xs text-slate-400 truncate">{job.location}</p>}
                   </div>
-                </div>
+                  <span className="text-xs font-bold text-slate-500 bg-white px-2 py-0.5 rounded-full">{visible.length}</span>
+                </button>
+                {isOpen && (
                 <div className="divide-y divide-slate-50">
                   {visible.map(item => {
                     const asset = assetById[item.asset_id];
@@ -111,6 +122,7 @@ export default function AssetDeploymentsPanel({ assets = [] }) {
                     );
                   })}
                 </div>
+                )}
               </div>
             );
           })}

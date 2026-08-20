@@ -129,6 +129,37 @@ Deno.serve(async (req) => {
       return isNaN(num) ? null : num;
     };
 
+    // Normalize various date formats (DD/MM/YYYY, DD-MM-YYYY, ISO) to YYYY-MM-DD
+    const normalizeDate = (raw: string): string | null => {
+      if (!raw) return null;
+      const s = String(raw).trim();
+      const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+      return null;
+    };
+
+    // Derive compliance status from an expiry/inspection date
+    const deriveComplianceStatus = (dateStr: string): string => {
+      const d = new Date(dateStr + 'T00:00:00');
+      if (isNaN(d.getTime())) return 'unknown';
+      const days = Math.floor((d.getTime() - Date.now()) / 86400000);
+      if (days < 0) return 'expired';
+      if (days <= 30) return 'expiring';
+      return 'compliant';
+    };
+
+    // Derive maintenance status from a next-service date
+    const deriveMaintenanceStatus = (dateStr: string): string => {
+      const d = new Date(dateStr + 'T00:00:00');
+      if (isNaN(d.getTime())) return 'unknown';
+      const days = Math.floor((d.getTime() - Date.now()) / 86400000);
+      if (days < 0) return 'overdue';
+      if (days <= 30) return 'due_soon';
+      return 'ok';
+    };
+
     // Core system fields + direct-copy fields
     const CORE_FIELDS = new Set(['name', 'serial_number', 'daily_billing_rate', 'stock_level', 'asset_type', 'cost_price', 'charge_out_price']);
     const DIRECT_COPY_FIELDS = new Set([
@@ -212,7 +243,15 @@ Deno.serve(async (req) => {
         if (!autoExtraMap.condition) autoExtraMap.condition = findByLabel(['condition']);
         if (!autoExtraMap.hours_used) autoExtraMap.hours_used = findByLabel(['hours used', 'hour meter', 'hourmeter', 'hours']);
         if (!autoExtraMap.length) autoExtraMap.length = findByLabel(['length']);
+        // Auto-detect date fields for compliance & maintenance status derivation
+        if (!autoExtraMap.compliance_expiry_date) autoExtraMap.compliance_expiry_date = findByLabel(['next inspection', 'expiry', 'loler', 'pat', 'next test', 'due date', 'inspection due', 'test due', 'next loler', 'next pat', 'inspection date']);
+        if (!autoExtraMap.next_service_date) autoExtraMap.next_service_date = findByLabel(['next service', 'service due', 'next service due', 'service date', 'next maintenance']);
+        if (!autoExtraMap.last_service_date) autoExtraMap.last_service_date = findByLabel(['last service', 'last inspected', 'date of last', 'last inspection', 'last service date', 'last maintenance']);
       }
+
+      // Build key→label map from the group's field definitions for raw data capture
+      const keyToLabel: Record<string, string> = {};
+      for (const f of groupFields) { if (f.key && f.label) keyToLabel[f.key] = f.label; }
 
       // --- Sample-object validation & fallback ---
       // Fetch one real object to (a) validate the label-detected name field is
@@ -346,8 +385,13 @@ Deno.serve(async (req) => {
       for (const obj of allObjects) {
         try {
           const pandaId = obj.id || obj.object_id || obj._id || '';
-          const name = fieldValue(obj, fieldMap.name) || obj.name || 'Unnamed Asset';
+          const rawName = fieldValue(obj, fieldMap.name) || obj.name || '';
           const serial = fieldValue(obj, fieldMap.serial) || obj.serial_number || '';
+          const make = fieldValue(obj, extraMap.make) || '';
+          const model = fieldValue(obj, extraMap.model) || '';
+          const fleet = fieldValue(obj, extraMap.fleet_number) || '';
+          // Name fallback: if the mapped name field is empty, build from make+model, fleet, or serial
+          const name = rawName || (make && model ? `${make} ${model}` : '') || make || model || (fleet ? `Asset ${fleet}` : '') || (serial ? `Asset ${serial}` : '') || 'Unnamed Asset';
           const rawType = fieldValue(obj, fieldMap.asset_type) || '';
           const rawStock = fieldValue(obj, fieldMap.stock_status) || '';
           const rate = parseRate(fieldValue(obj, fieldMap.daily_rate));
@@ -381,15 +425,71 @@ Deno.serve(async (req) => {
           };
 
           // Apply extended (direct-copy) mapped fields
+          const DATE_SYS_FIELDS = new Set(['compliance_expiry_date', 'next_service_date', 'last_service_date', 'acquisition_date', 'replacement_date', 'disposal_date']);
           for (const [sysField, pandaKey] of Object.entries(extraMap)) {
             const val = fieldValue(obj, pandaKey);
             if (!val) continue;
             if (sysField === 'length' || sysField === 'hours_used') {
               const num = parseRate(val);
               if (num != null) payload[sysField] = num;
+            } else if (DATE_SYS_FIELDS.has(sysField)) {
+              const d = normalizeDate(val);
+              if (d) payload[sysField] = d;
             } else {
               payload[sysField] = val;
             }
+          }
+
+          // Capture ALL raw Asset Panda field values (label → value) so no data is lost
+          const rawFields: Record<string, string> = {};
+          const rawData = obj.data || obj;
+          const skipKeys = new Set(['id', '_id', 'object_id', 'group_id', 'created_at', 'updated_at', 'archived', 'created_by', 'modified_at', 'modified_by', 'archived_at', 'display_name']);
+          for (const key of Object.keys(rawData)) {
+            if (skipKeys.has(key)) continue;
+            const v = fieldValue(obj, key);
+            if (!v) continue;
+            const label = keyToLabel[key] || key;
+            rawFields[label] = v;
+          }
+          payload.panda_raw_fields = rawFields;
+
+          // Fallback: if mapped date fields are empty, scan raw fields for date-like
+          // values in relevantly-labelled fields (the label detection may have picked
+          // the wrong field key when multiple date fields share similar labels).
+          if (!payload.compliance_expiry_date) {
+            for (const [label, val] of Object.entries(rawFields)) {
+              const l = label.toLowerCase();
+              if ((l.includes('next inspection') || l.includes('next test') || l.includes('expiry') || l.includes('loler') || l.includes('pat due') || l.includes('inspection due') || l.includes('test due')) && !l.includes('last')) {
+                const d = normalizeDate(val);
+                if (d) { payload.compliance_expiry_date = d; break; }
+              }
+            }
+          }
+          if (!payload.next_service_date) {
+            for (const [label, val] of Object.entries(rawFields)) {
+              const l = label.toLowerCase();
+              if ((l.includes('next service') || l.includes('service due') || l.includes('next maintenance')) && !l.includes('last')) {
+                const d = normalizeDate(val);
+                if (d) { payload.next_service_date = d; break; }
+              }
+            }
+          }
+          if (!payload.last_service_date) {
+            for (const [label, val] of Object.entries(rawFields)) {
+              const l = label.toLowerCase();
+              if (l.includes('last service') || l.includes('last inspected') || l.includes('last inspection') || l.includes('last maintenance')) {
+                const d = normalizeDate(val);
+                if (d) { payload.last_service_date = d; break; }
+              }
+            }
+          }
+
+          // Derive compliance & maintenance status from pulled dates
+          if (payload.compliance_expiry_date) {
+            payload.compliance_status = deriveComplianceStatus(payload.compliance_expiry_date);
+          }
+          if (payload.next_service_date) {
+            payload.maintenance_status = deriveMaintenanceStatus(payload.next_service_date);
           }
 
           if (match) {
@@ -486,7 +586,14 @@ Deno.serve(async (req) => {
           toLinkUpdate.push({
             id: asset.id,
             rate_card_item_id: match.id,
-            rate_card_link_status: 'proposed',
+            rate_card_link_status: 'confirmed',
+          });
+          proposedCount++;
+        } else if (match && match.id === asset.rate_card_item_id && asset.rate_card_link_status === 'proposed') {
+          // Same match but still 'proposed' — auto-confirm it
+          toLinkUpdate.push({
+            id: asset.id,
+            rate_card_link_status: 'confirmed',
           });
           proposedCount++;
         } else if (!match && asset.rate_card_link_status === 'proposed') {

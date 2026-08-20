@@ -8,6 +8,7 @@ import { safeFormat } from '@/utils/format';
 import ComplianceCountdownRing from './ComplianceCountdownRing';
 import MaintenanceGauge from './MaintenanceGauge';
 import AssetPandaInfoPanel from '@/components/righub/AssetPandaInfoPanel';
+import RawPandaDataPanel from './RawPandaDataPanel';
 
 function InfoRow({ icon: Icon, label, value, mono }) {
   if (!value && value !== 0) return null;
@@ -179,6 +180,11 @@ export default function AssetOverviewTab({ asset, linkedItems = [], currentDeplo
       {/* Asset Panda info */}
       {asset.panda_asset_id && (
         <AssetPandaInfoPanel asset={asset} />
+      )}
+
+      {/* Raw Asset Panda Data — all pulled fields */}
+      {asset.panda_raw_fields && Object.keys(asset.panda_raw_fields).length > 0 && (
+        <RawPandaDataPanel rawFields={asset.panda_raw_fields} />
       )}
 
       {/* Tooling notes */}
