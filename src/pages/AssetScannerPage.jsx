@@ -5,9 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   ScanLine, X, Package, Truck, CheckCircle2,
   AlertCircle, Lock, Unlock, ArrowLeft, Layers, Store, PackageOpen,
-  Search, Wrench, ChevronRight, ShieldCheck, Undo2, Barcode,
+  Wrench, ShieldCheck, Undo2, Barcode,
 } from 'lucide-react';
-import BarcodeScanner from '@/components/staff/BarcodeScanner';
 import UnifiedScanBasket from '@/components/assetcommand/UnifiedScanBasket';
 import ScanResultCard from '@/components/assetcommand/ScanResultCard';
 import PandaScanConfirmCard from '@/components/assetcommand/PandaScanConfirmCard';
@@ -27,8 +26,6 @@ import SiteCollectionScanner from '@/components/logistics/SiteCollectionScanner'
 import { enableKioskScannerMode, disableKioskScannerMode, isKioskScannerMode } from '@/utils/kioskMode';
 import { playSuccess, playError, playConfirm } from '@/utils/scanFeedback';
 import { useToast } from '@/components/ui/use-toast';
-
-const TYPE_ICONS = { rig: Wrench, machinery: Wrench, trailer: Package, vehicle: Truck, lifting: Package, portable_appliance: Wrench };
 
 const RECENT_KEY = 'gc-scanner-recent';
 const OFFLINE_KEY = 'gc-scanner-offline';
@@ -67,8 +64,6 @@ export default function AssetScannerPage() {
   const [commandAsset, setCommandAsset] = useState(null);
   const [driveAwayAsset, setDriveAwayAsset] = useState(null);
   const [faultAsset, setFaultAsset] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
   const [hubTab, setHubTab] = useState('scan');
   const [pendingPanda, setPendingPanda] = useState(null);
   const [confirming, setConfirming] = useState(false);
@@ -79,7 +74,6 @@ export default function AssetScannerPage() {
   const [recent, setRecent] = useState(() => loadJSON(RECENT_KEY, []));
   const [offlineScans, setOfflineScans] = useState(() => loadJSON(OFFLINE_KEY, []));
   const [retrying, setRetrying] = useState(false);
-  const searchRef = useRef(null);
 
   useEffect(() => {
     base44.functions.invoke('getMyStaffProfile').then(res => setStaffProfile(res.data)).catch(() => {});
@@ -129,21 +123,6 @@ export default function AssetScannerPage() {
 
   const availableJobs = direction === 'signout' ? todaysJobs : returnJobs;
 
-  const searchResults = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q || q.length < 2) return [];
-    return assets
-      .filter(a => {
-        const name = (a.name || '').toLowerCase();
-        const serial = (a.serial_number || '').toLowerCase();
-        const equip = (a.equipment_type || '').toLowerCase();
-        const cat = (a.compliance_category || '').toLowerCase();
-        const panda = (a.panda_asset_id || '').toLowerCase();
-        return name.includes(q) || serial.includes(q) || equip.includes(q) || cat.includes(q) || panda.includes(q);
-      })
-      .slice(0, 12);
-  }, [assets, searchQuery]);
-
   const quickStats = useMemo(() => {
     const active = assets.filter(a => a.is_active !== false);
     const compliant = active.filter(a => a.compliance_status === 'compliant').length;
@@ -177,8 +156,6 @@ export default function AssetScannerPage() {
         setLastScan(data.name || val);
         setScanResult(null);
         setPendingPanda(data);
-        setSearchQuery('');
-        setShowSearch(false);
         return;
       }
       const found = data.asset;
@@ -195,8 +172,6 @@ export default function AssetScannerPage() {
       setLastScan(found.name);
       setScanResult(found);
       setPendingPanda(null);
-      setSearchQuery('');
-      setShowSearch(false);
       pushRecent(found);
       queryClient.invalidateQueries({ queryKey: ['site-assets'] });
       setBasket((prev) => {
@@ -265,8 +240,6 @@ export default function AssetScannerPage() {
     setScanError('');
     setLastScan(asset.name);
     setScanResult(asset);
-    setSearchQuery('');
-    setShowSearch(false);
     pushRecent(asset);
     setBasket((prev) => {
       if (prev.find((a) => a.id === asset.id)) {
@@ -565,65 +538,13 @@ export default function AssetScannerPage() {
               {/* Scanner + My Gear split (tablet) / stacked (mobile) */}
               <div className="md:grid md:grid-cols-2 md:gap-4">
                 <div className="space-y-4">
-                  {/* Manual scanner card with live search */}
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 relative">
-                    <BarcodeScanner
-                      onScan={handleScan}
-                      onSearch={(val) => { setSearchQuery(val); setShowSearch(true); setScanError(''); }}
-                      placeholder="Scan barcode or type to search…"
-                      autoFocus={false}
-                      continuous
-                    />
-                    {resolving && !showFullScreen && (
-                      <div className="absolute inset-0 bg-white/70 backdrop-blur-sm rounded-2xl flex items-center justify-center gap-2.5">
-                        <div className="w-5 h-5 border-2 border-[#2E5A1A] border-t-transparent rounded-full animate-spin" />
-                        <p className="text-sm font-medium text-[#2E5A1A]">Checking Asset Panda…</p>
-                      </div>
-                    )}
-
-                    {/* Live search results dropdown */}
-                    {showSearch && searchQuery.trim().length >= 2 && (
-                      <div className="mt-2 border border-slate-200 rounded-xl overflow-hidden bg-white shadow-lg max-h-80 overflow-y-auto">
-                        <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
-                          <Search className="w-3.5 h-3.5 text-slate-400" />
-                          <p className="text-xs font-semibold text-slate-600">
-                            {searchResults.length} match{searchResults.length !== 1 ? 'es' : ''} for "{searchQuery}"
-                          </p>
-                        </div>
-                        {searchResults.length === 0 ? (
-                          <div className="px-4 py-6 text-center">
-                            <p className="text-sm text-slate-400">No assets found</p>
-                            <p className="text-xs text-slate-300 mt-1">Try a different name, serial, or equipment type</p>
-                          </div>
-                        ) : (
-                          <div className="divide-y divide-slate-100">
-                            {searchResults.map(asset => {
-                              const Icon = TYPE_ICONS[asset.asset_type] || Package;
-                              return (
-                                <button
-                                  key={asset.id}
-                                  onClick={() => handleSelectResult(asset)}
-                                  className="w-full flex items-center gap-3 px-3 py-3 hover:bg-emerald-50 transition active:scale-[0.99] text-left"
-                                >
-                                  <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                                    <Icon className="w-4 h-4 text-slate-500" />
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-semibold text-slate-800 truncate">{asset.name}</p>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                      {asset.serial_number && <span className="text-[11px] text-slate-500 font-mono">{asset.serial_number}</span>}
-                                      {asset.equipment_type && <span className="text-[11px] text-slate-400 truncate">· {asset.equipment_type}</span>}
-                                    </div>
-                                  </div>
-                                  <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  {/* Resolving overlay (when full-screen scanner is closed) */}
+                  {resolving && !showFullScreen && (
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex items-center justify-center gap-2.5">
+                      <div className="w-5 h-5 border-2 border-[#2E5A1A] border-t-transparent rounded-full animate-spin" />
+                      <p className="text-sm font-medium text-[#2E5A1A]">Checking Asset Panda…</p>
+                    </div>
+                  )}
 
                   {/* Panda confirm card */}
                   {pendingPanda && !scanError && (
