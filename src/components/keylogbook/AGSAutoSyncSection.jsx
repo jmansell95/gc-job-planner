@@ -8,6 +8,7 @@ import {
   CheckCircle2, AlertCircle, Loader2, Copy, Power, Radio,
   ShieldCheck, FileCode, Webhook, Eye, EyeOff, RefreshCw,
 } from 'lucide-react';
+import KeyLogBookSyncTest from './KeyLogBookSyncTest';
 
 function generateToken(prefix = 'klb') {
   const chars = '0123456789abcdef';
@@ -266,6 +267,16 @@ export default function AGSAutoSyncSection() {
           </div>
         </div>
       )}
+
+      {/* Manual test sync */}
+      <div className="border-t border-slate-100 pt-4">
+        <div className="flex items-center gap-2 mb-3">
+          <ShieldCheck className="w-4 h-4 text-amber-600" />
+          <h4 className="text-sm font-bold text-slate-900">Test Sync</h4>
+          <span className="text-xs text-slate-400">— verify your credentials are working</span>
+        </div>
+        <KeyLogBookSyncTest config={config} />
+      </div>
 
       {/* Save button */}
       <button onClick={handleSave} disabled={saving || isLoading}
