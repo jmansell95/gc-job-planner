@@ -1,17 +1,24 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Camera, X, ChevronLeft, ChevronRight, RefreshCw, AlertCircle } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { Camera, X, ChevronLeft, ChevronRight, RefreshCw, AlertCircle, Upload, Trash2, Loader2 } from 'lucide-react';
 
 /**
- * Asset Panda image gallery — thumbnail strip with a count badge and a
- * full-screen lightbox. Fetches images via the getAssetPandaImages backend
- * function (which caches them on the SiteAsset record). Shown only when the
- * asset has a panda_asset_id; hides entirely when there are no images.
+ * Asset Panda image gallery — thumbnail strip with a count badge, a
+ * full-screen lightbox, and push-back upload/delete. Fetches images via
+ * the getAssetPandaImages backend function (which caches them on the
+ * SiteAsset record). Uploads/deletes flow through pushAssetPhotoToPanda
+ * so changes are written back to Asset Panda and the cache refreshes.
+ * Shown only when the asset has a panda_asset_id.
  */
 export default function AssetPandaImageGallery({ asset }) {
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const fileRef = useRef(null);
 
   const hasPandaId = !!asset?.panda_asset_id;
 
@@ -26,6 +33,62 @@ export default function AssetPandaImageGallery({ asset }) {
   });
 
   const images = Array.isArray(data?.images) ? data.images : [];
+
+  const invalidateAll = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['asset-panda-images', asset?.id] });
+    await queryClient.invalidateQueries({ queryKey: ['asset-detail', asset?.id] });
+    await queryClient.invalidateQueries({ queryKey: ['site-assets'] });
+  };
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const upRes = await base44.integrations.Core.UploadFile({ file });
+      const fileUrl = upRes.file_url;
+      const pushRes = await base44.functions.invoke('pushAssetPhotoToPanda', {
+        site_asset_id: asset.id, action: 'upload', file_url: fileUrl, file_name: file.name,
+      });
+      const d = pushRes.data || {};
+      if (d.success === false) {
+        toast({ title: 'Upload failed', description: d.error || 'Asset Panda rejected the photo', variant: 'destructive' });
+      } else {
+        toast({ title: 'Photo uploaded', description: 'Pushed to Asset Panda.' });
+        await invalidateAll();
+      }
+    } catch (err) {
+      toast({ title: 'Upload failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const handleDelete = async (img) => {
+    if (!img?.id) {
+      toast({ title: 'Cannot delete', description: 'No attachment ID cached — refresh from Panda first.', variant: 'destructive' });
+      return;
+    }
+    if (!window.confirm(`Delete "${img.name || 'this photo'}" from Asset Panda?`)) return;
+    setDeletingId(img.id);
+    try {
+      const res = await base44.functions.invoke('pushAssetPhotoToPanda', {
+        site_asset_id: asset.id, action: 'delete', attachment_id: img.id,
+      });
+      const d = res.data || {};
+      if (d.success === false) {
+        toast({ title: 'Delete failed', description: d.error || 'Asset Panda rejected the delete', variant: 'destructive' });
+      } else {
+        toast({ title: 'Photo deleted', description: 'Removed from Asset Panda.' });
+        await invalidateAll();
+      }
+    } catch (err) {
+      toast({ title: 'Delete failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Keyboard navigation in the lightbox.
   const closeLightbox = useCallback(() => setLightboxIndex(null), []);
@@ -47,10 +110,7 @@ export default function AssetPandaImageGallery({ asset }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [lightboxIndex, closeLightbox, showPrev, showNext]);
 
-  // Hide entirely when there's no Asset Panda id, or once we know there
-  // are no images (and we're not loading / erroring).
   if (!hasPandaId) return null;
-  if (!isLoading && !isFetching && !isError && images.length === 0) return null;
 
   return (
     <>
@@ -64,14 +124,25 @@ export default function AssetPandaImageGallery({ asset }) {
               </span>
             )}
           </h3>
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-[#2E5A1A] disabled:opacity-50 transition"
-            title="Refresh from Asset Panda"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} /> Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-[#2E5A1A] hover:bg-[#244715] px-2.5 py-1.5 rounded-lg disabled:opacity-50 transition"
+              title="Upload a new photo to Asset Panda"
+            >
+              {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />} Upload
+            </button>
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-[#2E5A1A] disabled:opacity-50 transition"
+              title="Refresh from Asset Panda"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} /> Refresh
+            </button>
+          </div>
         </div>
 
         {/* Loading shimmer */}
@@ -94,22 +165,49 @@ export default function AssetPandaImageGallery({ asset }) {
           </div>
         )}
 
+        {/* Empty state — still offer upload */}
+        {!isLoading && !isFetching && !isError && images.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <Camera className="w-8 h-8 text-slate-200 mb-2" />
+            <p className="text-xs text-slate-400 mb-3">No photos in Asset Panda yet.</p>
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#244715] disabled:opacity-50 transition"
+            >
+              {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />} Upload a photo
+            </button>
+          </div>
+        )}
+
         {/* Thumbnail strip */}
         {images.length > 0 && (
           <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
             {images.map((img, i) => (
-              <button
-                key={i}
-                onClick={() => setLightboxIndex(i)}
+              <div
+                key={img.id || i}
                 className="flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border border-slate-200 hover:border-[#2E5A1A] hover:shadow-md transition group relative"
               >
-                <img
-                  src={img.thumb || img.medium || img.url}
-                  alt={img.name || `Asset photo ${i + 1}`}
-                  loading="lazy"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-              </button>
+                <button
+                  onClick={() => setLightboxIndex(i)}
+                  className="block w-full h-full"
+                >
+                  <img
+                    src={img.thumb || img.medium || img.url}
+                    alt={img.name || `Asset photo ${i + 1}`}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDelete(img); }}
+                  disabled={deletingId === img.id}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/55 hover:bg-red-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition disabled:opacity-60"
+                  title="Delete from Asset Panda"
+                >
+                  {deletingId === img.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                </button>
+              </div>
             ))}
           </div>
         )}

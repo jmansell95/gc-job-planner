@@ -38,6 +38,8 @@ const EMPTY = {
   stock_level: 'unknown',
   service_interval_hours: '', operating_hours: 0, hours_since_last_service: 0, hours_at_last_service: 0,
   linked_equipment_ids: [],
+  make: '', model: '', fleet_number: '', fuel_type: '', condition: '',
+  hours_used: '', length: '', cost_price: '', charge_out_price: '',
 };
 
 const STOCK_LEVELS = [
@@ -175,6 +177,15 @@ export default function AssetComplianceEditor({ asset, onClose }) {
         is_rig: form.asset_type === 'rig',
         rig_type: form.asset_type === 'rig' ? form.rig_type : 'n/a',
         equipment_type: form.equipment_type || '',
+        make: form.make || '',
+        model: form.model || '',
+        fleet_number: form.fleet_number || '',
+        fuel_type: form.fuel_type || '',
+        condition: form.condition || '',
+        hours_used: form.hours_used === '' ? null : (Number(form.hours_used) || null),
+        length: form.length === '' ? null : (Number(form.length) || null),
+        cost_price: form.cost_price === '' ? null : (Number(form.cost_price) || null),
+        charge_out_price: form.charge_out_price === '' ? null : (Number(form.charge_out_price) || null),
         compliance_category: form.compliance_category || '',
         serial_number: form.serial_number || '',
         colour: form.colour || '',
@@ -370,6 +381,51 @@ export default function AssetComplianceEditor({ asset, onClose }) {
             </div>
           </div>
 
+          {/* Specifications (Asset Panda) */}
+          <div className="border-t border-slate-100 pt-4">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2.5 flex items-center gap-1.5">
+              <Database className="w-3.5 h-3.5" /> Specifications
+              {form.panda_asset_id && <span className="text-[10px] font-normal text-blue-600 normal-case tracking-normal">· pushed to Asset Panda on save</span>}
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Make</label>
+                <input type="text" value={form.make || ''} onChange={e => set('make', e.target.value)} placeholder="e.g. Caterpillar"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Model</label>
+                <input type="text" value={form.model || ''} onChange={e => set('model', e.target.value)} placeholder="e.g. 320"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Fleet / FAA Number</label>
+                <input type="text" value={form.fleet_number || ''} onChange={e => set('fleet_number', e.target.value)}
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Fuel Type</label>
+                <input type="text" value={form.fuel_type || ''} onChange={e => set('fuel_type', e.target.value)} placeholder="Diesel / Petrol / Electric"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Condition</label>
+                <input type="text" value={form.condition || ''} onChange={e => set('condition', e.target.value)} placeholder="Good / Fair / Poor"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Hours Used (Panda)</label>
+                <input type="number" value={form.hours_used ?? ''} onChange={e => set('hours_used', e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Length (m)</label>
+                <input type="number" step="0.1" value={form.length ?? ''} onChange={e => set('length', e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+              </div>
+            </div>
+          </div>
+
           {/* Compliance */}
           <div className="border-t border-slate-100 pt-4">
             <div className="flex items-center justify-between mb-2.5">
@@ -457,6 +513,26 @@ export default function AssetComplianceEditor({ asset, onClose }) {
                 <p className="text-[10px] text-slate-400 mt-1.5">Engine hours are auto-calculated from drilling logs. Default: 250h for CP rigs, 500h for heavy machinery.</p>
               </div>
             )}
+          </div>
+
+          {/* Pricing (Asset Panda) */}
+          <div className="border-t border-slate-100 pt-4">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2.5 flex items-center gap-1.5">
+              <Database className="w-3.5 h-3.5" /> Pricing
+              {form.panda_asset_id && <span className="text-[10px] font-normal text-blue-600 normal-case tracking-normal">· pushed to Asset Panda on save</span>}
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Cost Price (£)</label>
+                <input type="number" step="0.01" value={form.cost_price ?? ''} onChange={e => set('cost_price', e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Charge-Out Price (£)</label>
+                <input type="number" step="0.01" value={form.charge_out_price ?? ''} onChange={e => set('charge_out_price', e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+              </div>
+            </div>
           </div>
 
           {/* Linked Equipment (rigs only — during creation) */}

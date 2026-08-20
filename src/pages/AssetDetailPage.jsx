@@ -50,6 +50,7 @@ export default function AssetDetailPage() {
   const [showQR, setShowQR] = useState(false);
   const [showRecert, setShowRecert] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const staffProfile = useMemo(() => ({ name: user?.full_name || user?.email || 'Manager' }), [user]);
 
@@ -105,6 +106,28 @@ export default function AssetDetailPage() {
     queryClient.invalidateQueries({ queryKey: ['asset-deployments', id] });
   };
 
+  // Pull the latest object fields + photos from Asset Panda and cache them.
+  const handleRefreshFromPanda = async () => {
+    if (!asset?.panda_asset_id) return;
+    setRefreshing(true);
+    try {
+      const res = await base44.functions.invoke('getAssetPandaObject', { site_asset_id: asset.id });
+      const d = res.data || {};
+      if (d.error) {
+        toast({ title: 'Refresh failed', description: d.error, variant: 'destructive' });
+      } else {
+        toast({ title: 'Refreshed from Panda', description: `${d.raw_field_count ?? 0} fields · ${d.image_count ?? 0} photos.` });
+        await queryClient.invalidateQueries({ queryKey: ['asset-detail', id] });
+        await queryClient.invalidateQueries({ queryKey: ['asset-panda-images', id] });
+        await queryClient.invalidateQueries({ queryKey: ['site-assets'] });
+      }
+    } catch (e) {
+      toast({ title: 'Refresh failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -142,6 +165,8 @@ export default function AssetDetailPage() {
           onEdit={() => setShowEditor(true)}
           onRecert={() => setShowRecert(true)}
           onQR={() => setShowQR(true)}
+          onRefresh={handleRefreshFromPanda}
+          refreshing={refreshing}
         />
         {asset.panda_asset_id && (
           <AssetPandaImageGallery asset={asset} />
@@ -159,6 +184,8 @@ export default function AssetDetailPage() {
               onEdit={() => setShowEditor(true)}
               onRecert={() => setShowRecert(true)}
               onQR={() => setShowQR(true)}
+              onRefresh={handleRefreshFromPanda}
+              refreshing={refreshing}
             />
             {/* Quick action buttons */}
             <div className="space-y-2">

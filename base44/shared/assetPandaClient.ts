@@ -206,8 +206,9 @@ export async function fetchPandaImages(
 
 /**
  * Fetch a single Asset Panda object with all its field values.
- * GET /v3/groups/{group_id}/objects/{object_id} — returns the raw object whose
- * custom field values live inside `data` (and sometimes at the top level).
+ * Uses the documented search endpoint with an `ids` filter (there is no
+ * documented single-object GET). Returns the raw object whose custom field
+ * values live inside `data` (and sometimes at the top level), or null.
  */
 export async function fetchPandaObject(
   baseUrl: string,
@@ -215,10 +216,14 @@ export async function fetchPandaObject(
   groupId: string,
   pandaId: string
 ): Promise<any> {
-  const res = await fetch(`${baseUrl}/v3/groups/${groupId}/objects/${encodeURIComponent(pandaId)}`, {
+  const url = `${baseUrl}/v3/groups/${groupId}/search/objects?limit=1&offset=0`;
+  const res = await fetch(url, {
+    method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids: [pandaId], view_archived: 'all' }),
   });
-  if (!res.ok) throw new Error(`Asset Panda object fetch failed (HTTP ${res.status})`);
+  if (!res.ok) throw new Error(`Asset Panda object search failed (HTTP ${res.status})`);
   const json: any = await res.json();
-  return json?.data ? json.data : json;
+  const arr = Array.isArray(json) ? json : (json.objects || json.data || json.results || json.group_objects || []);
+  return arr[0] || null;
 }

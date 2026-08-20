@@ -21,7 +21,7 @@ const TYPE_GRADIENT = {
  * asset name, type subtitle, compliance pill, and action buttons.
  * Used in both the mobile top and the desktop left rail.
  */
-export default function AssetDetailHero({ asset, onBack, onEdit, onRecert, onQR }) {
+export default function AssetDetailHero({ asset, onBack, onEdit, onRecert, onQR, onRefresh, refreshing }) {
   if (!asset) return null;
   const Icon = TYPE_ICON[asset.asset_type] || Wrench;
   const meta = COMPLIANCE_META[asset.compliance_status || 'unknown'];
@@ -52,6 +52,11 @@ export default function AssetDetailHero({ asset, onBack, onEdit, onRecert, onQR 
           {onQR && (
             <button onClick={onQR} className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white/15 hover:bg-white/25 rounded-lg text-xs font-semibold transition backdrop-blur-sm">
               <QrCode className="w-3.5 h-3.5" /> QR
+            </button>
+          )}
+          {asset.panda_asset_id && onRefresh && (
+            <button onClick={onRefresh} disabled={refreshing} className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white/15 hover:bg-white/25 rounded-lg text-xs font-semibold transition backdrop-blur-sm disabled:opacity-60">
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} /> {refreshing ? 'Syncing' : 'Sync Panda'}
             </button>
           )}
         </div>
