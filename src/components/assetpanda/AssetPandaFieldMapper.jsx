@@ -23,6 +23,13 @@ const SYSTEM_FIELDS = [
   { value: 'repair_notes', label: 'Repair Notes' },
   { value: 'colour', label: 'Colour' },
   { value: 'equipment_type', label: 'Equipment Type' },
+  { value: 'fleet_number', label: 'Fleet Number (FAA Ref)' },
+  { value: 'make', label: 'Make / Manufacturer' },
+  { value: 'model', label: 'Model' },
+  { value: 'length', label: 'Length (m)' },
+  { value: 'fuel_type', label: 'Fuel Type' },
+  { value: 'condition', label: 'Condition' },
+  { value: 'hours_used', label: 'Hours Used' },
   { value: 'tooling_notes', label: 'Tooling Notes' },
   { value: 'notes', label: 'Notes' },
 ];

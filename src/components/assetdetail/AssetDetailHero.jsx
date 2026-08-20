@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Cog, Wrench, Package, Truck, Anchor, Plug,
   ShieldCheck, ShieldAlert, ShieldX, HelpCircle,
-  ArrowLeft, Pencil, RefreshCw, QrCode,
+  ArrowLeft, Pencil, RefreshCw, QrCode, Hash,
 } from 'lucide-react';
 import { COMPLIANCE_META, ASSET_TYPE_META } from '@/utils/rigRollup';
 
@@ -63,14 +63,21 @@ export default function AssetDetailHero({ asset, onBack, onEdit, onRecert, onQR 
           <Icon className="w-7 h-7 text-white" />
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="font-extrabold text-white text-lg lg:text-xl truncate leading-tight">{asset.name}</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="font-extrabold text-white text-lg lg:text-xl truncate leading-tight">{asset.name}</h1>
+            {asset.fleet_number && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white whitespace-nowrap">
+                <Hash className="w-3 h-3" /> FAA {asset.fleet_number}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-white/80 truncate mt-0.5">
-            {ASSET_TYPE_META[asset.asset_type]?.label || asset.asset_type}
+            {[asset.make, asset.model].filter(Boolean).join(' · ') || (ASSET_TYPE_META[asset.asset_type]?.label || asset.asset_type)}
             {asset.equipment_type ? ` · ${asset.equipment_type}` : ''}
             {asset.rig_type && asset.rig_type !== 'n/a' ? ` · ${asset.rig_type.toUpperCase()}` : ''}
           </p>
           {asset.serial_number && (
-            <p className="text-[11px] text-white/60 font-mono truncate mt-0.5">{asset.serial_number}</p>
+            <p className="text-[11px] text-white/60 font-mono truncate mt-0.5">Serial: {asset.serial_number}</p>
           )}
         </div>
       </div>

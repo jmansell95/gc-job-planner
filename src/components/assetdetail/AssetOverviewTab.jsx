@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Hash, Palette, Warehouse, User, Cog, Link2, ChevronRight,
   Activity, Clock, MapPin, Briefcase, Database, Wrench, Package, Anchor, Plug,
+  Ruler, Fuel, Gauge,
 } from 'lucide-react';
 import { safeFormat } from '@/utils/format';
 import ComplianceCountdownRing from './ComplianceCountdownRing';
@@ -16,6 +17,27 @@ function InfoRow({ icon: Icon, label, value, mono }) {
         {Icon && <Icon className="w-3.5 h-3.5 text-slate-400" />} {label}
       </span>
       <span className={`text-xs font-semibold text-slate-800 ${mono ? 'font-mono' : ''}`}>{value}</span>
+    </div>
+  );
+}
+
+function conditionTone(cond) {
+  if (!cond) return 'bg-slate-50 border-slate-100 text-slate-800';
+  const c = String(cond).toLowerCase();
+  if (c.includes('good') || c.includes('excellent') || c.includes('new') || c.includes('like new') || c.includes('ok') || c.includes('great')) return 'bg-emerald-50 border-emerald-200 text-emerald-700';
+  if (c.includes('fair') || c.includes('used') || c.includes('average') || c.includes('wear') || c.includes('working')) return 'bg-amber-50 border-amber-200 text-amber-700';
+  if (c.includes('poor') || c.includes('bad') || c.includes('repair') || c.includes('faulty') || c.includes('broken') || c.includes('scrap')) return 'bg-rose-50 border-rose-200 text-rose-700';
+  return 'bg-slate-50 border-slate-100 text-slate-800';
+}
+
+function SpecTile({ icon: Icon, label, value, tone }) {
+  const cls = tone || 'bg-slate-50 border-slate-100 text-slate-800';
+  return (
+    <div className={`rounded-xl p-3 border ${cls}`}>
+      <p className="text-[10px] font-medium uppercase tracking-wide flex items-center gap-1 mb-1 opacity-70">
+        {Icon && <Icon className="w-3 h-3" />} {label}
+      </p>
+      <p className="text-sm font-bold truncate">{value}</p>
     </div>
   );
 }
@@ -36,6 +58,7 @@ export default function AssetOverviewTab({ asset, linkedItems = [], currentDeplo
           <h3 className="text-sm font-extrabold text-slate-900 mb-3 flex items-center gap-2">
             <Cog className="w-4 h-4 text-[#2E5A1A]" /> Identity
           </h3>
+          {asset.fleet_number && <InfoRow icon={Hash} label="FAA / Fleet No." value={asset.fleet_number} mono />}
           <InfoRow icon={Hash} label="Serial / Tag" value={asset.serial_number} mono />
           <InfoRow icon={Palette} label="Colour" value={asset.colour} />
           <InfoRow icon={Warehouse} label="Storage Location" value={asset.storage_location} />
@@ -74,6 +97,23 @@ export default function AssetOverviewTab({ asset, linkedItems = [], currentDeplo
           </div>
         </div>
       </div>
+
+      {/* Specifications — make, model, length, fuel type, condition, hours */}
+      {(asset.make || asset.model || asset.length != null || asset.fuel_type || asset.condition || asset.hours_used != null) && (
+        <div className="insight-card rounded-2xl p-4">
+          <h3 className="text-sm font-extrabold text-slate-900 mb-3 flex items-center gap-2">
+            <Wrench className="w-4 h-4 text-[#2E5A1A]" /> Specifications
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {asset.make && <SpecTile icon={Cog} label="Make" value={asset.make} />}
+            {asset.model && <SpecTile icon={Cog} label="Model" value={asset.model} />}
+            {asset.length != null && <SpecTile icon={Ruler} label="Length" value={`${asset.length}m`} />}
+            {asset.fuel_type && <SpecTile icon={Fuel} label="Fuel Type" value={asset.fuel_type} />}
+            {asset.condition && <SpecTile icon={Gauge} label="Condition" value={asset.condition} tone={conditionTone(asset.condition)} />}
+            {asset.hours_used != null && <SpecTile icon={Clock} label="Hours Used" value={`${asset.hours_used}h`} />}
+          </div>
+        </div>
+      )}
 
       {/* Current deployment */}
       <div className="insight-card rounded-2xl p-4">

@@ -47,7 +47,35 @@
     },
     "serial_number": {
       "type": "string",
-      "description": "Serial number, asset tag or registration"
+      "description": "Manufacturer serial number, asset tag or registration. Pulled from Asset Panda 'Serial No' (field_260)."
+    },
+    "fleet_number": {
+      "type": "string",
+      "description": "FAA / Fleet Number \u2014 the primary fleet reference number from Asset Panda (field_1 'Fleet Number'). This is the prominent reference shown on asset cards and the detail hero. Distinct from serial_number which is the manufacturer's serial."
+    },
+    "make": {
+      "type": "string",
+      "description": "Manufacturer / make of the asset (e.g. 'Caterpillar', 'Toyota', 'Honda', 'Bosch'). Pulled from Asset Panda 'Make' (field_6)."
+    },
+    "model": {
+      "type": "string",
+      "description": "Model of the asset (e.g. '320', 'Hilux', 'GX'). Pulled from Asset Panda 'Model' (field_8)."
+    },
+    "length": {
+      "type": "number",
+      "description": "Length in metres \u2014 primarily for casing items but stored for any asset where Asset Panda provides a length value. Shown as a badge on casing items in the asset grid."
+    },
+    "fuel_type": {
+      "type": "string",
+      "description": "Fuel type (e.g. 'Diesel', 'Petrol', 'Electric', 'Hybrid'). Pulled from Asset Panda 'Fuel Type' (field_242)."
+    },
+    "condition": {
+      "type": "string",
+      "description": "Physical condition reported by Asset Panda (field_254 'Condition' \u2014 e.g. 'Good', 'Fair', 'Poor', 'Needs Repair'). Colour-coded in the UI: green = good, amber = fair, red = poor."
+    },
+    "hours_used": {
+      "type": "number",
+      "description": "Hours used / engine hours as reported by Asset Panda (field_256 'Hours Used'). This is the Panda-reported figure, distinct from the calculated operating_hours field which is derived from drilling-duration logs."
     },
     "colour": {
       "type": "string",

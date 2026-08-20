@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import {
   Cog, Wrench, Package, Truck, Anchor, Plug, ShieldCheck, ShieldAlert, ShieldX,
   HelpCircle, ChevronRight, Link2, Lock, ScanLine, Check, CheckSquare, Database, CircleDot,
-  Warehouse, MapPin, CalendarClock, AlertTriangle, Boxes,
+  Warehouse, MapPin, CalendarClock, AlertTriangle, Boxes, Hash, Ruler, Gauge, Clock,
 } from 'lucide-react';
 import { rollupCompliance, COMPLIANCE_META, ASSET_TYPE_META, findParentRig, daysUntil } from '@/utils/rigRollup';
 import RigUtilizationSparkline from '@/components/righub/RigUtilizationSparkline';
@@ -36,6 +36,22 @@ function isReady(asset) {
   if (asset.is_active === false) return false;
   if (asset.stock_level === 'out_of_stock' || asset.stock_level === 'needs_service') return false;
   return true;
+}
+
+/** Casing items — detected by name/equipment_type containing "casing". */
+function isCasingItem(asset) {
+  const t = `${asset?.name || ''} ${asset?.equipment_type || ''} ${asset?.compliance_category || ''}`.toLowerCase();
+  return t.includes('casing');
+}
+
+/** Colour-code the Asset Panda condition string. */
+function conditionTone(cond) {
+  if (!cond) return 'bg-slate-50 text-slate-600 border-slate-200';
+  const c = String(cond).toLowerCase();
+  if (c.includes('good') || c.includes('excellent') || c.includes('new') || c.includes('like new') || c.includes('ok') || c.includes('great')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  if (c.includes('fair') || c.includes('used') || c.includes('average') || c.includes('wear') || c.includes('working')) return 'bg-amber-50 text-amber-700 border-amber-200';
+  if (c.includes('poor') || c.includes('bad') || c.includes('repair') || c.includes('faulty') || c.includes('damage') || c.includes('broken') || c.includes('scrap')) return 'bg-rose-50 text-rose-700 border-rose-200';
+  return 'bg-slate-50 text-slate-600 border-slate-200';
 }
 
 function StatPill({ icon: Icon, label, value, tone }) {
@@ -166,7 +182,12 @@ export default function AssetInventoryGrid({
                       <div className="min-w-0">
                         <p className="font-semibold text-slate-900 truncate">{rig.name}</p>
                         {rig.rig_type && rig.rig_type !== 'n/a' && <p className="text-[11px] text-blue-600 font-bold uppercase">{rig.rig_type} Rig</p>}
-                        {rig.serial_number && <p className="text-xs text-slate-400 font-mono truncate">{rig.serial_number}</p>}
+                        {[rig.make, rig.model].filter(Boolean).length > 0 && (
+                          <p className="text-[11px] text-slate-500 truncate font-medium">{[rig.make, rig.model].filter(Boolean).join(' · ')}</p>
+                        )}
+                        <p className="text-[11px] text-slate-400 font-mono truncate">
+                          {rig.fleet_number ? `FAA ${rig.fleet_number}` : rig.serial_number || ''}
+                        </p>
                       </div>
                     </div>
                     <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />
@@ -261,16 +282,36 @@ export default function AssetInventoryGrid({
                       </div>
                       <div className="min-w-0">
                         <p className="font-semibold text-slate-900 truncate">{equip.name}</p>
-                        <p className="text-[11px] text-slate-400 truncate">{ASSET_TYPE_META[equip.asset_type]?.label || equip.asset_type}{equip.equipment_type ? ` · ${equip.equipment_type}` : ''}</p>
+                        <p className="text-[11px] text-slate-500 truncate font-medium">
+                          {[equip.make, equip.model].filter(Boolean).join(' · ') || (ASSET_TYPE_META[equip.asset_type]?.label || equip.asset_type)}
+                          {!equip.make && !equip.model && equip.equipment_type ? ` · ${equip.equipment_type}` : ''}
+                        </p>
                       </div>
                     </div>
                     {!selectionMode && <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />}
                   </div>
                   <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full border ${meta.tone}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} /> {meta.label}
-                    </span>
                     <div className="flex items-center gap-1 flex-wrap">
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full border ${meta.tone}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} /> {meta.label}
+                      </span>
+                      {equip.fleet_number && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#2E5A1A] text-white border border-[#2E5A1A]" title="FAA / Fleet Number">
+                          <Hash className="w-2.5 h-2.5" /> {equip.fleet_number}
+                        </span>
+                      )}
+                      {isCasingItem(equip) && equip.length != null && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200" title="Length (m)">
+                          <Ruler className="w-2.5 h-2.5" /> {equip.length}m
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {equip.condition && (
+                        <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${conditionTone(equip.condition)}`} title="Condition">
+                          <Gauge className="w-2.5 h-2.5" /> {equip.condition}
+                        </span>
+                      )}
                       {depotTagged && (
                         <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200" title="At the depot — ready to assign">
                           <Warehouse className="w-2.5 h-2.5" /> Depot
@@ -282,12 +323,17 @@ export default function AssetInventoryGrid({
                       {parentRig && <span className="text-[10px] text-emerald-700 font-medium flex items-center gap-0.5"><Link2 className="w-3 h-3" /> {parentRig.name}</span>}
                     </div>
                   </div>
-                  {/* Info row: serial + storage */}
+                  {/* Info row: serial + storage + hours */}
                   <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-1.5 flex-wrap">
                     {equip.serial_number && <span className="font-mono bg-slate-50 px-1.5 py-0.5 rounded">{equip.serial_number}</span>}
                     {equip.storage_location && (
                       <span className="flex items-center gap-0.5">
                         <MapPin className="w-2.5 h-2.5" /> {equip.storage_location}
+                      </span>
+                    )}
+                    {equip.hours_used != null && (
+                      <span className="flex items-center gap-0.5 text-slate-500 font-medium">
+                        <Clock className="w-2.5 h-2.5" /> {equip.hours_used}h
                       </span>
                     )}
                     {ready && depotTagged && (

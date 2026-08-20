@@ -132,6 +132,7 @@ Deno.serve(async (req) => {
       'storage_location', 'responsible_person', 'compliance_expiry_date', 'next_service_date',
       'last_service_date', 'service_notes', 'repair_notes', 'colour', 'equipment_type',
       'tooling_notes', 'notes',
+      'fleet_number', 'make', 'model', 'length', 'fuel_type', 'condition', 'hours_used',
     ]);
 
     // --- Load existing SiteAssets for matching (exclude demo) ---
@@ -182,6 +183,8 @@ Deno.serve(async (req) => {
         charge_out_price: '',
       };
 
+      // Auto-detected extended spec fields (make, model, fleet number, fuel type, etc.)
+      const autoExtraMap: Record<string, string> = {};
       // Auto-detect from field labels (now always runs, not just when missing)
       if (groupFields.length > 0) {
         const findByLabel = (keywords: string[]) => {
@@ -198,6 +201,14 @@ Deno.serve(async (req) => {
         if (!fieldMap.asset_type) fieldMap.asset_type = findByLabel(['type', 'category', 'class', 'group type', 'asset type']);
         if (!fieldMap.cost_price) fieldMap.cost_price = findByLabel(['cost', 'cost price', 'purchase cost', 'internal cost', 'purchase price']);
         if (!fieldMap.charge_out_price) fieldMap.charge_out_price = findByLabel(['charge', 'charge out', 'sell', 'sale price', 'charge-out', 'price']);
+        // Auto-detect extended spec fields (make, model, fleet number, fuel type, etc.)
+        if (!autoExtraMap.fleet_number) autoExtraMap.fleet_number = findByLabel(['fleet number', 'faa', 'fleet no', 'fleet']);
+        if (!autoExtraMap.make) autoExtraMap.make = findByLabel(['make', 'manufacturer', 'brand']);
+        if (!autoExtraMap.model) autoExtraMap.model = findByLabel(['model']);
+        if (!autoExtraMap.fuel_type) autoExtraMap.fuel_type = findByLabel(['fuel type', 'fuel']);
+        if (!autoExtraMap.condition) autoExtraMap.condition = findByLabel(['condition']);
+        if (!autoExtraMap.hours_used) autoExtraMap.hours_used = findByLabel(['hours used', 'hour meter', 'hourmeter', 'hours']);
+        if (!autoExtraMap.length) autoExtraMap.length = findByLabel(['length']);
       }
 
       // --- Sample-object validation & fallback ---
@@ -278,6 +289,12 @@ Deno.serve(async (req) => {
       const extraMap: Record<string, string> = {};
       for (const [sysField, pandaKey] of Object.entries(mergedMap)) {
         if (!CORE_FIELDS.has(sysField) && DIRECT_COPY_FIELDS.has(sysField) && pandaKey) {
+          extraMap[sysField] = pandaKey;
+        }
+      }
+      // Merge auto-detected spec fields (config field_map takes precedence)
+      for (const [sysField, pandaKey] of Object.entries(autoExtraMap)) {
+        if (!extraMap[sysField] && pandaKey) {
           extraMap[sysField] = pandaKey;
         }
       }
@@ -363,7 +380,13 @@ Deno.serve(async (req) => {
           // Apply extended (direct-copy) mapped fields
           for (const [sysField, pandaKey] of Object.entries(extraMap)) {
             const val = fieldValue(obj, pandaKey);
-            if (val) payload[sysField] = val;
+            if (!val) continue;
+            if (sysField === 'length' || sysField === 'hours_used') {
+              const num = parseRate(val);
+              if (num != null) payload[sysField] = num;
+            } else {
+              payload[sysField] = val;
+            }
           }
 
           if (match) {
