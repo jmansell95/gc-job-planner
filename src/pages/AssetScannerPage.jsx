@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ScanLine, X, Package, Truck, CheckCircle2,
   AlertCircle, Lock, Unlock, ArrowLeft, Layers, Store, PackageOpen,
-  Search, Wrench, ChevronRight, ShieldCheck, Undo2, Maximize2,
+  Search, Wrench, ChevronRight, ShieldCheck, Undo2, Barcode,
 } from 'lucide-react';
 import BarcodeScanner from '@/components/staff/BarcodeScanner';
 import UnifiedScanBasket from '@/components/assetcommand/UnifiedScanBasket';
@@ -555,7 +555,7 @@ export default function AssetScannerPage() {
                     className="relative w-24 h-24 rounded-full bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-lg active:scale-95 transition group"
                   >
                     <span className="absolute -inset-2 rounded-full bg-emerald-400/30 blur-xl animate-pulse group-hover:bg-emerald-400/40" />
-                    <Maximize2 className="w-9 h-9 text-white relative z-10" />
+                    <Barcode className="w-10 h-10 text-white relative z-10" />
                   </button>
                   <p className="mt-4 text-base font-bold text-slate-900">Tap to Scan</p>
                   <p className="text-sm text-slate-500 mt-0.5">Opens full-screen camera viewfinder</p>
