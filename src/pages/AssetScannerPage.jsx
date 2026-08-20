@@ -658,16 +658,7 @@ export default function AssetScannerPage() {
                     </div>
                   )}
 
-                  {/* Empty state */}
-                  {basket.length === 0 && !scanResult && !scanError && !pendingPanda && (
-                    <div className="text-center py-12">
-                      <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center mx-auto mb-3 ring-4 ring-emerald-50">
-                        <ScanLine className="w-10 h-10 text-emerald-300" />
-                      </div>
-                      <p className="text-slate-700 font-bold text-base">Ready to Scan</p>
-                      <p className="text-slate-400 text-sm mt-1">Tap the scan button above or use manual entry — items appear in the basket below.</p>
-                    </div>
-                  )}
+
                 </div>
 
                 {/* My Gear manifest — tablet sidebar */}
