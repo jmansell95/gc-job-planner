@@ -251,14 +251,16 @@ function isDrillerActivity(text: string): boolean {
 // remarks without a time pattern stay on their technical logs.
 
 const REMARK_FIELD_SUFFIXES = ['REM', 'REMARK', 'REMARKS', 'NOTE', 'NOTES', 'COMMENT', 'COMMENTS', 'DIARY', 'DAILY'];
-const REMARK_GROUP_NAMES = ['REMARK', 'REMARKS', 'NOTE', 'NOTES', 'COMMENT', 'COMMENTS', 'DIARY', 'DAILY', 'LOG', 'LOGS'];
+// 'REM' is included so a group literally named REM (KeyLogBook's driller-remarks
+// group) is treated as a whole-group remark source — every field in it is harvested.
+const REMARK_GROUP_NAMES = ['REM', 'REMARK', 'REMARKS', 'NOTE', 'NOTES', 'COMMENT', 'COMMENTS', 'DIARY', 'DAILY', 'LOG', 'LOGS'];
 
 function isRemarkField(fieldName: string, groupName: string): boolean {
   const suffix = normalizeKey(fieldName, groupName);
   return REMARK_FIELD_SUFFIXES.includes(suffix);
 }
 
-interface RemarkChunk { text: string; borehole_ref: string; explicitDate: string; }
+interface RemarkChunk { text: string; borehole_ref: string; explicitDate: string; timed: boolean; }
 
 // Normalise an AGS date value to ISO YYYY-MM-DD. Handles the common formats
 // KeyLogBook exports (ISO, DD/MM/YYYY, YYYYMMDD) so remark rows dated with a
@@ -308,12 +310,18 @@ function extractRemarkChunks(groups: Record<string, GroupData>): RemarkChunk[] {
   // on the same row (a row often carries the same diary in REM, NOTE and
   // REMARK columns). Keyed by borehole + text so the diary is parsed once.
   const seen = new Set<string>();
+  // Capture both time-stamped diary fragments AND plain (non-timed) remarks.
+  // Plain remarks become a single Site Log entry each so the driller's remarks
+  // always reach the Site Logs tab even when they didn't use the HH:MM_HH:MM format.
   const push = (text: string, ref: string, explicitDate: string) => {
-    if (!text || !hasTimePattern(text)) return;
-    const key = `${ref || ''}|${text.trim()}`;
+    if (!text) return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const timed = hasTimePattern(trimmed);
+    const key = `${ref || ''}|${timed ? 'T' : 'P'}|${trimmed}`;
     if (seen.has(key)) return;
     seen.add(key);
-    chunks.push({ text, borehole_ref: ref, explicitDate });
+    chunks.push({ text: trimmed, borehole_ref: ref, explicitDate, timed });
   };
 
   // LOCA group — per-row remark fields belong to that borehole.
@@ -356,7 +364,7 @@ function extractRemarkChunks(groups: Record<string, GroupData>): RemarkChunk[] {
 // borehole's start date (LOCA_STAR via locaDates), then the job start date,
 // then today — skipping weekends and any day already taken by an explicit
 // chunk. This guarantees one diary fragment per shift day so no days vanish.
-function assignChunkDates(rawChunks: RemarkChunk[], locaDates: Record<string, string>, jobStartDate: string, defaultDate: string): { text: string; date: string; borehole_ref: string }[] {
+function assignChunkDates(rawChunks: RemarkChunk[], locaDates: Record<string, string>, jobStartDate: string, defaultDate: string): { text: string; date: string; borehole_ref: string; timed: boolean }[] {
   const byBorehole: Record<string, RemarkChunk[]> = {};
   const order: string[] = [];
   for (const c of rawChunks) {
@@ -374,11 +382,11 @@ function assignChunkDates(rawChunks: RemarkChunk[], locaDates: Record<string, st
       const explicit = c.explicitDate ? normaliseDate(c.explicitDate) : '';
       if (explicit) {
         used.add(explicit);
-        out.push({ text: c.text, date: explicit, borehole_ref: ref });
+        out.push({ text: c.text, date: explicit, borehole_ref: ref, timed: c.timed });
         continue;
       }
       while (isWeekend(cursor) || used.has(cursor)) cursor = addDays(cursor, 1);
-      out.push({ text: c.text, date: cursor, borehole_ref: ref });
+      out.push({ text: c.text, date: cursor, borehole_ref: ref, timed: c.timed });
       used.add(cursor);
       cursor = addDays(cursor, 1);
     }
@@ -1198,46 +1206,66 @@ Deno.serve(async (req) => {
     const rawChunks = extractRemarkChunks(groups);
     const remarkChunks = assignChunkDates(rawChunks, locaDates, job.start_date || today, today);
     if (remarkChunks.length > 0) {
-      // Parse each dated chunk and tag every activity with its chunk's date AND
-      // borehole ref so the imported Site Logs are linked to the correct day.
-      const allActivities: { activity: any; date: string; borehole_ref: string }[] = [];
-      for (const chunk of remarkChunks) {
-        const acts = parseRemarks(chunk.text);
-        for (const a of acts) allActivities.push({ activity: a, date: chunk.date, borehole_ref: chunk.borehole_ref });
-      }
-      if (allActivities.length > 0) {
-        const cleaned = await professionaliseActivities(base44, allActivities.map(x => x.activity));
-        // Overwrite previous remarks logs for this job (manual re-import)
-        try {
-          const prevRemarks = await base44.asServiceRole.entities.InvestigationLog.filter({ job_id: job.id, source: 'keylogbook_remarks' });
-          if (prevRemarks.length > 0) {
-            await base44.asServiceRole.entities.InvestigationLog.deleteMany({ job_id: job.id, source: 'keylogbook_remarks' });
-            deletedCount += prevRemarks.length;
-          }
-        } catch (e) { /* continue */ }
+      // Overwrite previous remarks logs for this job (manual re-import) once,
+      // before inserting either timed activities or plain remark entries.
+      try {
+        const prevRemarks = await base44.asServiceRole.entities.InvestigationLog.filter({ job_id: job.id, source: 'keylogbook_remarks' });
+        if (prevRemarks.length > 0) {
+          await base44.asServiceRole.entities.InvestigationLog.deleteMany({ job_id: job.id, source: 'keylogbook_remarks' });
+          deletedCount += prevRemarks.length;
+        }
+      } catch (e) { /* continue */ }
 
-        allActivities.forEach((x, i) => {
-          if (addLog({
-            job_id: job.id,
-            staff_id: drillerStaffId || staffId,
-            staff_name: drillerName || importerName,
-            date: x.date,
-            log_type: 'other',
-            borehole_ref: x.borehole_ref || null,
-            source: 'keylogbook_remarks',
-            logged_by_role: 'driller',
-            start_time: x.activity.start_time,
-            end_time: x.activity.end_time,
-            duration_minutes: x.activity.duration_minutes,
-            description: cleaned[i] || x.activity.raw_description,
-            completed_by_type: 'internal_staff',
-            completed_by_name: drillerName || importerName,
-            manager_review_status: 'pending',
-            chargeable: false,
-            billing_status: 'no_charge',
-          })) counts.remarks++;
-        });
+      // Build the staged remark entries. Timed chunks parse into individual
+      // time-stamped activities (AI-professionalised in one call); plain
+      // (non-timed) remarks become a single entry each so they still reach the
+      // Site Logs tab. The KLB webhook hole ref fills in any chunk with no
+      // borehole ref so remarks are linked to the correct borehole.
+      const staged: { date: string; borehole_ref: string; start_time?: string; end_time?: string; duration_minutes?: number; description: string }[] = [];
+      const activitiesToClean: any[] = [];
+      const activityIndexes: number[] = [];
+      for (const chunk of remarkChunks) {
+        const ref = chunk.borehole_ref || (isKlbWebhook ? klbHoleId : '') || null;
+        if (chunk.timed) {
+          const acts = parseRemarks(chunk.text);
+          for (const a of acts) {
+            activityIndexes.push(staged.length);
+            activitiesToClean.push(a);
+            staged.push({ date: chunk.date, borehole_ref: ref, start_time: a.start_time, end_time: a.end_time, duration_minutes: a.duration_minutes, description: '' });
+          }
+          // Edge: a timed chunk that parsed to zero activities — keep the raw text as a plain entry.
+          if (acts.length === 0) staged.push({ date: chunk.date, borehole_ref: ref, description: chunk.text });
+        } else {
+          staged.push({ date: chunk.date, borehole_ref: ref, description: chunk.text });
+        }
       }
+
+      const cleaned = activitiesToClean.length > 0 ? await professionaliseActivities(base44, activitiesToClean) : [];
+      activityIndexes.forEach((idx, i) => {
+        staged[idx].description = cleaned[i] || activitiesToClean[i].raw_description;
+      });
+
+      staged.forEach((r) => {
+        if (addLog({
+          job_id: job.id,
+          staff_id: drillerStaffId || staffId,
+          staff_name: drillerName || importerName,
+          date: r.date,
+          log_type: 'other',
+          borehole_ref: r.borehole_ref || null,
+          source: 'keylogbook_remarks',
+          logged_by_role: 'driller',
+          start_time: r.start_time,
+          end_time: r.end_time,
+          duration_minutes: r.duration_minutes,
+          description: r.description,
+          completed_by_type: 'internal_staff',
+          completed_by_name: drillerName || importerName,
+          manager_review_status: 'pending',
+          chargeable: false,
+          billing_status: 'no_charge',
+        })) counts.remarks++;
+      });
     }
 
     if (logs.length === 0) {
