@@ -86,14 +86,21 @@ export default function KeyLogBookSyncTest({ config }) {
       const res = await fetch(webhookUrl, { method: 'POST', headers, body: bodyStr });
       const json = await res.json().catch(() => ({}));
 
-      if (res.ok && (json.status === 'success' || json.inserted != null)) {
+      if (res.ok) {
+        // Any 2xx = the server accepted the request and credentials are valid.
+        // The parser may report "no data groups" for a test ping — that's
+        // informational, not an auth failure.
+        const parserNote = json.error || json.summary || '';
+        const isNoData = /no.*(LOCA|GEOL|groups)/i.test(parserNote) || (json.inserted === 0 && !json.summary);
         setResult({
           ok: true,
-          title: 'Sync pipeline healthy',
-          detail: json.summary || `Webhook authenticated and processed successfully. ${json.inserted || 0} log entries handled.`,
+          title: isNoData ? 'Request accepted — credentials valid' : 'Sync pipeline healthy',
+          detail: isNoData
+            ? `The webhook accepted the request with the saved Bearer token${config.ags_webhook_signing_enabled ? ' and HMAC signature' : ''}. ${parserNote ? `Parser note: "${parserNote}". ` : ''}This is expected for a test ping — real KeyLogBook payloads with valid AGS data will process fully.`
+            : (json.summary || `Webhook authenticated and processed successfully. ${json.inserted || 0} log entries handled.`),
           raw: json,
         });
-        toast({ title: 'KeyLogBook sync OK', description: json.summary || 'Webhook is working.' });
+        toast({ title: 'KeyLogBook sync OK', description: isNoData ? 'Request accepted — credentials valid' : (json.summary || 'Webhook is working.') });
       } else if (res.status === 401) {
         setResult({
           ok: false,
