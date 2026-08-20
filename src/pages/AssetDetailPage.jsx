@@ -24,6 +24,7 @@ import ServiceHistoryPanel from '@/components/compliance/ServiceHistoryPanel';
 import CertificateVault from '@/components/righub/CertificateVault';
 import CompliancePackGenerator from '@/components/assetcommand/CompliancePackGenerator';
 import AssetMovementHistory from '@/components/assetcommand/AssetMovementHistory';
+import AssetPandaImageGallery from '@/components/assetdetail/AssetPandaImageGallery';
 import { useAssetRealtime } from '@/hooks/useAssetRealtime';
 
 const TABS = [
@@ -134,7 +135,7 @@ export default function AssetDetailPage() {
   return (
     <div className="min-h-screen">
       {/* Mobile hero */}
-      <div className="lg:hidden p-3">
+      <div className="lg:hidden p-3 space-y-3">
         <AssetDetailHero
           asset={asset}
           onBack={() => navigate('/assets')}
@@ -142,6 +143,9 @@ export default function AssetDetailPage() {
           onRecert={() => setShowRecert(true)}
           onQR={() => setShowQR(true)}
         />
+        {asset.panda_asset_id && (
+          <AssetPandaImageGallery asset={asset} />
+        )}
       </div>
 
       {/* Two-column layout (desktop) */}

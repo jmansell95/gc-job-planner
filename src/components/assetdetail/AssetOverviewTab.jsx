@@ -9,6 +9,7 @@ import ComplianceCountdownRing from './ComplianceCountdownRing';
 import MaintenanceGauge from './MaintenanceGauge';
 import AssetPandaInfoPanel from '@/components/righub/AssetPandaInfoPanel';
 import RawPandaDataPanel from './RawPandaDataPanel';
+import AssetPandaImageGallery from './AssetPandaImageGallery';
 
 function InfoRow({ icon: Icon, label, value, mono }) {
   if (!value && value !== 0) return null;
@@ -52,6 +53,11 @@ export default function AssetOverviewTab({ asset, linkedItems = [], currentDeplo
 
   return (
     <div className="space-y-4">
+      {/* Asset Panda photos */}
+      {asset.panda_asset_id && (
+        <AssetPandaImageGallery asset={asset} />
+      )}
+
       {/* Identity + Compliance ring side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Identity card */}

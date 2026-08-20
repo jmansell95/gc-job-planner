@@ -93,6 +93,43 @@
       "type": "string",
       "description": "Label of the Asset Panda group this asset was synced from (e.g. 'Rigs', 'Lifting Gear'). Set during multi-group sync so the Assets Hub can filter assets by their source group. Blank for manually-created assets and legacy single-group syncs."
     },
+    "panda_image_urls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Direct S3 URL to the full-size image (the Asset Panda 'large' / 'url' field)."
+          },
+          "thumb": {
+            "type": "string",
+            "description": "Direct S3 URL to the thumbnail-sized image."
+          },
+          "medium": {
+            "type": "string",
+            "description": "Direct S3 URL to the medium-sized image."
+          },
+          "large": {
+            "type": "string",
+            "description": "Direct S3 URL to the large-sized image."
+          },
+          "name": {
+            "type": "string",
+            "description": "Original filename of the image in Asset Panda."
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "default": [],
+      "description": "Cached image attachments pulled from Asset Panda for this asset (GET /v3/attachments?entity_object_id=<panda_asset_id>&type=Image). Refreshed on demand by the getAssetPandaImages backend function so the asset detail page gallery loads instantly without re-hitting the Asset Panda API on every view."
+    },
+    "panda_images_cached_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last successful Asset Panda image fetch cached on this record."
+    },
     "panda_raw_fields": {
       "type": "object",
       "description": "All raw Asset Panda field values pulled from the source object during sync, stored as a label \u2192 value map so no data is lost. Every field on the Asset Panda object (excluding system/id keys) is captured here, even if it doesn't map to a named SiteAsset field. Visible to admins in the asset detail drawer's 'Raw Asset Panda Data' collapsible section.",
