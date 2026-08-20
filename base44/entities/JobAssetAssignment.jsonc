@@ -52,6 +52,14 @@
       "default": "machinery",
       "description": "Role this asset plays on the job"
     },
+    "vehicle_id": {
+      "type": "string",
+      "description": "Vehicle the gear was loaded onto when signed out via the scanner. Blank for assets signed out without a vehicle selection or for returns."
+    },
+    "vehicle_name": {
+      "type": "string",
+      "description": "Vehicle name/registration (denormalised for display) when signed out via the scanner."
+    },
     "compliance_status": {
       "type": "string",
       "enum": [

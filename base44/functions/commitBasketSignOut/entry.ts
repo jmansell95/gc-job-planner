@@ -5,7 +5,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
  * in one call and pushes the sign-out to Asset Panda so the yard dashboard
  * shows the gear as 'Out on Job'.
  *
- * Payload: { asset_ids: string[], job_id, job_name, staff_id, staff_name }
+ * Payload: { asset_ids: string[], job_id, job_name, staff_id, staff_name, vehicle_id?, vehicle_name? }
  * Returns: { success, assignments_created, panda_push }
  */
 Deno.serve(async (req) => {
@@ -20,6 +20,8 @@ Deno.serve(async (req) => {
     const jobName = body?.job_name || '';
     const staffId = body?.staff_id || user.id;
     const staffName = body?.staff_name || user.full_name || '';
+    const vehicleId = body?.vehicle_id || '';
+    const vehicleName = body?.vehicle_name || '';
 
     if (!jobId) return Response.json({ error: 'job_id is required' }, { status: 400 });
     if (assetIds.length === 0) return Response.json({ error: 'No assets to sign out' }, { status: 400 });
@@ -46,7 +48,9 @@ Deno.serve(async (req) => {
         status: 'on_site',
         assigned_date: today,
         arrived_on_site_date: today,
-        notes: `Signed out via scanner by ${staffName}`,
+        vehicle_id: vehicleId || undefined,
+        vehicle_name: vehicleName || undefined,
+        notes: `Signed out via scanner by ${staffName}${vehicleName ? ` onto ${vehicleName}` : ''}`,
       };
     });
 

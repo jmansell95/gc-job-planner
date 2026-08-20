@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package, X, Trash2, ChevronUp, ChevronDown, ShieldCheck,
   Undo2, ArrowRightLeft, CheckCircle2, AlertTriangle, Loader2,
+  Truck, Weight,
 } from 'lucide-react';
 import { COMPLIANCE_META } from '@/utils/rigRollup';
 
@@ -21,6 +22,7 @@ const TYPE_ICON = { rig: '🛠️', machinery: '🔧', trailer: '📦', vehicle:
 export default function UnifiedScanBasket({
   items, onRemove, onClear, direction, onToggleDirection,
   onCommit, committing, jobs = [], selectedJobId, onSelectJob,
+  vehicles = [], selectedVehicleId, onSelectVehicle,
 }) {
   const [expanded, setExpanded] = useState(false);
   const count = items.length;
@@ -28,6 +30,16 @@ export default function UnifiedScanBasket({
   if (count === 0) return null;
 
   const isSignOut = direction === 'signout';
+
+  // Capacity calculation — sums weight/volume across basket items
+  const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
+  const totalWeight = useMemo(() => items.reduce((s, a) => s + (Number(a.weight_kg) || 0), 0), [items]);
+  const totalVolume = useMemo(() => items.reduce((s, a) => s + (Number(a.volume_m3) || 0), 0), [items]);
+  const weightPct = selectedVehicle?.max_weight_kg ? Math.min((totalWeight / selectedVehicle.max_weight_kg) * 100, 100) : 0;
+  const volumePct = selectedVehicle?.max_volume_m3 ? Math.min((totalVolume / selectedVehicle.max_volume_m3) * 100, 100) : 0;
+  const overWeight = selectedVehicle?.max_weight_kg && totalWeight > selectedVehicle.max_weight_kg;
+  const overVolume = selectedVehicle?.max_volume_m3 && totalVolume > selectedVehicle.max_volume_m3;
+  const hasCapacityData = selectedVehicle && (selectedVehicle.max_weight_kg || selectedVehicle.max_volume_m3);
   const accentColor = isSignOut ? '#2E5A1A' : '#0369a1';
   const accentBg = isSignOut ? 'bg-emerald-600' : 'bg-sky-600';
   const accentText = isSignOut ? 'text-emerald-700' : 'text-sky-700';
@@ -144,32 +156,88 @@ export default function UnifiedScanBasket({
 
             {/* Job selector + commit */}
             <div className="px-5 py-3 border-t border-slate-100 bg-white flex-shrink-0">
-              {isSignOut ? (
-                <div className="mb-3">
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Sign Out to Job</label>
-                  {jobs.length === 0 ? (
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
-                      <p className="text-xs text-amber-800 font-medium">No active jobs today. Ask your manager to assign you to a job first.</p>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                      {jobs.map(job => (
-                        <button
-                          key={job.id}
-                          onClick={() => onSelectJob(job.id)}
-                          className={`flex-shrink-0 px-3.5 py-2.5 rounded-xl border text-sm font-semibold transition active:scale-95 ${
-                            selectedJobId === job.id
-                              ? 'border-emerald-600 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-                              : 'border-slate-200 bg-white text-slate-600'
-                          }`}
-                        >
-                          {job.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
+            {isSignOut ? (
+              <>
+              <div className="mb-3">
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Sign Out to Job</label>
+                {jobs.length === 0 ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                    <p className="text-xs text-amber-800 font-medium">No active jobs today. Ask your manager to assign you to a job first.</p>
+                  </div>
+                ) : (
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                    {jobs.map(job => (
+                      <button
+                        key={job.id}
+                        onClick={() => onSelectJob(job.id)}
+                        className={`flex-shrink-0 px-3.5 py-2.5 rounded-xl border text-sm font-semibold transition active:scale-95 ${
+                          selectedJobId === job.id
+                            ? 'border-emerald-600 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+                            : 'border-slate-200 bg-white text-slate-600'
+                        }`}
+                      >
+                        {job.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Vehicle selector + capacity bars */}
+              <div className="mb-3">
+                <label className="flex items-center gap-1 text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                  <Truck className="w-3 h-3" /> Load onto Vehicle
+                </label>
+                <select
+                  value={selectedVehicleId || ''}
+                  onChange={e => onSelectVehicle(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 bg-white"
+                >
+                  <option value="">Select a vehicle…</option>
+                  {vehicles.map(v => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}{v.registration_number ? ` (${v.registration_number})` : ''}{v.max_weight_kg ? ` · ${v.max_weight_kg}kg` : ''}{v.max_volume_m3 ? ` / ${v.max_volume_m3}m³` : ''}
+                    </option>
+                  ))}
+                </select>
+
+                {hasCapacityData && (
+                  <div className="mt-2 space-y-2 bg-slate-50 rounded-xl p-2.5 border border-slate-200">
+                    <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wide flex items-center gap-1">
+                      <Weight className="w-3 h-3" /> Vehicle Capacity Check
+                    </p>
+                    {selectedVehicle.max_weight_kg && (
+                      <div>
+                        <div className="flex items-center justify-between text-[10px] mb-0.5">
+                          <span className="text-slate-500 font-medium">Weight</span>
+                          <span className={overWeight ? 'text-red-600 font-bold' : 'text-slate-600'}>{Math.round(totalWeight)} / {Math.round(selectedVehicle.max_weight_kg)} kg</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${overWeight ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${weightPct}%` }} />
+                        </div>
+                      </div>
+                    )}
+                    {selectedVehicle.max_volume_m3 && (
+                      <div>
+                        <div className="flex items-center justify-between text-[10px] mb-0.5">
+                          <span className="text-slate-500 font-medium">Volume</span>
+                          <span className={overVolume ? 'text-red-600 font-bold' : 'text-slate-600'}>{totalVolume.toFixed(2)} / {selectedVehicle.max_volume_m3.toFixed(1)} m³</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${overVolume ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${volumePct}%` }} />
+                        </div>
+                      </div>
+                    )}
+                    {(overWeight || overVolume) && (
+                      <div className="flex items-center gap-1.5 text-[10px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-2 py-1.5">
+                        <AlertTriangle className="w-3 h-3 flex-shrink-0" /> Capacity exceeded — consider a larger vehicle or split the load.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              </>
+            ) : (
                 <div className="mb-3">
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Return from Job</label>
                   {jobs.length === 0 ? (

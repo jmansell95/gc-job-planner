@@ -56,6 +56,7 @@ export default function AssetScannerPage() {
   const [confirming, setConfirming] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState('');
+  const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const searchRef = useRef(null);
 
   useEffect(() => {
@@ -72,6 +73,11 @@ export default function AssetScannerPage() {
   const { data: jobs = [] } = useQuery({
     queryKey: ['jobs'],
     queryFn: () => base44.entities.Job.list(),
+  });
+
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['vehicles'],
+    queryFn: () => base44.entities.Vehicle.list(),
   });
 
   const { data: myAssignments = [] } = useQuery({
@@ -200,7 +206,7 @@ export default function AssetScannerPage() {
   };
 
   const removeFromBasket = (id) => setBasket((prev) => prev.filter((a) => a.id !== id));
-  const clearBasket = () => { setBasket([]); setSelectedJobId(''); };
+  const clearBasket = () => { setBasket([]); setSelectedJobId(''); setSelectedVehicleId(''); };
 
   const toggleKiosk = () => {
     if (kioskLocked) {
@@ -252,12 +258,16 @@ export default function AssetScannerPage() {
       const assetIds = basket.map(a => a.id);
 
       if (direction === 'signout') {
+        const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
+        const vehicleName = selectedVehicle ? `${selectedVehicle.name}${selectedVehicle.registration_number ? ` (${selectedVehicle.registration_number})` : ''}` : '';
         const res = await base44.functions.invoke('commitBasketSignOut', {
           asset_ids: assetIds,
           job_id: selectedJobId,
           job_name: jobName,
           staff_id: me?.id,
           staff_name: myName,
+          vehicle_id: selectedVehicleId || '',
+          vehicle_name: vehicleName,
         });
         const data = res.data || res;
         if (data.error) throw new Error(data.error);
@@ -590,12 +600,15 @@ export default function AssetScannerPage() {
           onRemove={removeFromBasket}
           onClear={clearBasket}
           direction={direction}
-          onToggleDirection={(d) => { setDirection(d); setSelectedJobId(''); }}
+          onToggleDirection={(d) => { setDirection(d); setSelectedJobId(''); setSelectedVehicleId(''); }}
           onCommit={handleCommit}
           committing={committing}
           jobs={availableJobs}
           selectedJobId={selectedJobId}
           onSelectJob={setSelectedJobId}
+          vehicles={vehicles}
+          selectedVehicleId={selectedVehicleId}
+          onSelectVehicle={setSelectedVehicleId}
         />
       )}
 
