@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 const SYSTEM_FIELDS = [
   { value: 'name', label: 'Asset Name' },
   { value: 'serial_number', label: 'Serial / Asset Tag' },
+  { value: 'barcode', label: 'Barcode (Asset Panda barcode field)' },
   { value: 'asset_type', label: 'Asset Type' },
   { value: 'stock_level', label: 'Stock / Condition Status' },
   { value: 'daily_billing_rate', label: 'Daily Billing Rate' },

@@ -38,6 +38,7 @@ const EDITABLE_FIELD_LABELS: Record<string, string[]> = {
   notes: ['notes', 'comments', 'remarks'],
   quantity_owned: ['quantity owned', 'qty owned', 'owned'],
   quantity_available: ['quantity available', 'qty available', 'quantity avail', 'available'],
+  barcode: ['barcode', 'asset tag', 'tag id'],
 };
 
 /**

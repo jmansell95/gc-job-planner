@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
       'last_service_date', 'service_notes', 'repair_notes', 'colour', 'equipment_type',
       'tooling_notes', 'notes',
       'fleet_number', 'make', 'model', 'length', 'fuel_type', 'condition', 'hours_used',
-      'quantity_owned', 'quantity_available',
+      'quantity_owned', 'quantity_available', 'barcode',
     ]);
 
     // --- Load existing SiteAssets for matching (exclude demo) ---
@@ -246,6 +246,7 @@ Deno.serve(async (req) => {
         if (!autoExtraMap.length) autoExtraMap.length = findByLabel(['length']);
         if (!autoExtraMap.quantity_owned) autoExtraMap.quantity_owned = findByLabel(['quantity owned', 'qty owned', 'owned']);
         if (!autoExtraMap.quantity_available) autoExtraMap.quantity_available = findByLabel(['quantity available', 'qty available', 'quantity avail', 'available']);
+        if (!autoExtraMap.barcode) autoExtraMap.barcode = findByLabel(['barcode', 'asset tag', 'tag id']);
         // Auto-detect date fields for compliance & maintenance status derivation
         if (!autoExtraMap.compliance_expiry_date) autoExtraMap.compliance_expiry_date = findByLabel(['next inspection', 'expiry', 'loler', 'pat', 'next test', 'due date', 'inspection due', 'test due', 'next loler', 'next pat', 'inspection date']);
         if (!autoExtraMap.next_service_date) autoExtraMap.next_service_date = findByLabel(['next service', 'service due', 'next service due', 'service date', 'next maintenance']);

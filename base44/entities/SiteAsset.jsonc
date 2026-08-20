@@ -49,6 +49,10 @@
       "type": "string",
       "description": "Manufacturer serial number, asset tag or registration. Pulled from Asset Panda 'Serial No' (field_260)."
     },
+    "barcode": {
+      "type": "string",
+      "description": "Asset Panda barcode value \u2014 the dedicated 'Barcode'/'Asset Tag' field encoded in the Asset Panda barcode labels. Used by the scanner (resolveAssetByQR) to match a scanned Asset Panda barcode to this asset, and pushed back to Asset Panda on bidirectional sync. Auto-detected from group field labels ('barcode', 'asset tag', 'tag id') or via the configured field map."
+    },
     "fleet_number": {
       "type": "string",
       "description": "FAA / Fleet Number \u2014 the primary fleet reference number from Asset Panda (field_1 'Fleet Number'). This is the prominent reference shown on asset cards and the detail hero. Distinct from serial_number which is the manufacturer's serial."

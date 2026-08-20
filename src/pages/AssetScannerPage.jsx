@@ -10,6 +10,7 @@ import {
 import BarcodeScanner from '@/components/staff/BarcodeScanner';
 import BulkScanBasket from '@/components/logistics/BulkScanBasket';
 import ScanResultCard from '@/components/assetcommand/ScanResultCard';
+import PandaScanConfirmCard from '@/components/assetcommand/PandaScanConfirmCard';
 import AssetCommandDrawer from '@/components/assetcommand/AssetCommandDrawer';
 import DriveAwayModal from '@/components/assetcommand/DriveAwayModal';
 import ReportFaultModal from '@/components/assetcommand/ReportFaultModal';
@@ -50,6 +51,8 @@ export default function AssetScannerPage() {
   const [showSearch, setShowSearch] = useState(false);
   const [hubTab, setHubTab] = useState('scan');
   const [showSignOut, setShowSignOut] = useState(false);
+  const [pendingPanda, setPendingPanda] = useState(null);
+  const [confirming, setConfirming] = useState(false);
   const searchRef = useRef(null);
 
   useEffect(() => {
@@ -103,6 +106,17 @@ export default function AssetScannerPage() {
       // Hit the backend resolver — tries Asset Panda first (live), falls back to local.
       const res = await base44.functions.invoke('resolveAssetByQR', { scan: q });
       const data = res.data || res;
+      // Panda match with no local record yet — ask before creating & linking
+      if (data.needs_confirm) {
+        setResolving(false);
+        setScanError('');
+        setLastScan(data.name || val);
+        setScanResult(null);
+        setPendingPanda(data);
+        setSearchQuery('');
+        setShowSearch(false);
+        return;
+      }
       const found = data.asset;
       if (!found) {
         setResolving(false);
@@ -114,6 +128,7 @@ export default function AssetScannerPage() {
       setScanError('');
       setLastScan(found.name);
       setScanResult(found);
+      setPendingPanda(null);
       setSearchQuery('');
       setShowSearch(false);
       // Refresh the local cache so the live Panda data is reflected
@@ -166,6 +181,32 @@ export default function AssetScannerPage() {
       setKioskLocked(true);
       toast({ title: 'Kiosk mode enabled', description: 'This device will auto-open the scanner on every load.' });
     }
+  };
+
+  const handleConfirmPandaLink = async () => {
+    if (!pendingPanda) return;
+    setConfirming(true);
+    try {
+      const res = await base44.functions.invoke('confirmPandaScanLink', {
+        panda_id: pendingPanda.panda_id,
+        group_id: pendingPanda.group_id,
+        barcode: pendingPanda.barcode || '',
+      });
+      const created = res.data?.asset || res.asset;
+      if (created) {
+        queryClient.invalidateQueries({ queryKey: ['site-assets'] });
+        setBasket((prev) => (prev.find((a) => a.id === created.id) ? prev : [...prev, created]));
+        setScanResult(created);
+        setLastScan(created.name);
+        setPendingPanda(null);
+        toast({ title: 'Linked to Asset Panda', description: `${created.name} added to your inventory` });
+      } else {
+        toast({ title: 'Could not link', description: res.data?.error || 'Unknown error', variant: 'destructive' });
+      }
+    } catch (e) {
+      toast({ title: 'Could not link', description: e.message, variant: 'destructive' });
+    }
+    setConfirming(false);
   };
 
   const handleBooked = () => {
@@ -377,6 +418,16 @@ export default function AssetScannerPage() {
               </div>
             )}
           </div>
+
+          {/* Asset Panda match with no local record — confirm before creating & linking */}
+          {pendingPanda && !scanError && (
+            <PandaScanConfirmCard
+              panda={pendingPanda}
+              confirming={confirming}
+              onConfirm={handleConfirmPandaLink}
+              onCancel={() => { setPendingPanda(null); setLastScan(''); }}
+            />
+          )}
 
           {/* Hilti-style immediate scan result card */}
           {scanResult && !scanError && (
