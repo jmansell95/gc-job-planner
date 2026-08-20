@@ -4,17 +4,19 @@ import { Camera, ScanLine, Keyboard, X, CheckCircle2, AlertTriangle } from 'luci
 // A lightweight barcode/QR scanner that uses the native BarcodeDetector API
 // when available (Chrome on Android), with a manual-entry fallback for iOS
 // and hardware Bluetooth scanners that act as keyboards.
-export default function BarcodeScanner({ onScan, onSearch, placeholder = 'Scan or type barcode…', autoFocus = true }) {
+export default function BarcodeScanner({ onScan, onSearch, placeholder = 'Scan or type barcode…', autoFocus = true, continuous = false }) {
   const [mode, setMode] = useState('input'); // 'input' | 'camera'
   const [manualValue, setManualValue] = useState('');
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [lastScan, setLastScan] = useState('');
+  const [cooldown, setCooldown] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const detectorRef = useRef(null);
   const rafRef = useRef(null);
   const inputRef = useRef(null);
+  const cooldownTimerRef = useRef(null);
 
   // Check if BarcodeDetector is available
   const hasNativeDetector = typeof window !== 'undefined' && 'BarcodeDetector' in window;
@@ -34,6 +36,11 @@ export default function BarcodeScanner({ onScan, onSearch, placeholder = 'Scan o
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
+    if (cooldownTimerRef.current) {
+      clearTimeout(cooldownTimerRef.current);
+      cooldownTimerRef.current = null;
+    }
+    setCooldown(false);
     setCameraActive(false);
   }, []);
 
@@ -80,6 +87,10 @@ export default function BarcodeScanner({ onScan, onSearch, placeholder = 'Scan o
 
   const detectLoop = async () => {
     if (!streamRef.current || !videoRef.current) return;
+    if (cooldown) {
+      rafRef.current = requestAnimationFrame(detectLoop);
+      return;
+    }
     if (detectorRef.current && videoRef.current.readyState >= 2) {
       try {
         const codes = await detectorRef.current.detect(videoRef.current);
@@ -88,8 +99,15 @@ export default function BarcodeScanner({ onScan, onSearch, placeholder = 'Scan o
           if (val) {
             setLastScan(val);
             onScan(val);
-            stopCamera();
-            return;
+            if (continuous) {
+              // Brief cooldown to avoid re-scanning the same code, then resume
+              setCooldown(true);
+              if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current);
+              cooldownTimerRef.current = setTimeout(() => setCooldown(false), 1500);
+            } else {
+              stopCamera();
+              return;
+            }
           }
         }
       } catch (_) {
@@ -201,13 +219,20 @@ export default function BarcodeScanner({ onScan, onSearch, placeholder = 'Scan o
             )}
           </div>
           {cameraActive && (
-            <button
-              type="button"
-              onClick={stopCamera}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold"
-            >
-              <X className="w-4 h-4" /> Stop Camera
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={stopCamera}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold"
+              >
+                <X className="w-4 h-4" /> Stop Camera
+              </button>
+              {continuous && (
+                <div className={`px-3 py-2.5 rounded-xl text-xs font-bold transition ${cooldown ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                  {cooldown ? 'Wait…' : 'Ready'}
+                </div>
+              )}
+            </div>
           )}
           {!hasNativeDetector && cameraActive && (
             <p className="text-[11px] text-slate-400 text-center">
