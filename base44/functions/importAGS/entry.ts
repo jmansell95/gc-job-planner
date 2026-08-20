@@ -253,7 +253,10 @@ function isDrillerActivity(text: string): boolean {
 const REMARK_FIELD_SUFFIXES = ['REM', 'REMARK', 'REMARKS', 'NOTE', 'NOTES', 'COMMENT', 'COMMENTS', 'DIARY', 'DAILY'];
 // 'REM' is included so a group literally named REM (KeyLogBook's driller-remarks
 // group) is treated as a whole-group remark source — every field in it is harvested.
-const REMARK_GROUP_NAMES = ['REM', 'REMARK', 'REMARKS', 'NOTE', 'NOTES', 'COMMENT', 'COMMENTS', 'DIARY', 'DAILY', 'LOG', 'LOGS'];
+// 'REM' = KeyLogBook driller-remarks group; 'DREM' = driller/daily remarks;
+// 'TREM' = tremie pipe group, whose diary/remark rows are harvested here while
+// real installation rows (type/material/diameter/depth) are skipped — see guard below.
+const REMARK_GROUP_NAMES = ['REM', 'DREM', 'TREM', 'REMARK', 'REMARKS', 'NOTE', 'NOTES', 'COMMENT', 'COMMENTS', 'DIARY', 'DAILY', 'LOG', 'LOGS'];
 
 function isRemarkField(fieldName: string, groupName: string): boolean {
   const suffix = normalizeKey(fieldName, groupName);
@@ -346,6 +349,17 @@ function extractRemarkChunks(groups: Record<string, GroupData>): RemarkChunk[] {
     if (!wholeGroupRemark && !g.headings.some(h => REMARK_FIELD_SUFFIXES.includes(normalizeKey(h, name)))) continue;
     for (const row of g.rows) {
       const r = buildRow(g, row);
+      // TREM guard: skip rows that are real installations (handled as
+      // installation logs by the TREM section) — only harvest diary/remark text.
+      if (name === 'TREM') {
+        const tType = pick(r, 'TREM_TYPE', 'TYPE');
+        const tMat = pick(r, 'TREM_MAT', 'TREM_MATERIAL', 'MAT', 'MATERIAL');
+        const tDiam = pick(r, 'TREM_DIAM', 'TREM_DIA', 'DIAM', 'DIAMETER', 'DIA');
+        const dFrom = num(pick(r, 'TREM_TOP', 'TOP', 'DEPTH_FROM', 'FROM'));
+        const dTo = num(pick(r, 'TREM_BASE', 'TREM_BOT', 'BASE', 'BOT', 'DEPTH_TO', 'TO'));
+        const hasInstallAttrs = !!(tType || tMat || tDiam || (dFrom != null && dTo != null && dTo > dFrom));
+        if (hasInstallAttrs) continue;
+      }
       const ref = pick(r, 'LOCA_ID', 'LOCA_REF', 'LOCA_NO', 'HOLE_ID', 'BH_ID', 'ID', 'REF');
       const explicit = normaliseDate(pick(r, 'DATE', 'LOCA_DATE', 'REMARK_DATE', 'DIARY_DATE', 'DAY'));
       g.headings.forEach((h) => {
