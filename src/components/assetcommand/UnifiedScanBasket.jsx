@@ -27,14 +27,14 @@ export default function UnifiedScanBasket({
   const [expanded, setExpanded] = useState(false);
   const count = items.length;
 
-  if (count === 0) return null;
-
-  const isSignOut = direction === 'signout';
-
   // Capacity calculation — sums weight/volume across basket items
   const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
   const totalWeight = useMemo(() => items.reduce((s, a) => s + (Number(a.weight_kg) || 0), 0), [items]);
   const totalVolume = useMemo(() => items.reduce((s, a) => s + (Number(a.volume_m3) || 0), 0), [items]);
+
+  if (count === 0) return null;
+
+  const isSignOut = direction === 'signout';
   const weightPct = selectedVehicle?.max_weight_kg ? Math.min((totalWeight / selectedVehicle.max_weight_kg) * 100, 100) : 0;
   const volumePct = selectedVehicle?.max_volume_m3 ? Math.min((totalVolume / selectedVehicle.max_volume_m3) * 100, 100) : 0;
   const overWeight = selectedVehicle?.max_weight_kg && totalWeight > selectedVehicle.max_weight_kg;
