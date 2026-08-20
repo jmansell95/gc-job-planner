@@ -45,10 +45,11 @@ export default function AssetPandaImageGallery({ asset }) {
     if (!file) return;
     setUploading(true);
     try {
-      const upRes = await base44.integrations.Core.UploadFile({ file });
-      const fileUrl = upRes.file_url;
+      // Pass the File object straight to functions.invoke — the SDK sends it
+      // as multipart/form-data (no UploadFile integration, which is unreliable
+      // on the published site) and the backend reads it via req.formData().
       const pushRes = await base44.functions.invoke('pushAssetPhotoToPanda', {
-        site_asset_id: asset.id, action: 'upload', file_url: fileUrl, file_name: file.name,
+        site_asset_id: asset.id, action: 'upload', file, file_name: file.name,
       });
       const d = pushRes.data || {};
       if (d.success === false) {

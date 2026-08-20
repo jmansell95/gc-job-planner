@@ -12,9 +12,14 @@ import { resolvePandaToken, resolveGroupIdForAsset, fetchPandaImages } from '../
 // Delete:  DELETE /v3/attachments
 //          (multipart form-data: attachment_ids=<id>)
 //
-// Payload:
-//   { site_asset_id, action: 'upload', file_url }   — upload a file already staged on our storage
-//   { site_asset_id, action: 'delete', attachment_id } — delete an attachment
+// Input — accepts two content types:
+//   multipart/form-data  (preferred for upload — file sent directly,
+//                         avoids the UploadFile integration which is
+//                         unreliable on the published site):
+//     file, site_asset_id, action ('upload'), [file_name]
+//   application/json:
+//     { site_asset_id, action: 'upload', file_url, file_name }   — upload a staged file
+//     { site_asset_id, action: 'delete', attachment_id }         — delete an attachment
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -25,9 +30,32 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const body = await req.json().catch(() => ({}));
-    const siteAssetId = String(body?.site_asset_id || '').trim();
-    const action = body?.action === 'delete' ? 'delete' : 'upload';
+    const contentType = req.headers.get('content-type') || '';
+    let siteAssetId = '';
+    let action: 'upload' | 'delete' = 'upload';
+    let attachmentId = '';
+    let fileUrl = '';
+    let fileName = '';
+    let uploadFile: File | null = null;
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await req.formData();
+      siteAssetId = String(formData.get('site_asset_id') || '').trim();
+      action = String(formData.get('action') || 'upload') === 'delete' ? 'delete' : 'upload';
+      attachmentId = String(formData.get('attachment_id') || '').trim();
+      fileUrl = String(formData.get('file_url') || '').trim();
+      fileName = String(formData.get('file_name') || '').trim();
+      const f = formData.get('file');
+      if (f instanceof File) uploadFile = f;
+    } else {
+      const body = await req.json().catch(() => ({}));
+      siteAssetId = String(body?.site_asset_id || '').trim();
+      action = body?.action === 'delete' ? 'delete' : 'upload';
+      attachmentId = String(body?.attachment_id || '').trim();
+      fileUrl = String(body?.file_url || '').trim();
+      fileName = String(body?.file_name || '').trim();
+    }
+
     if (!siteAssetId) return Response.json({ error: 'site_asset_id is required' }, { status: 400 });
 
     const asset = await base44.asServiceRole.entities.SiteAsset.get(siteAssetId);
@@ -46,31 +74,43 @@ export default async function(req: Request): Promise<Response> {
 
     let actionError = '';
     if (action === 'upload') {
-      const fileUrl = String(body?.file_url || '').trim();
-      if (!fileUrl) return Response.json({ error: 'file_url is required for upload' }, { status: 400 });
       try {
-        // Download the staged file, then re-upload it to Asset Panda as multipart.
-        const fileRes = await fetch(fileUrl);
-        if (!fileRes.ok) return Response.json({ error: `Could not download staged file (HTTP ${fileRes.status})` }, { status: 422 });
-        const blob = await fileRes.blob();
-        const fileName = String(body?.file_name || `photo-${Date.now()}.jpg`);
-        const form = new FormData();
-        form.append('file', blob, fileName);
-        form.append('type', 'Image');
-        const res = await fetch(`${baseUrl}/v3/group/objects/${encodeURIComponent(pandaId)}/attachments`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: form,
-        });
-        if (!res.ok) {
-          const errBody = await res.text().catch(() => '');
-          actionError = `Upload failed (HTTP ${res.status}): ${errBody.slice(0, 200)}`;
+        // Prefer the directly-uploaded file (multipart). Fall back to a staged
+        // file_url (JSON) for callers that can't post multipart.
+        let blob: Blob;
+        if (uploadFile) {
+          blob = uploadFile;
+          if (!fileName) fileName = uploadFile.name || `photo-${Date.now()}.jpg`;
+        } else if (fileUrl) {
+          const fileRes = await fetch(fileUrl);
+          if (!fileRes.ok) {
+            actionError = `Could not download staged file (HTTP ${fileRes.status})`;
+          } else {
+            blob = await fileRes.blob();
+            if (!fileName) fileName = `photo-${Date.now()}.jpg`;
+          }
+        } else {
+          actionError = 'No file provided for upload (send a multipart file or a file_url)';
+        }
+        if (!actionError && blob) {
+          if (!fileName) fileName = `photo-${Date.now()}.jpg`;
+          const form = new FormData();
+          form.append('file', blob, fileName);
+          form.append('type', 'Image');
+          const res = await fetch(`${baseUrl}/v3/group/objects/${encodeURIComponent(pandaId)}/attachments`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: form,
+          });
+          if (!res.ok) {
+            const errBody = await res.text().catch(() => '');
+            actionError = `Upload failed (HTTP ${res.status}): ${errBody.slice(0, 200)}`;
+          }
         }
       } catch (e: any) {
         actionError = `Upload failed: ${e.message}`;
       }
     } else {
-      const attachmentId = String(body?.attachment_id || '').trim();
       if (!attachmentId) return Response.json({ error: 'attachment_id is required for delete' }, { status: 400 });
       try {
         const form = new FormData();
