@@ -36,6 +36,8 @@ const EDITABLE_FIELD_LABELS: Record<string, string[]> = {
   cost_price: ['cost price', 'purchase cost', 'internal cost', 'purchase price', 'cost'],
   charge_out_price: ['charge out', 'charge-out', 'sell', 'sale price', 'selling price', 'charge'],
   notes: ['notes', 'comments', 'remarks'],
+  quantity_owned: ['quantity owned', 'qty owned', 'owned'],
+  quantity_available: ['quantity available', 'qty available', 'quantity avail', 'available'],
 };
 
 /**
@@ -94,8 +96,39 @@ async function resolveGroupIdForPandaId(base44: any, config: any, pandaId: strin
 }
 
 /**
- * Book-in: mark assets as 'In Stock' in Asset Panda.
- * Called by processAssetReturn after crew scan-returns gear to the yard.
+ * Resolve the Asset Panda field key for 'Quantity Available' for a group,
+ * using the explicit field_map first, then label-based auto-detection.
+ * Cached per group within a single push call so multi-asset sign-outs don't
+ * re-fetch the group field definitions for every object.
+ */
+async function detectQtyAvailableKey(
+  baseUrl: string,
+  token: string,
+  config: any,
+  groupId: string,
+  cache: Record<string, string>
+): Promise<string> {
+  const explicit = buildFullFieldMap(config);
+  if (explicit.quantity_available) return explicit.quantity_available;
+  if (!groupId || !token) return '';
+  if (cache[groupId] !== undefined) return cache[groupId];
+  let key = '';
+  try {
+    const fields = await fetchPandaGroupFields(baseUrl, token, groupId);
+    const f = fields.find((fld) => {
+      const label = String(fld.label || '').toLowerCase();
+      return ['quantity available', 'qty available', 'quantity avail', 'available'].some((k) => label.includes(k));
+    });
+    key = f?.key || '';
+  } catch (_) { /* leave empty */ }
+  cache[groupId] = key;
+  return key;
+}
+
+/**
+ * Book-in: mark assets as 'In Stock' in Asset Panda and increment the
+ * Quantity Available (capped at Quantity Owned). Called by processAssetReturn
+ * after crew scan-returns gear to the yard.
  */
 export async function pushToAssetPanda(base44, pandaAssetIds) {
   const configs = await base44.asServiceRole.entities.AssetPandaConfig.filter({ key: 'global' });
@@ -111,23 +144,47 @@ export async function pushToAssetPanda(base44, pandaAssetIds) {
   const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
   const fieldMap = buildFullFieldMap(config);
   const stockField = fieldMap.stock_level || config.field_stock_status || '';
+  const qtyCache: Record<string, string> = {};
   let updated = 0;
   const errors = [];
 
   for (const pandaId of pandaAssetIds) {
     if (!pandaId) continue;
     try {
-      const groupId = await resolveGroupIdForPandaId(base44, config, pandaId);
+      let asset: any = null;
+      try {
+        const found = await base44.asServiceRole.entities.SiteAsset.filter({ panda_asset_id: pandaId });
+        if (found && found.length > 0) asset = found[0];
+      } catch (_) { /* leave null */ }
+      const groupId = asset ? resolveGroupIdForAsset(config, asset) : await resolveGroupIdForPandaId(base44, config, pandaId);
       if (!groupId) { errors.push(`${pandaId}: no group resolved`); continue; }
-      const updateBody = {};
+
+      const updateBody: any = {};
       if (stockField) updateBody[stockField] = 'In Stock';
+      // Increment Quantity Available by 1, capped at Quantity Owned.
+      const qtyKey = await detectQtyAvailableKey(baseUrl, token, config, groupId, qtyCache);
+      let newQty: number | null = null;
+      if (qtyKey && asset) {
+        const cur = Number(asset.quantity_available ?? 0);
+        const owned = Number(asset.quantity_owned ?? cur);
+        const safeCur = isNaN(cur) ? 0 : cur;
+        const safeOwned = isNaN(owned) ? safeCur : owned;
+        newQty = Math.min(safeOwned, safeCur + 1);
+        updateBody[qtyKey] = newQty;
+      }
       const res = await fetch(`${baseUrl}/v3/groups/${groupId}/objects/${pandaId}`, {
         method: 'PUT',
         headers: authHeaders,
         body: JSON.stringify(updateBody),
       });
-      if (res.ok) updated++;
-      else errors.push(`${pandaId}: HTTP ${res.status}`);
+      if (res.ok) {
+        updated++;
+        if (asset && newQty !== null) {
+          try { await base44.asServiceRole.entities.SiteAsset.update(asset.id, { quantity_available: newQty }); } catch (_) {}
+        }
+      } else {
+        errors.push(`${pandaId}: HTTP ${res.status}`);
+      }
     } catch (e) {
       errors.push(`${pandaId}: ${e.message}`);
     }
@@ -163,25 +220,47 @@ export async function pushSignOutToPanda(base44, pandaIds, jobName) {
   const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
   const fieldMap = buildFullFieldMap(config);
   const stockField = fieldMap.stock_level || config.field_stock_status || '';
+  const qtyCache: Record<string, string> = {};
   let updated = 0;
   const errors = [];
 
   for (const pandaId of pandaIds) {
     if (!pandaId) continue;
     try {
-      const groupId = await resolveGroupIdForPandaId(base44, config, pandaId);
+      let asset: any = null;
+      try {
+        const found = await base44.asServiceRole.entities.SiteAsset.filter({ panda_asset_id: pandaId });
+        if (found && found.length > 0) asset = found[0];
+      } catch (_) { /* leave null */ }
+      const groupId = asset ? resolveGroupIdForAsset(config, asset) : await resolveGroupIdForPandaId(base44, config, pandaId);
       if (!groupId) { errors.push(`${pandaId}: no group resolved`); continue; }
-      const updateBody = {};
+
+      const updateBody: any = {};
       if (stockField) {
         updateBody[stockField] = jobName ? `Out on Job: ${jobName}` : 'Out on Job';
+      }
+      // Decrement Quantity Available by 1, floored at 0.
+      const qtyKey = await detectQtyAvailableKey(baseUrl, token, config, groupId, qtyCache);
+      let newQty: number | null = null;
+      if (qtyKey && asset) {
+        const cur = Number(asset.quantity_available ?? 0);
+        const safeCur = isNaN(cur) ? 0 : cur;
+        newQty = Math.max(0, safeCur - 1);
+        updateBody[qtyKey] = newQty;
       }
       const res = await fetch(`${baseUrl}/v3/groups/${groupId}/objects/${pandaId}`, {
         method: 'PUT',
         headers: authHeaders,
         body: JSON.stringify(updateBody),
       });
-      if (res.ok) updated++;
-      else errors.push(`${pandaId}: HTTP ${res.status}`);
+      if (res.ok) {
+        updated++;
+        if (asset && newQty !== null) {
+          try { await base44.asServiceRole.entities.SiteAsset.update(asset.id, { quantity_available: newQty }); } catch (_) {}
+        }
+      } else {
+        errors.push(`${pandaId}: HTTP ${res.status}`);
+      }
     } catch (e) {
       errors.push(`${pandaId}: ${e.message}`);
     }

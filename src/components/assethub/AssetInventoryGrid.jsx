@@ -55,6 +55,21 @@ function conditionTone(cond) {
   return 'bg-slate-50 text-slate-600 border-slate-200';
 }
 
+/** Quantity available / owned badge — red when 0, amber when low, slate otherwise. */
+function QuantityBadge({ available, owned }) {
+  if (available == null && owned == null) return null;
+  const a = available ?? 0;
+  const o = owned ?? null;
+  const tone = a <= 0
+    ? 'bg-rose-50 text-rose-700 border-rose-200'
+    : (o != null && a < o ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-100 text-slate-600 border-slate-200');
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${tone}`} title="Quantity available / owned">
+      <Boxes className="w-2.5 h-2.5" /> {o != null ? `${a} / ${o}` : `${a}`}
+    </span>
+  );
+}
+
 /**
  * Photo banner — the top section of every inventory card. Shows the first
  * cached Asset Panda thumbnail full-width with a gradient scrim and a
@@ -237,6 +252,7 @@ export default function AssetInventoryGrid({
                       {rig.panda_asset_id
                         ? <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200" title={syncTitle(rig)}><Database className="w-2.5 h-2.5" /> Panda</span>
                         : <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200" title={syncTitle(rig)}><CircleDot className="w-2.5 h-2.5" /> Local</span>}
+                      <QuantityBadge available={rig.quantity_available} owned={rig.quantity_owned} />
                     </div>
                     <div className="flex gap-1.5 mb-2">
                       {['compliant', 'expiring', 'expired', 'unknown'].map(k => rollup.counts[k] > 0 && (
@@ -343,6 +359,7 @@ export default function AssetInventoryGrid({
                           <Ruler className="w-2.5 h-2.5" /> {equip.length}m
                         </span>
                       )}
+                      <QuantityBadge available={equip.quantity_available} owned={equip.quantity_owned} />
                     </div>
                     {/* Footer: condition + source + parent rig + expiry */}
                     <div className="flex items-center gap-1.5 flex-wrap">

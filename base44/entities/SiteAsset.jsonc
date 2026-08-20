@@ -177,6 +177,14 @@
       "default": "unknown",
       "description": "Live stock/condition quality from Asset Panda. 'needs_service' or 'out_of_stock' items are auto-deactivated and cannot be added to jobs."
     },
+    "quantity_owned": {
+      "type": "number",
+      "description": "Total quantity of this asset that Ground Control owns, pulled from Asset Panda's 'Quantity Owned' field. For single-unit assets typically 1; for stock-pool items (slings, consumables) it's the total held. Used as the ceiling when incrementing Quantity Available on book-in."
+    },
+    "quantity_available": {
+      "type": "number",
+      "description": "Quantity currently available in the yard (not out on a job), pulled from Asset Panda's 'Quantity Available' field. Decremented by 1 on book-out (floored at 0) and incremented by 1 on book-in (capped at quantity_owned), with the new value pushed back to Asset Panda. Shown on asset cards as 'available / owned'."
+    },
     "sync_status": {
       "type": "string",
       "enum": [

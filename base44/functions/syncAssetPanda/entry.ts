@@ -167,6 +167,7 @@ Deno.serve(async (req) => {
       'last_service_date', 'service_notes', 'repair_notes', 'colour', 'equipment_type',
       'tooling_notes', 'notes',
       'fleet_number', 'make', 'model', 'length', 'fuel_type', 'condition', 'hours_used',
+      'quantity_owned', 'quantity_available',
     ]);
 
     // --- Load existing SiteAssets for matching (exclude demo) ---
@@ -243,6 +244,8 @@ Deno.serve(async (req) => {
         if (!autoExtraMap.condition) autoExtraMap.condition = findByLabel(['condition']);
         if (!autoExtraMap.hours_used) autoExtraMap.hours_used = findByLabel(['hours used', 'hour meter', 'hourmeter', 'hours']);
         if (!autoExtraMap.length) autoExtraMap.length = findByLabel(['length']);
+        if (!autoExtraMap.quantity_owned) autoExtraMap.quantity_owned = findByLabel(['quantity owned', 'qty owned', 'owned']);
+        if (!autoExtraMap.quantity_available) autoExtraMap.quantity_available = findByLabel(['quantity available', 'qty available', 'quantity avail', 'available']);
         // Auto-detect date fields for compliance & maintenance status derivation
         if (!autoExtraMap.compliance_expiry_date) autoExtraMap.compliance_expiry_date = findByLabel(['next inspection', 'expiry', 'loler', 'pat', 'next test', 'due date', 'inspection due', 'test due', 'next loler', 'next pat', 'inspection date']);
         if (!autoExtraMap.next_service_date) autoExtraMap.next_service_date = findByLabel(['next service', 'service due', 'next service due', 'service date', 'next maintenance']);
@@ -429,7 +432,7 @@ Deno.serve(async (req) => {
           for (const [sysField, pandaKey] of Object.entries(extraMap)) {
             const val = fieldValue(obj, pandaKey);
             if (!val) continue;
-            if (sysField === 'length' || sysField === 'hours_used') {
+            if (sysField === 'length' || sysField === 'hours_used' || sysField === 'quantity_owned' || sysField === 'quantity_available') {
               const num = parseRate(val);
               if (num != null) payload[sysField] = num;
             } else if (DATE_SYS_FIELDS.has(sysField)) {

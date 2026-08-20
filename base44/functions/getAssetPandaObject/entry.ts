@@ -101,6 +101,29 @@ export default async function(req: Request): Promise<Response> {
       sync_status: 'synced',
     };
     if (Object.keys(rawFields).length > 0) updateData.panda_raw_fields = rawFields;
+
+    // Re-sync Quantity Owned & Available from the cached raw fields so the
+    // card and detail view reflect Asset Panda's current stock numbers.
+    try {
+      const findRaw = (keywords: string[]): string => {
+        for (const k of keywords) {
+          for (const [label, val] of Object.entries(rawFields)) {
+            if (label.toLowerCase().includes(k)) return val;
+          }
+        }
+        return '';
+      };
+      const parseQty = (s: string): number | null => {
+        if (!s) return null;
+        const n = Number(String(s).replace(/[^0-9.]/g, ''));
+        return isNaN(n) ? null : n;
+      };
+      const qo = parseQty(findRaw(['quantity owned', 'qty owned', 'owned']));
+      const qa = parseQty(findRaw(['quantity available', 'qty available', 'quantity avail', 'available']));
+      if (qo !== null) updateData.quantity_owned = qo;
+      if (qa !== null) updateData.quantity_available = qa;
+    } catch (_) { /* best-effort */ }
+
     try {
       await base44.asServiceRole.entities.SiteAsset.update(siteAssetId, updateData);
     } catch (e) { /* best-effort cache */ }
