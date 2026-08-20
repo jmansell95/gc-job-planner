@@ -7,6 +7,7 @@ import {
   Webhook, KeyRound, Link2, ToggleLeft, ToggleRight, Activity,
   CheckCircle2, AlertCircle, Loader2, Copy, RefreshCw, Power, ServerCog,
 } from 'lucide-react';
+import KeyLogBookSyncButton from './KeyLogBookSyncButton';
 
 export default function KeyLogBookWebhookSection() {
   const { toast } = useToast();
@@ -244,6 +245,15 @@ export default function KeyLogBookWebhookSection() {
           </div>
         </div>
       )}
+
+      {/* Manual test sync */}
+      <div className="border-t border-slate-100 pt-4">
+        <div className="flex items-center gap-2 mb-3">
+          <RefreshCw className="w-4 h-4 text-[#2E5A1A]" />
+          <h4 className="text-sm font-bold text-slate-900">Test Sync</h4>
+        </div>
+        <KeyLogBookSyncButton config={config} />
+      </div>
 
       {/* Save button */}
       <button
