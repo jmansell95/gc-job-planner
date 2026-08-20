@@ -85,7 +85,10 @@ Deno.serve(async (req) => {
     // --- Helpers ---
     const fieldValue = (obj: any, key: string) => {
       if (!key) return '';
-      const v = obj[key];
+      // Asset Panda V3 search objects store custom field values inside `data`,
+      // not at the top level. Check both locations.
+      let v = obj[key];
+      if (v == null && obj.data) v = obj.data[key];
       if (v == null) return '';
       if (typeof v === 'object') return String(v.value ?? v.name ?? v.label ?? '').trim();
       return String(v).trim();
