@@ -477,12 +477,17 @@ Deno.serve(async (req) => {
       rawBodyText = await req.text();
       try {
         klbBody = JSON.parse(rawBodyText);
-        if (klbBody?.event_type && ['hole_created', 'hole_updated', 'hole_deleted'].includes(klbBody.event_type)) {
+        // KeyLogBook server wraps the contextual fields in a `data` object and
+        // uses camelCase event names (eventType, holeGuid, projectName, etc.).
+        // Support both the nested format and the legacy flat format.
+        const evtType = klbBody?.eventType || klbBody?.event_type;
+        if (evtType && ['hole_created', 'hole_updated', 'hole_deleted'].includes(evtType)) {
           isKlbWebhook = true;
-          klbEventType = klbBody.event_type;
-          klbHoleId = klbBody.hole_id || klbBody.holeId || '';
-          klbProjectName = klbBody.project_name || klbBody.projectName || '';
-          klbProjectNumber = klbBody.project_number || klbBody.projectNumber || '';
+          klbEventType = evtType;
+          const d = klbBody.data || {};
+          klbHoleId = d.holeNumber || d.holeGuid || klbBody.hole_id || klbBody.holeId || '';
+          klbProjectName = d.projectName || klbBody.project_name || klbBody.projectName || '';
+          klbProjectNumber = d.projectNumber || klbBody.project_number || klbBody.projectNumber || '';
         }
       } catch (e) { /* not JSON */ }
     }
@@ -605,7 +610,7 @@ Deno.serve(async (req) => {
     let text: string;
     let jobId: string | null = null;
     if (isKlbWebhook && klbBody) {
-      const agsB64 = klbBody.ags_file || klbBody.agsFile || '';
+      const agsB64 = klbBody.data?.agsFile || klbBody.ags_file || klbBody.agsFile || '';
       if (!agsB64) return Response.json({ error: 'No AGS file provided for hole event.' }, { status: 400 });
       try { text = atob(agsB64); } catch (e) {
         return Response.json({ error: 'Could not decode Base64 AGS file.' }, { status: 400 });
