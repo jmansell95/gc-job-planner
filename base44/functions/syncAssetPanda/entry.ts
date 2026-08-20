@@ -443,6 +443,14 @@ Deno.serve(async (req) => {
             }
           }
 
+          // Default quantity_available to quantity_owned when Asset Panda tracks
+          // owned but has no separate available field. Since nothing is booked
+          // out yet, all owned units are available. This also backfills existing
+          // records on the next sync run so cards show full stock immediately.
+          if (payload.quantity_owned != null && payload.quantity_available == null) {
+            payload.quantity_available = payload.quantity_owned;
+          }
+
           // Capture ALL raw Asset Panda field values (label → value) so no data is lost
           const rawFields: Record<string, string> = {};
           const rawData = obj.data || obj;

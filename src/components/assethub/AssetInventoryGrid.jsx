@@ -58,8 +58,10 @@ function conditionTone(cond) {
 /** Quantity available / owned badge — red when 0, amber when low, slate otherwise. */
 function QuantityBadge({ available, owned }) {
   if (available == null && owned == null) return null;
-  const a = available ?? 0;
   const o = owned ?? null;
+  // When Asset Panda tracks owned but not available, all owned units are
+  // available (nothing booked out yet) — fall back so the card shows full stock.
+  const a = available != null ? available : (o != null ? o : 0);
   const tone = a <= 0
     ? 'bg-rose-50 text-rose-700 border-rose-200'
     : (o != null && a < o ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-100 text-slate-600 border-slate-200');
