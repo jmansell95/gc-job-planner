@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { rollupCompliance, COMPLIANCE_META, ASSET_TYPE_META, findParentRig, daysUntil } from '@/utils/rigRollup';
 import RigUtilizationSparkline from '@/components/righub/RigUtilizationSparkline';
+import CardComplianceRing from '@/components/assethub/CardComplianceRing';
 
 const TYPE_ICON = { rig: Cog, machinery: Wrench, trailer: Package, vehicle: Truck, lifting: Anchor, portable_appliance: Plug };
 const TYPE_GRADIENT = {
@@ -52,6 +53,34 @@ function conditionTone(cond) {
   if (c.includes('fair') || c.includes('used') || c.includes('average') || c.includes('wear') || c.includes('working')) return 'bg-amber-50 text-amber-700 border-amber-200';
   if (c.includes('poor') || c.includes('bad') || c.includes('repair') || c.includes('faulty') || c.includes('damage') || c.includes('broken') || c.includes('scrap')) return 'bg-rose-50 text-rose-700 border-rose-200';
   return 'bg-slate-50 text-slate-600 border-slate-200';
+}
+
+/**
+ * Photo banner — the top section of every inventory card. Shows the first
+ * cached Asset Panda thumbnail full-width with a gradient scrim and a
+ * compliance countdown ring overlaid bottom-left. Falls back to the
+ * type-gradient icon tile when there's no photo.
+ */
+function AssetCardBanner({ asset, heightClass = 'h-28' }) {
+  const img = Array.isArray(asset?.panda_image_urls) ? asset.panda_image_urls[0] : null;
+  const imgUrl = img?.thumb || img?.medium || img?.url;
+  const Icon = TYPE_ICON[asset?.asset_type] || Wrench;
+  const grad = TYPE_GRADIENT[asset?.asset_type] || 'from-slate-500 to-slate-700';
+  return (
+    <div className={`relative ${heightClass} overflow-hidden`}>
+      {imgUrl ? (
+        <img src={imgUrl} alt={asset?.name || ''} loading="lazy" className="w-full h-full object-cover" />
+      ) : (
+        <div className={`w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center`}>
+          <Icon className="w-10 h-10 text-white/80" />
+        </div>
+      )}
+      <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/45 to-transparent" />
+      <div className="absolute bottom-2 left-2">
+        <CardComplianceRing expiryDate={asset?.compliance_expiry_date} size={56} />
+      </div>
+    </div>
+  );
 }
 
 function StatPill({ icon: Icon, label, value, tone }) {
@@ -168,68 +197,75 @@ export default function AssetInventoryGrid({
               const border = rollup.master === 'expired' ? 'border-l-4 border-l-red-500 ring-1 ring-red-100' : rollup.master === 'expiring' ? 'border-l-4 border-l-amber-500 ring-1 ring-amber-100' : rollup.master === 'unknown' ? 'border-l-4 border-l-slate-400 ring-1 ring-slate-100' : 'border-l-4 border-l-emerald-500 ring-1 ring-emerald-100';
               const depotTagged = isInDepot(rig);
               return (
-                <button key={rig.id} onClick={() => onOpenRig(rig)} className={`insight-card rounded-xl p-4 text-left ${border} relative overflow-hidden`}>
+                <button key={rig.id} onClick={() => onOpenRig(rig)} className={`insight-card rounded-xl text-left ${border} relative overflow-hidden`}>
+                  <AssetCardBanner asset={rig} heightClass="h-32" />
                   {depotTagged && (
-                    <span className="absolute top-0 right-0 bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg flex items-center gap-0.5">
+                    <span className="absolute top-0 right-0 bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg flex items-center gap-0.5 z-10">
                       <Warehouse className="w-2.5 h-2.5" /> DEPOT
                     </span>
                   )}
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-md icon-tile-glow">
-                        <Cog className="w-6 h-6 text-white" />
-                      </div>
+                  <div className="p-3.5">
+                    <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="min-w-0">
                         <p className="font-semibold text-slate-900 truncate">{rig.name}</p>
-                        {rig.rig_type && rig.rig_type !== 'n/a' && <p className="text-[11px] text-blue-600 font-bold uppercase">{rig.rig_type} Rig</p>}
-                        {[rig.make, rig.model].filter(Boolean).length > 0 && (
-                          <p className="text-[11px] text-slate-500 truncate font-medium">{[rig.make, rig.model].filter(Boolean).join(' · ')}</p>
-                        )}
+                        <p className="text-[11px] text-slate-500 truncate font-medium">
+                          {[rig.make, rig.model].filter(Boolean).join(' · ') || (rig.rig_type && rig.rig_type !== 'n/a' ? `${rig.rig_type.toUpperCase()} Rig` : 'Rig')}
+                        </p>
                         <p className="text-[11px] text-slate-400 font-mono truncate">
                           {rig.fleet_number ? `FAA ${rig.fleet_number}` : rig.serial_number || ''}
                         </p>
                       </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />
                     </div>
-                    <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />
-                  </div>
-                  <div className="flex items-center justify-between mb-2.5">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border ${meta.tone}`}>
-                      <MasterIcon className="w-3.5 h-3.5" /> {meta.label}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      {rig.panda_asset_id
-                        ? <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200" title={syncTitle(rig)}><Database className="w-3 h-3" /> Panda</span>
-                        : <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200" title={syncTitle(rig)}><CircleDot className="w-3 h-3" /> Local</span>}
-                      <span className="text-xs text-slate-400 flex items-center gap-1"><Link2 className="w-3 h-3" /> {linked.length}</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-1.5">
-                    {['compliant', 'expiring', 'expired', 'unknown'].map(k => rollup.counts[k] > 0 && (
-                      <span key={k} className={`flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${COMPLIANCE_META[k].tone}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${COMPLIANCE_META[k].dot}`} /> {rollup.counts[k]}
+                    <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${meta.tone}`}>
+                        <MasterIcon className="w-3 h-3" /> {meta.label}
                       </span>
-                    ))}
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                        <Link2 className="w-2.5 h-2.5" /> {linked.length}
+                      </span>
+                      {rig.hours_used != null && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                          <Clock className="w-2.5 h-2.5" /> {rig.hours_used}h
+                        </span>
+                      )}
+                      {rig.storage_location && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 truncate max-w-[130px]">
+                          <MapPin className="w-2.5 h-2.5" /> {rig.storage_location}
+                        </span>
+                      )}
+                      {rig.panda_asset_id
+                        ? <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200" title={syncTitle(rig)}><Database className="w-2.5 h-2.5" /> Panda</span>
+                        : <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200" title={syncTitle(rig)}><CircleDot className="w-2.5 h-2.5" /> Local</span>}
+                    </div>
+                    <div className="flex gap-1.5 mb-2">
+                      {['compliant', 'expiring', 'expired', 'unknown'].map(k => rollup.counts[k] > 0 && (
+                        <span key={k} className={`flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${COMPLIANCE_META[k].tone}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${COMPLIANCE_META[k].dot}`} /> {rollup.counts[k]}
+                        </span>
+                      ))}
+                    </div>
+                    {(() => {
+                      const totalUnits = (rig.linked_equipment_ids || []).length + 1;
+                      const pct = totalUnits > 0 ? Math.round((rollup.counts.compliant / totalUnits) * 100) : 0;
+                      return (
+                        <div className="mb-2">
+                          <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+                            <span>Compliance</span>
+                            <span className="font-semibold text-slate-600">{pct}%</span>
+                          </div>
+                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${pct >= 85 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    <RigUtilizationSparkline rigId={rig.id} />
+                    {rig.next_service_date && <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1"><ScanLine className="w-3 h-3" /> Next service {safeFmt(rig.next_service_date)}</p>}
+                    <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); onCertVault(rig); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onCertVault(rig); } }} className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[#2E5A1A]/10 hover:bg-[#2E5A1A]/20 text-[#2E5A1A] rounded-lg text-[11px] font-semibold transition w-full justify-center">
+                      <Lock className="w-3.5 h-3.5" /> View Certificates
+                    </span>
                   </div>
-                  {(() => {
-                    const totalUnits = (rig.linked_equipment_ids || []).length + 1;
-                    const pct = totalUnits > 0 ? Math.round((rollup.counts.compliant / totalUnits) * 100) : 0;
-                    return (
-                      <div className="mt-2">
-                        <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1">
-                          <span>Compliance</span>
-                          <span className="font-semibold text-slate-600">{pct}%</span>
-                        </div>
-                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${pct >= 85 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    );
-                  })()}
-                  <RigUtilizationSparkline rigId={rig.id} />
-                  {rig.next_service_date && <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1"><ScanLine className="w-3 h-3" /> Next service {safeFmt(rig.next_service_date)}</p>}
-                  <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); onCertVault(rig); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onCertVault(rig); } }} className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[#2E5A1A]/10 hover:bg-[#2E5A1A]/20 text-[#2E5A1A] rounded-lg text-[11px] font-semibold transition w-full justify-center">
-                    <Lock className="w-3.5 h-3.5" /> View Certificates
-                  </span>
                 </button>
               );
             })}
@@ -267,54 +303,52 @@ export default function AssetInventoryGrid({
                 } else { onOpenEquip(equip); }
               };
               return (
-                <div key={equip.id} onClick={handleCardClick} className={`insight-card rounded-xl p-4 text-left relative ${statusAccent} ${selectionMode ? 'cursor-pointer' : 'cursor-pointer hover:shadow-lg'} ${isSel ? 'ring-2 ring-emerald-500' : ''} ${depotTagged ? 'ring-1 ring-emerald-200' : ''}`}>
-                  {selectionMode && <div className={`absolute top-2.5 right-2.5 w-6 h-6 rounded-md flex items-center justify-center border-2 transition z-10 ${isSel ? 'bg-emerald-500 border-emerald-500' : 'bg-white/80 border-slate-300'}`}>{isSel && <Check className="w-4 h-4 text-white" />}</div>}
-                  {/* Depot ribbon */}
+                <div key={equip.id} onClick={handleCardClick} className={`insight-card rounded-xl text-left relative ${statusAccent} ${selectionMode ? 'cursor-pointer' : 'cursor-pointer hover:shadow-lg'} ${isSel ? 'ring-2 ring-emerald-500' : ''} ${depotTagged ? 'ring-1 ring-emerald-200' : ''} overflow-hidden`}>
+                  {selectionMode && <div className={`absolute top-2.5 right-2.5 w-6 h-6 rounded-md flex items-center justify-center border-2 transition z-20 ${isSel ? 'bg-emerald-500 border-emerald-500' : 'bg-white/80 border-slate-300'}`}>{isSel && <Check className="w-4 h-4 text-white" />}</div>}
+                  <AssetCardBanner asset={equip} heightClass="h-28" />
                   {depotTagged && !selectionMode && (
-                    <span className="absolute top-0 right-0 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg flex items-center gap-0.5 shadow-sm">
+                    <span className="absolute top-0 right-0 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg flex items-center gap-0.5 shadow-sm z-10">
                       <Warehouse className="w-2.5 h-2.5" /> IN DEPOT
                     </span>
                   )}
-                  <div className="flex items-start justify-between gap-2 mb-2.5">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center flex-shrink-0 shadow-md icon-tile-glow`}>
-                        <Icon className="w-5.5 h-5.5 text-white" />
-                      </div>
+                  <div className="p-3.5">
+                    <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="min-w-0">
                         <p className="font-semibold text-slate-900 truncate">{equip.name}</p>
-                        <p className="text-[11px] text-slate-500 truncate font-medium">
-                          {[equip.make, equip.model].filter(Boolean).join(' · ') || (ASSET_TYPE_META[equip.asset_type]?.label || equip.asset_type)}
-                          {!equip.make && !equip.model && equip.equipment_type ? ` · ${equip.equipment_type}` : ''}
+                        <p className="text-[11px] text-slate-400 font-mono truncate">
+                          {equip.fleet_number ? `FAA ${equip.fleet_number}` : equip.serial_number || ''}
                         </p>
                       </div>
+                      {!selectionMode && <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />}
                     </div>
-                    {!selectionMode && <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />}
-                  </div>
-                  <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full border ${meta.tone}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} /> {meta.label}
-                      </span>
-                      {equip.fleet_number && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#2E5A1A] text-white border border-[#2E5A1A]" title="FAA / Fleet Number">
-                          <Hash className="w-2.5 h-2.5" /> {equip.fleet_number}
+                    {/* 3 spec chips */}
+                    <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                      {(equip.make || equip.model) && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 truncate max-w-[120px]">
+                          {[equip.make, equip.model].filter(Boolean).join(' · ')}
+                        </span>
+                      )}
+                      {equip.hours_used != null && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                          <Clock className="w-2.5 h-2.5" /> {equip.hours_used}h
+                        </span>
+                      )}
+                      {equip.storage_location && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 truncate max-w-[120px]">
+                          <MapPin className="w-2.5 h-2.5" /> {equip.storage_location}
                         </span>
                       )}
                       {isCasingItem(equip) && equip.length != null && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200" title="Length (m)">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
                           <Ruler className="w-2.5 h-2.5" /> {equip.length}m
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 flex-wrap">
+                    {/* Footer: condition + source + parent rig + expiry */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {equip.condition && (
-                        <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${conditionTone(equip.condition)}`} title="Condition">
+                        <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${conditionTone(equip.condition)}`}>
                           <Gauge className="w-2.5 h-2.5" /> {equip.condition}
-                        </span>
-                      )}
-                      {depotTagged && (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200" title="At the depot — ready to assign">
-                          <Warehouse className="w-2.5 h-2.5" /> Depot
                         </span>
                       )}
                       {equip.panda_asset_id
@@ -322,31 +356,12 @@ export default function AssetInventoryGrid({
                         : <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200" title={syncTitle(equip)}><CircleDot className="w-2.5 h-2.5" /> Local</span>}
                       {parentRig && <span className="text-[10px] text-emerald-700 font-medium flex items-center gap-0.5"><Link2 className="w-3 h-3" /> {parentRig.name}</span>}
                     </div>
-                  </div>
-                  {/* Info row: serial + storage + hours */}
-                  <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-1.5 flex-wrap">
-                    {equip.serial_number && <span className="font-mono bg-slate-50 px-1.5 py-0.5 rounded">{equip.serial_number}</span>}
-                    {equip.storage_location && (
-                      <span className="flex items-center gap-0.5">
-                        <MapPin className="w-2.5 h-2.5" /> {equip.storage_location}
-                      </span>
-                    )}
-                    {equip.hours_used != null && (
-                      <span className="flex items-center gap-0.5 text-slate-500 font-medium">
-                        <Clock className="w-2.5 h-2.5" /> {equip.hours_used}h
-                      </span>
-                    )}
-                    {ready && depotTagged && (
-                      <span className="flex items-center gap-0.5 text-emerald-600 font-medium">
-                        <Check className="w-2.5 h-2.5" /> Ready
-                      </span>
+                    {d !== null && (
+                      <p className={`text-[10px] font-medium mt-1.5 flex items-center gap-1 ${d < 0 ? 'text-red-600' : d <= 30 ? 'text-amber-600' : 'text-slate-400'}`}>
+                        <CalendarClock className="w-3 h-3" /> {d < 0 ? 'Expired' : `${d}d left`} · {safeFmt(equip.compliance_expiry_date)}
+                      </p>
                     )}
                   </div>
-                  {d !== null && (
-                    <p className={`text-[10px] font-medium mt-1.5 flex items-center gap-1 ${d < 0 ? 'text-red-600' : d <= 30 ? 'text-amber-600' : 'text-slate-400'}`}>
-                      <CalendarClock className="w-3 h-3" /> {d < 0 ? 'Expired' : `${d}d left`} · {safeFmt(equip.compliance_expiry_date)}
-                    </p>
-                  )}
                 </div>
               );
             })}

@@ -155,3 +155,70 @@ export function buildFullFieldMap(config: any): Record<string, string> {
   }
   return map;
 }
+
+/**
+ * Resolve the Asset Panda group ID for a given asset.
+ * Multi-group: match the asset's panda_group_label against config.groups.
+ * Legacy: fall back to config.group_id, then the first configured group.
+ */
+export function resolveGroupIdForAsset(config: any, asset: any): string {
+  if (Array.isArray(config.groups) && config.groups.length > 0 && asset?.panda_group_label) {
+    const match = config.groups.find((g: any) => g.label === asset.panda_group_label);
+    if (match?.group_id) return match.group_id;
+  }
+  if (Array.isArray(config.groups) && config.groups.length > 0) {
+    return config.groups[0].group_id;
+  }
+  return config.group_id || '';
+}
+
+/**
+ * Fetch the image attachments for an Asset Panda object.
+ * GET /v3/attachments?entity_object_id=<pandaId>&type=Image
+ * Returns normalised [{ id, url, thumb, medium, large, name }] so the gallery
+ * and the card banner can use the same shape (the id is needed for deletes).
+ */
+export async function fetchPandaImages(
+  baseUrl: string,
+  token: string,
+  pandaId: string
+): Promise<{ id: string; url: string; thumb: string; medium: string; large: string; name: string }[]> {
+  const url = `${baseUrl}/v3/attachments?entity_object_id=${encodeURIComponent(pandaId)}&type=Image&limit=100`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) throw new Error(`Asset Panda attachments request failed (HTTP ${res.status})`);
+  const json: any = await res.json();
+  const raw = Array.isArray(json?.attachments?.images)
+    ? json.attachments.images
+    : Array.isArray(json?.images)
+      ? json.images
+      : Array.isArray(json) ? json : [];
+  return raw.map((img: any) => ({
+    id: String(img.id || img.attachment_id || img._id || ''),
+    url: String(img.url || img.large || img.medium || img.thumb || ''),
+    thumb: String(img.thumb || img.medium || img.url || ''),
+    medium: String(img.medium || img.large || img.url || ''),
+    large: String(img.large || img.url || img.medium || ''),
+    name: String(img.name || ''),
+  })).filter((img) => img.url);
+}
+
+/**
+ * Fetch a single Asset Panda object with all its field values.
+ * GET /v3/groups/{group_id}/objects/{object_id} — returns the raw object whose
+ * custom field values live inside `data` (and sometimes at the top level).
+ */
+export async function fetchPandaObject(
+  baseUrl: string,
+  token: string,
+  groupId: string,
+  pandaId: string
+): Promise<any> {
+  const res = await fetch(`${baseUrl}/v3/groups/${groupId}/objects/${encodeURIComponent(pandaId)}`, {
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) throw new Error(`Asset Panda object fetch failed (HTTP ${res.status})`);
+  const json: any = await res.json();
+  return json?.data ? json.data : json;
+}

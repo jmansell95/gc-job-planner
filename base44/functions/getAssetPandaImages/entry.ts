@@ -84,6 +84,7 @@ export default async function(req: Request): Promise<Response> {
             ? json.images
             : Array.isArray(json) ? json : [];
         images = raw.map((img: any) => ({
+          id: String(img.id || img.attachment_id || img._id || ''),
           url: String(img.url || img.large || img.medium || img.thumb || ''),
           thumb: String(img.thumb || img.medium || img.url || ''),
           medium: String(img.medium || img.large || img.url || ''),

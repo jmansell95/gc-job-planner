@@ -9,23 +9,70 @@
 // mappings are respected.
 // ---------------------------------------------------------------------------
 
-import { resolvePandaToken, buildFullFieldMap } from './assetPandaClient.ts';
+import { resolvePandaToken, buildFullFieldMap, resolveGroupIdForAsset, fetchPandaGroupFields } from './assetPandaClient.ts';
+
+// ---------------------------------------------------------------------------
+// Editable system fields that the asset detail editor can change and push
+// back to Asset Panda. Each entry lists the Asset Panda field-label keywords
+// used to auto-detect the field key when the admin hasn't explicitly mapped it
+// in the field_map. This mirrors the label-based detection the sync uses, so
+// push-back works symmetrically even for fields only auto-detected on import.
+// ---------------------------------------------------------------------------
+const EDITABLE_FIELD_LABELS: Record<string, string[]> = {
+  make: ['make', 'manufacturer', 'brand'],
+  model: ['model'],
+  fleet_number: ['fleet number', 'faa', 'fleet no', 'fleet'],
+  fuel_type: ['fuel type', 'fuel'],
+  condition: ['condition'],
+  hours_used: ['hours used', 'hour meter', 'hourmeter', 'hours'],
+  length: ['length'],
+  storage_location: ['storage location', 'site location', 'home location', 'yard location', 'yard'],
+  responsible_person: ['responsible person', 'assigned to', 'custodian', 'owner'],
+  compliance_expiry_date: ['next inspection', 'expiry', 'loler', 'pat', 'next test', 'due date', 'inspection due', 'test due', 'next loler', 'next pat', 'inspection date'],
+  next_service_date: ['next service', 'service due', 'next service due', 'service date', 'next maintenance'],
+  last_service_date: ['last service', 'last inspected', 'date of last', 'last inspection', 'last service date', 'last maintenance'],
+  service_notes: ['service notes', 'service note', 'maintenance notes'],
+  repair_notes: ['repair notes', 'fault notes', 'damage notes'],
+  cost_price: ['cost price', 'purchase cost', 'internal cost', 'purchase price', 'cost'],
+  charge_out_price: ['charge out', 'charge-out', 'sell', 'sale price', 'selling price', 'charge'],
+  notes: ['notes', 'comments', 'remarks'],
+};
 
 /**
- * Resolve the Asset Panda group ID for a given asset.
- * Multi-group: match the asset's panda_group_label against config.groups.
- * Legacy: fall back to config.group_id.
+ * Resolve panda field keys for every editable system field, combining the
+ * explicit field_map with label-based auto-detection against the group's
+ * field definitions. Returns system_field -> panda_field_key for everything
+ * that can be resolved, plus the list of system fields that couldn't be mapped.
  */
-function resolveGroupIdForAsset(config: any, asset: any): string {
-  if (Array.isArray(config.groups) && config.groups.length > 0 && asset?.panda_group_label) {
-    const match = config.groups.find((g: any) => g.label === asset.panda_group_label);
-    if (match?.group_id) return match.group_id;
+export async function resolveEditableFieldKeys(
+  config: any,
+  asset: any
+): Promise<{ keys: Record<string, string>; unmapped: string[] }> {
+  const explicit = buildFullFieldMap(config);
+  const keys: Record<string, string> = { ...explicit };
+  const unmapped: string[] = [];
+
+  // Fetch the group's field definitions for label matching (best-effort).
+  const baseUrl = String(config.base_url || 'https://api.assetpanda.com').replace(/\/+$/, '');
+  const tokenRes = await resolvePandaToken(config, baseUrl);
+  let groupFields: { key: string; label: string }[] = [];
+  if (tokenRes.token) {
+    const groupId = resolveGroupIdForAsset(config, asset);
+    if (groupId) {
+      try { groupFields = await fetchPandaGroupFields(baseUrl, tokenRes.token, groupId); } catch (_) { /* leave empty */ }
+    }
   }
-  // Fall back to first group if multi-group but no label match
-  if (Array.isArray(config.groups) && config.groups.length > 0) {
-    return config.groups[0].group_id;
+
+  for (const [sysField, keywords] of Object.entries(EDITABLE_FIELD_LABELS)) {
+    if (keys[sysField]) continue; // explicitly mapped — keep it
+    const f = groupFields.find((fld) => {
+      const label = String(fld.label || '').toLowerCase();
+      return keywords.some((k) => label.includes(k));
+    });
+    if (f?.key) keys[sysField] = f.key;
+    else unmapped.push(sysField);
   }
-  return config.group_id || '';
+  return { keys, unmapped };
 }
 
 /**
@@ -179,11 +226,13 @@ export async function pushAssetUpdateToPanda(base44, asset_id, action = 'update'
   const groupId = resolveGroupIdForAsset(config, asset);
   if (!groupId) return { attempted: false, reason: 'No Asset Panda group configured for this asset' };
 
-  // Build the field payload using the full field map (custom + legacy).
-  // Push EVERY mapped system field that has a value on the asset, so the app
-  // is a full bidirectional peer with Asset Panda — not just stock/name/serial.
-  const fieldMap = buildFullFieldMap(config);
+  // Build the field payload using the full field map (custom + legacy) PLUS
+  // label-based auto-detection for the editable spec/status/compliance/pricing
+  // fields, so the app is a full bidirectional peer with Asset Panda even when
+  // the admin hasn't explicitly mapped every field.
+  const { keys: fieldMap, unmapped } = await resolveEditableFieldKeys(config, asset);
   const body: any = {};
+  const pushedFields: string[] = [];
 
   // Special handling for the stock-level field (derived status string).
   if (fieldMap.stock_level || config.field_stock_status) {
@@ -195,18 +244,20 @@ export async function pushAssetUpdateToPanda(base44, asset_id, action = 'update'
     else if (asset.stock_level === 'out_of_stock') status = 'Out of Stock';
     else if (asset.stock_level === 'low_stock') status = 'Low Stock';
     body[stockField] = status;
+    pushedFields.push('stock_level');
   }
 
-  // Generic push: every other mapped system field is copied straight across
+  // Generic push: every other resolved system field is copied straight across
   // when the asset has a non-null value for it. This covers name, serial,
-  // asset_type, cost_price, charge_out_price, storage_location,
-  // responsible_person, compliance_expiry_date, compliance_status, and any
-  // custom field the admin has mapped.
+  // asset_type, make, model, condition, storage_location, responsible_person,
+  // compliance_expiry_date, service dates, cost/charge prices and any custom
+  // field the admin has mapped.
   for (const [systemField, pandaKey] of Object.entries(fieldMap)) {
     if (systemField === 'stock_level') continue; // handled above
     const value = (asset as any)[systemField];
     if (value === undefined || value === null || value === '') continue;
     body[pandaKey] = value;
+    pushedFields.push(systemField);
   }
 
   try {
@@ -232,7 +283,7 @@ export async function pushAssetUpdateToPanda(base44, asset_id, action = 'update'
       if (config.id && token) {
         try { await base44.asServiceRole.entities.AssetPandaConfig.update(config.id, { api_token: token }); } catch (_) {}
       }
-      return { attempted: true, success: true, panda_id: pandaId };
+      return { attempted: true, success: true, panda_id: pandaId, pushed_fields: pushedFields, unmapped_fields: unmapped };
     } else {
       if (!asset.panda_asset_id) {
         return { attempted: false, reason: 'Asset has no panda_asset_id — cannot update' };
@@ -253,7 +304,7 @@ export async function pushAssetUpdateToPanda(base44, asset_id, action = 'update'
       if (config.id && token) {
         try { await base44.asServiceRole.entities.AssetPandaConfig.update(config.id, { api_token: token }); } catch (_) {}
       }
-      return { attempted: true, success: true, panda_id: asset.panda_asset_id };
+      return { attempted: true, success: true, panda_id: asset.panda_asset_id, pushed_fields: pushedFields, unmapped_fields: unmapped };
     }
   } catch (e: any) {
     return { attempted: true, success: false, error: e.message };
