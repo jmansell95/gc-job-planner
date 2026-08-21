@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock, Bell, BellOff, ShieldCheck, Hotel, Truck, KeyRound, Link2, Calendar, IdCard, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock, Bell, BellOff, ShieldCheck, Hotel, Truck, KeyRound, Link2, Calendar, IdCard, Loader2, Cake, Fingerprint } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import StaffComplianceEditor from '@/components/staff/StaffComplianceEditor';
 import HotelBookingsManager from '@/components/staff/HotelBookingsManager';
@@ -459,6 +459,23 @@ export default function StaffManager() {
                     <div className="text-xs text-slate-400 mb-3">Approves to: <span className="text-slate-600 font-medium">{staff.find(s => s.id === member.manager_id).name}</span></div>
                   )}
 
+                  {(member.date_of_birth || member.ni_number) && (
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-400 mb-3">
+                      {member.date_of_birth && (
+                        <span className="inline-flex items-center gap-1">
+                          <Cake className="w-3 h-3" />
+                          DOB: <span className="text-slate-600 font-medium">{format(new Date(member.date_of_birth + 'T00:00:00'), 'dd MMM yyyy')}</span>
+                        </span>
+                      )}
+                      {member.ni_number && (
+                        <span className="inline-flex items-center gap-1">
+                          <Fingerprint className="w-3 h-3" />
+                          NI: <span className="text-slate-600 font-mono font-medium">{member.ni_number}</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Schedule acknowledgement status */}
                   {member.last_acknowledged_week ? (
                     <div className="text-xs text-slate-400 mb-3 flex items-center gap-1.5">
@@ -556,6 +573,16 @@ export default function StaffManager() {
                   <option value="">None (Admin approves)</option>
                   {staff.filter(s => s.id !== editingId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Date of Birth</label>
+                <input type="date" value={formData.date_of_birth || ''} onChange={e => setFormData({ ...formData, date_of_birth: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">NI Number</label>
+                <input type="text" value={formData.ni_number || ''} onChange={e => setFormData({ ...formData, ni_number: e.target.value.toUpperCase() })} placeholder="AB123456C"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm font-mono uppercase" />
               </div>
             </div>
 
