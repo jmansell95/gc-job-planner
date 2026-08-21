@@ -17,14 +17,33 @@ export const ASSET_TYPE_META = {
 };
 
 /**
+ * Derive the live compliance status from the actual expiry date rather than
+ * relying solely on the stored compliance_status field (which may be stale
+ * if the Asset Panda sync hasn't run recently). Falls back to the stored
+ * status when no expiry date is present.
+ */
+export function derivedComplianceStatus(asset) {
+  if (!asset) return 'unknown';
+  const d = daysUntil(asset.compliance_expiry_date);
+  if (d !== null) {
+    if (d < 0) return 'expired';
+    if (d <= 30) return 'expiring';
+    return 'compliant';
+  }
+  return asset.compliance_status || 'unknown';
+}
+
+/**
  * Compute the master compliance status of a rig by rolling up its own status
  * with the status of every linked child asset. A single expired or expiring
  * child drags the whole rig system to that severity so nothing is missed.
+ * Uses derivedComplianceStatus so the pill reflects the live expiry date,
+ * not just the last-synced status field.
  */
 export function rollupCompliance(rig, linkedItems = []) {
   const all = [rig, ...linkedItems].filter(Boolean);
   const counts = { compliant: 0, expiring: 0, expired: 0, unknown: 0 };
-  all.forEach(a => { counts[(a.compliance_status || 'unknown')]++; });
+  all.forEach(a => { counts[derivedComplianceStatus(a)]++; });
   const master = counts.expired > 0 ? 'expired'
     : counts.expiring > 0 ? 'expiring'
     : counts.compliant === 0 && counts.unknown > 0 ? 'unknown'

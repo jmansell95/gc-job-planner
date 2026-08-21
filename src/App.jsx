@@ -55,9 +55,11 @@ import RouteLoadingOverlay from '@/components/RouteLoadingOverlay';
 import AppBaseUrlSync from '@/components/AppBaseUrlSync';
 import AssetScannerPage from './pages/AssetScannerPage';
 import KioskScannerRedirect from '@/components/KioskScannerRedirect';
+import useJobRealtimeSync from '@/hooks/useJobRealtimeSync';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
+  useJobRealtimeSync();
 
   const isClientPortalRoute = window.location.pathname.includes('/client-portal/') || window.location.pathname.includes('/subcontractor-onboarding/');
 

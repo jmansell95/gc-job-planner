@@ -4,7 +4,7 @@ import {
   HelpCircle, ChevronRight, Link2, Lock, ScanLine, Check, CheckSquare, Database, CircleDot,
   Warehouse, MapPin, CalendarClock, AlertTriangle, Boxes, Hash, Ruler, Gauge, Clock,
 } from 'lucide-react';
-import { rollupCompliance, COMPLIANCE_META, ASSET_TYPE_META, findParentRig, daysUntil } from '@/utils/rigRollup';
+import { rollupCompliance, derivedComplianceStatus, COMPLIANCE_META, ASSET_TYPE_META, findParentRig, daysUntil } from '@/utils/rigRollup';
 import RigUtilizationSparkline from '@/components/righub/RigUtilizationSparkline';
 import CardComplianceRing from '@/components/assethub/CardComplianceRing';
 
@@ -152,7 +152,7 @@ export default function AssetInventoryGrid({
     if (depotOnly && !isInDepot(a)) return false;
     if (!matchesSource(a)) return false;
     if (category !== 'all' && a.asset_type !== category) return false;
-    if (compFilter !== 'all' && (a.compliance_status || 'unknown') !== compFilter) return false;
+    if (compFilter !== 'all' && derivedComplianceStatus(a) !== compFilter) return false;
     if (!q) return true;
     return (a.name || '').toLowerCase().includes(q) || (a.serial_number || '').toLowerCase().includes(q);
   }).map(eq => ({ equip: eq, parentRig: findParentRig(eq.id, rigs) })), [assets, rigs, category, q, compFilter, sourceFilter, depotOnly]);
@@ -307,9 +307,10 @@ export default function AssetInventoryGrid({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filteredEquip.map(({ equip, parentRig }) => {
-              const meta = COMPLIANCE_META[equip.compliance_status || 'unknown'];
+              const liveStatus = derivedComplianceStatus(equip);
+              const meta = COMPLIANCE_META[liveStatus];
               const Icon = TYPE_ICON[equip.asset_type] || Wrench;
-              const statusAccent = equip.compliance_status === 'expired' ? 'border-l-4 border-l-red-500 ring-1 ring-red-100' : equip.compliance_status === 'expiring' ? 'border-l-4 border-l-amber-500 ring-1 ring-amber-100' : equip.compliance_status === 'unknown' ? 'border-l-4 border-l-slate-400 ring-1 ring-slate-100' : 'border-l-4 border-l-emerald-500 ring-1 ring-emerald-100';
+              const statusAccent = liveStatus === 'expired' ? 'border-l-4 border-l-red-500 ring-1 ring-red-100' : liveStatus === 'expiring' ? 'border-l-4 border-l-amber-500 ring-1 ring-amber-100' : liveStatus === 'unknown' ? 'border-l-4 border-l-slate-400 ring-1 ring-slate-100' : 'border-l-4 border-l-emerald-500 ring-1 ring-emerald-100';
               const grad = TYPE_GRADIENT[equip.asset_type] || 'from-slate-500 to-slate-700';
               const d = daysUntil(equip.compliance_expiry_date);
               const isSel = selected.has(equip.id);

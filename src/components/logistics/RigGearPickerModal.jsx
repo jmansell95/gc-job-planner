@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Layers, Plus, Loader2, Check, Package, Cog } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, Layers, Plus, Loader2, Check, Package, Cog, Search } from 'lucide-react';
 import { findRigRateCardItem, rigFallbackDayRate } from './rigRateMatcher';
 import CompliancePassportGate from '@/components/assethub/CompliancePassportGate';
 
@@ -16,6 +16,17 @@ export default function RigGearPickerModal({ rigs = [], assets = [], rateCardIte
   const [selectedRig, setSelectedRig] = useState(null);
   const [onSiteStart, setOnSiteStart] = useState('');
   const [onSiteEnd, setOnSiteEnd] = useState('');
+  const [search, setSearch] = useState('');
+
+  const filteredRigs = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return rigs;
+    return rigs.filter(r =>
+      (r.name || '').toLowerCase().includes(q) ||
+      (r.serial_number || '').toLowerCase().includes(q) ||
+      (r.fleet_number || '').toLowerCase().includes(q)
+    );
+  }, [rigs, search]);
 
   const handleAdd = () => {
     if (!selectedRig || !onSiteStart) return;
@@ -40,13 +51,31 @@ export default function RigGearPickerModal({ rigs = [], assets = [], rateCardIte
         </div>
         <div className="p-5 space-y-3">
           <p className="text-sm text-slate-500">Select a rig to add it and all its linked gear to the job. The day rate is pulled automatically from Our Rate Card — gear items are included at no extra cost.</p>
+          {rigs.length > 0 && (
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search by name, serial or fleet no…"
+                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          )}
           {rigs.length === 0 && (
             <div className="text-center py-6 text-sm text-slate-400">
               <Cog className="w-8 h-8 text-slate-300 mx-auto mb-2" />
               No rigs available. Sync rigs from Asset Panda and link their gear in Settings → Compliance Sync first.
             </div>
           )}
-          {rigs.map(rig => {
+          {filteredRigs.length === 0 && search && (
+            <div className="text-center py-6 text-sm text-slate-400">
+              <Search className="w-7 h-7 text-slate-300 mx-auto mb-2" />
+              No rigs match "{search}".
+            </div>
+          )}
+          {filteredRigs.map(rig => {
             const gear = gearFor(rig);
             const isSelected = selectedRig === rig.id;
             const rateCardItem = findRigRateCardItem(rig, rateCardItems, projectId);

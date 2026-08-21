@@ -183,7 +183,10 @@ export default function TrainingGapAnalysis() {
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-semibold text-slate-900 truncate">{s.name}</p>
-                            <p className="text-xs text-slate-400 truncate">{s.worker_type?.replace(/_/g, ' ')}</p>
+                            <p className="text-xs text-slate-400 truncate">
+                              {s.worker_type?.replace(/_/g, ' ')}
+                              {s.date_of_birth && <span className="text-slate-300"> · DOB {new Date(s.date_of_birth + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+                            </p>
                           </div>
                         </div>
                         {hasGap ? (

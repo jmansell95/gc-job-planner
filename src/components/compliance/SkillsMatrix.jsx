@@ -324,7 +324,10 @@ export default function SkillsMatrix() {
                           {/* Name + title */}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-slate-800 truncate">{d.staff.name}</p>
-                            <p className="text-[11px] text-slate-400 truncate">{d.staff.job_title || 'No title'}</p>
+                            <p className="text-[11px] text-slate-400 truncate">
+                              {d.staff.job_title || 'No title'}
+                              {d.staff.date_of_birth && <span className="text-slate-300"> · DOB {new Date(d.staff.date_of_birth + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+                            </p>
                           </div>
                           {/* Qualification chips */}
                           <div className="flex items-center gap-1 flex-wrap justify-end">
