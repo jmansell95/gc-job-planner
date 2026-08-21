@@ -104,7 +104,7 @@ export default async function(req: Request): Promise<Response> {
 
     // ---------- COMPLETE RETURN: return collected items to depot ----------
     if (action === 'complete_return') {
-      const { delivery_id } = body;
+      const { delivery_id, signature_data_url, signed_by_name } = body;
       if (!delivery_id) return Response.json({ ok: false, error: 'delivery_id required' }, { status: 400 });
 
       const delivery = await base44.asServiceRole.entities.DeliveryLog.get(delivery_id).catch(() => null);
@@ -127,12 +127,21 @@ export default async function(req: Request): Promise<Response> {
         });
         count++;
       }
+
+      // Mark delivery completed with signature
+      await base44.asServiceRole.entities.DeliveryLog.update(delivery_id, {
+        status: 'completed',
+        completed_at: now,
+        ...(signature_data_url ? { signature_data_url } : {}),
+        ...(signed_by_name ? { signed_by_name } : {}),
+      });
+
       return Response.json({ ok: true, items_returned: count });
     }
 
     // ---------- COMPLETE TRANSFER: move collected items to another job ----------
     if (action === 'complete_transfer') {
-      const { delivery_id, destination_job_id, destination_job_name, destination_address } = body;
+      const { delivery_id, destination_job_id, destination_job_name, destination_address, signature_data_url, signed_by_name } = body;
       if (!delivery_id) return Response.json({ ok: false, error: 'delivery_id required' }, { status: 400 });
       if (!destination_job_id) return Response.json({ ok: false, error: 'destination_job_id required' }, { status: 400 });
 
@@ -194,6 +203,14 @@ export default async function(req: Request): Promise<Response> {
         parent_delivery_id: delivery_id,
         handover_from_staff_name: delivery.driver_staff_name || '',
         notes: `Site-to-site transfer from ${delivery.job_name || 'previous job'}`,
+      });
+
+      // Mark original delivery completed with signature
+      await base44.asServiceRole.entities.DeliveryLog.update(delivery_id, {
+        status: 'completed',
+        completed_at: now,
+        ...(signature_data_url ? { signature_data_url } : {}),
+        ...(signed_by_name ? { signed_by_name } : {}),
       });
 
       return Response.json({

@@ -93,7 +93,7 @@ function relTime(iso) {
   return format(d, 'dd MMM');
 }
 
-function CrewCompositionBar({ assignedStaff, rotas, contractors }) {
+function CrewCompositionBar({ assignedStaff, rotas, contractors, onAddStaff }) {
   if (!assignedStaff || assignedStaff.length === 0) return null;
   const direct = assignedStaff.filter(s => !s.worker_type || s.worker_type === 'direct_employee');
   const subbies = assignedStaff.filter(s => s.worker_type === 'subcontractor');
@@ -115,6 +115,11 @@ function CrewCompositionBar({ assignedStaff, rotas, contractors }) {
           <h3 className="text-sm font-semibold text-slate-900">Crew Composition</h3>
           <p className="text-xs text-slate-500">{total} {total === 1 ? 'person' : 'people'} on this job</p>
         </div>
+        {onAddStaff && (
+          <button onClick={onAddStaff} className="flex items-center gap-1 text-[11px] font-bold text-[#2E5A1A] hover:bg-[#2E5A1A]/10 px-2.5 py-1.5 rounded-lg transition flex-shrink-0">
+            <UserPlus className="w-3.5 h-3.5" /> Add Staff
+          </button>
+        )}
       </div>
 
       {/* Proportional bar */}
@@ -304,7 +309,24 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
       </div>
 
       {/* Visual crew composition — direct / subcontractor / agency breakdown */}
-      <CrewCompositionBar assignedStaff={assignedStaff} rotas={rotas} contractors={contractors} />
+      {assignedStaff.length > 0 ? (
+        <CrewCompositionBar assignedStaff={assignedStaff} rotas={rotas} contractors={contractors} onAddStaff={() => setShowAssignStaff(true)} />
+      ) : (
+        <div className="insight-card rounded-2xl p-4 md:p-5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm icon-tile-glow">
+              <UsersRound className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-slate-900">Crew Composition</h3>
+              <p className="text-xs text-slate-500">No crew assigned yet</p>
+            </div>
+            <button onClick={() => setShowAssignStaff(true)} className="flex items-center gap-1 text-[11px] font-bold text-[#2E5A1A] hover:bg-[#2E5A1A]/10 px-2.5 py-1.5 rounded-lg transition flex-shrink-0">
+              <UserPlus className="w-3.5 h-3.5" /> Add Staff
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Sub-contractors & agency staff from the Sub-Contractors wizard step */}
       <SubcontractorCrewCard job={job} />
@@ -328,54 +350,6 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
                 <p className="text-xs text-slate-400 py-3 text-center">No details set</p>
               )}
             </div>
-          </div>
-
-          {/* Crew with quick-add button */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="w-3.5 h-3.5 text-[#2E5A1A]" />
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wide">Crew</h3>
-              <span className="ml-auto text-xs font-bold text-slate-900">{assignedStaff.length}</span>
-              <button onClick={() => setShowAssignStaff(true)} className="flex items-center gap-1 text-[11px] font-bold text-[#2E5A1A] hover:bg-[#2E5A1A]/10 px-2 py-1 rounded-lg transition">
-                <UserPlus className="w-3.5 h-3.5" /> Add
-              </button>
-            </div>
-            {assignedStaff.length === 0 ? (
-              <div className="text-center py-3">
-                <p className="text-xs text-slate-400 mb-2">No crew assigned yet</p>
-                <button onClick={() => setShowAssignStaff(true)} className="text-xs text-[#2E5A1A] font-medium hover:underline">+ Add staff to this job</button>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {assignedStaff.slice(0, 6).map(st => {
-                  const shifts = rotas.filter(r => r.staff_id === st.id).length;
-                  const wt = st.worker_type || 'direct_employee';
-                  const isExternal = wt === 'subcontractor' || wt === 'agency';
-                  const company = isExternal && st.agency_id ? contractorById.get(st.agency_id) : null;
-                  const companyName = company?.name || '';
-                  const badgeCls = wt === 'subcontractor' ? 'bg-orange-100 text-orange-700' : wt === 'agency' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700';
-                  const badgeLabel = wt === 'subcontractor' ? 'Subcon' : wt === 'agency' ? 'Agency' : 'Direct';
-                  return (
-                    <div key={st.id} className="flex items-center gap-2 py-1">
-                      <div className="w-6 h-6 rounded-full bg-[#2E5A1A]/10 flex items-center justify-center text-[10px] font-bold text-[#2E5A1A] flex-shrink-0">
-                        {(st.name || '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-slate-700 truncate">{st.name}</p>
-                        {isExternal && companyName && (
-                          <p className="text-[10px] text-slate-400 truncate flex items-center gap-1">
-                            <Building2 className="w-2.5 h-2.5" /> {companyName}
-                          </p>
-                        )}
-                      </div>
-                      <span className={`text-[9px] font-semibold rounded-full px-1.5 py-0.5 flex-shrink-0 ${badgeCls}`}>{badgeLabel}</span>
-                      <span className="text-[10px] text-slate-400 flex-shrink-0">{shifts} shift{shifts !== 1 ? 's' : ''}</span>
-                    </div>
-                  );
-                })}
-                {assignedStaff.length > 6 && <p className="text-[11px] text-slate-400 pt-1">+{assignedStaff.length - 6} more</p>}
-              </div>
-            )}
           </div>
 
           {/* Vehicles */}

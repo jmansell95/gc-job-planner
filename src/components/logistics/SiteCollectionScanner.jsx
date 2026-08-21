@@ -6,6 +6,7 @@ import {
   ArrowLeft, Truck, Warehouse, ArrowRightLeft, QrCode, ChevronRight, Minus, Plus
 } from 'lucide-react';
 import BarcodeScanner from '@/components/staff/BarcodeScanner';
+import CollectionSignOffModal from '@/components/logistics/CollectionSignOffModal';
 import { useToast } from '@/components/ui/use-toast';
 
 /**
@@ -28,6 +29,9 @@ export default function SiteCollectionScanner({ delivery, onClose }) {
   const [submitting, setSubmitting] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
+  const [showSignOff, setShowSignOff] = useState(false);
+  const [signOffMode, setSignOffMode] = useState('return');
+  const [pendingTransfer, setPendingTransfer] = useState(null);
 
   // Fetch the job's cost items (the manifest)
   const { data: items = [], isLoading } = useQuery({
@@ -151,14 +155,25 @@ export default function SiteCollectionScanner({ delivery, onClose }) {
     }
   };
 
-  const handleCompleteReturn = async () => {
+  const handleCompleteReturn = async (signOffData) => {
     setSubmitting(true);
     try {
       const res = await base44.functions.invoke('processSiteCollection', {
         action: 'complete_return',
         delivery_id: delivery.id,
+        signature_data_url: signOffData.signature_data_url,
+        signed_by_name: signOffData.signed_by_name,
       });
       if (res.data?.ok) {
+        // Persist signature on the delivery log
+        try {
+          await base44.entities.DeliveryLog.update(delivery.id, {
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+            signature_data_url: signOffData.signature_data_url,
+            signed_by_name: signOffData.signed_by_name,
+          });
+        } catch { /* best-effort */ }
         toast({ title: 'Collection complete', description: `${res.data.items_returned} item(s) returned to depot.` });
         queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
         queryClient.invalidateQueries({ queryKey: ['job-collection-items'] });
@@ -168,11 +183,12 @@ export default function SiteCollectionScanner({ delivery, onClose }) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
     } finally {
       setSubmitting(false);
+      setShowSignOff(false);
       setShowComplete(false);
     }
   };
 
-  const handleCompleteTransfer = async (destJobId, destJobName, destAddress) => {
+  const handleCompleteTransfer = async (destJobId, destJobName, destAddress, signOffData) => {
     setSubmitting(true);
     try {
       const res = await base44.functions.invoke('processSiteCollection', {
@@ -181,8 +197,18 @@ export default function SiteCollectionScanner({ delivery, onClose }) {
         destination_job_id: destJobId,
         destination_job_name: destJobName,
         destination_address: destAddress,
+        signature_data_url: signOffData?.signature_data_url,
+        signed_by_name: signOffData?.signed_by_name,
       });
       if (res.data?.ok) {
+        try {
+          await base44.entities.DeliveryLog.update(delivery.id, {
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+            signature_data_url: signOffData?.signature_data_url,
+            signed_by_name: signOffData?.signed_by_name,
+          });
+        } catch { /* best-effort */ }
         toast({ title: 'Transfer initiated', description: `${res.data.items_transferred} item(s) will be delivered to ${destJobName}.` });
         queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
         queryClient.invalidateQueries({ queryKey: ['job-collection-items'] });
@@ -192,6 +218,7 @@ export default function SiteCollectionScanner({ delivery, onClose }) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
     } finally {
       setSubmitting(false);
+      setShowSignOff(false);
       setShowTransfer(false);
       setShowComplete(false);
     }
@@ -412,7 +439,7 @@ export default function SiteCollectionScanner({ delivery, onClose }) {
               <p className="text-sm text-slate-500 mb-3">You've collected {collectedItems.length} item(s). Where are they going?</p>
 
               <button
-                onClick={handleCompleteReturn}
+                onClick={() => { setSignOffMode('return'); setShowComplete(false); setShowSignOff(true); }}
                 disabled={submitting}
                 className="w-full flex items-center gap-3 p-4 bg-emerald-50 border-2 border-emerald-200 rounded-xl hover:border-emerald-400 hover:bg-emerald-100 transition active:scale-[0.98] text-left"
               >
@@ -449,8 +476,41 @@ export default function SiteCollectionScanner({ delivery, onClose }) {
       {showTransfer && (
         <SiteTransferModal
           itemCount={collectedItems.length}
-          onConfirm={handleCompleteTransfer}
+          onConfirm={(destJobId, destJobName, destAddress) => {
+            setPendingTransfer({ destJobId, destJobName, destAddress });
+            setSignOffMode('transfer');
+            setShowTransfer(false);
+            setShowSignOff(true);
+          }}
           onBack={() => { setShowTransfer(false); setShowComplete(true); }}
+          submitting={submitting}
+        />
+      )}
+
+      {/* Sign-off modal (signature capture for return or transfer) */}
+      {showSignOff && (
+        <CollectionSignOffModal
+          open={showSignOff}
+          itemCount={collectedItems.length}
+          mode={signOffMode}
+          destinationName={signOffMode === 'transfer' ? pendingTransfer?.destJobName : ''}
+          onClose={() => {
+            setShowSignOff(false);
+            if (signOffMode === 'transfer') { setShowTransfer(true); }
+            else { setShowComplete(true); }
+          }}
+          onConfirm={(signOffData) => {
+            if (signOffMode === 'return') {
+              handleCompleteReturn(signOffData);
+            } else if (pendingTransfer) {
+              handleCompleteTransfer(
+                pendingTransfer.destJobId,
+                pendingTransfer.destJobName,
+                pendingTransfer.destAddress,
+                signOffData
+              );
+            }
+          }}
           submitting={submitting}
         />
       )}
