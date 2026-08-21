@@ -3,19 +3,16 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import {
-  ScanLine, X, Package, Truck, CheckCircle2,
-  AlertCircle, Lock, Unlock, ArrowLeft, Layers, Store, PackageOpen,
+  ScanLine, Package, Truck, CheckCircle2,
+  Lock, Unlock, ArrowLeft, Layers, Store, PackageOpen,
   Wrench, ShieldCheck, Undo2, Barcode,
 } from 'lucide-react';
 import UnifiedScanBasket from '@/components/assetcommand/UnifiedScanBasket';
-import ScanResultCard from '@/components/assetcommand/ScanResultCard';
-import PandaScanConfirmCard from '@/components/assetcommand/PandaScanConfirmCard';
 import AssetCommandDrawer from '@/components/assetcommand/AssetCommandDrawer';
 import DriveAwayModal from '@/components/assetcommand/DriveAwayModal';
 import ReportFaultModal from '@/components/assetcommand/ReportFaultModal';
 import BookToVehicleModal from '@/components/assetcommand/BookToVehicleModal';
 import FullScreenScanner from '@/components/assetcommand/FullScreenScanner';
-import DuplicateScanPopup from '@/components/assetcommand/DuplicateScanPopup';
 import RecentScansStrip from '@/components/assetcommand/RecentScansStrip';
 import OfflineScanQueueBanner from '@/components/assetcommand/OfflineScanQueueBanner';
 import FieldHubTabs from '@/components/fieldhub/FieldHubTabs';
@@ -36,13 +33,6 @@ function loadJSON(key, fallback) {
 }
 function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
 
-const COMPLIANCE_COLOR = {
-  compliant: 'emerald',
-  expiring: 'amber',
-  expired: 'red',
-  unknown: 'slate',
-};
-
 /**
  * Asset Scanner — Field Pro Clean redesign.
  * Full-screen scanner overlay, recent-scan history, offline scan queue,
@@ -53,6 +43,8 @@ export default function AssetScannerPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [basket, setBasket] = useState([]);
+  const basketRef = useRef(basket);
+  basketRef.current = basket;
   const [direction, setDirection] = useState('signout');
   const [lastScan, setLastScan] = useState('');
   const [scanError, setScanError] = useState('');
@@ -75,7 +67,7 @@ export default function AssetScannerPage() {
   const [recent, setRecent] = useState(() => loadJSON(RECENT_KEY, []));
   const [offlineScans, setOfflineScans] = useState(() => loadJSON(OFFLINE_KEY, []));
   const [retrying, setRetrying] = useState(false);
-  const [duplicateAsset, setDuplicateAsset] = useState(null);
+  const [alreadyInBasket, setAlreadyInBasket] = useState(false);
   const lastScanRef = useRef({ value: '', ts: 0 });
 
   useEffect(() => {
@@ -181,15 +173,9 @@ export default function AssetScannerPage() {
       setLastScan(found.name);
       setScanResult(found);
       setPendingPanda(null);
+      setAlreadyInBasket(basketRef.current.some(a => a.id === found.id));
       pushRecent(found);
       queryClient.invalidateQueries({ queryKey: ['site-assets'] });
-      setBasket((prev) => {
-        if (prev.find((a) => a.id === found.id)) {
-          setDuplicateAsset(found);
-          return prev;
-        }
-        return [...prev, found];
-      });
       if (data.source === 'panda' && data.created) {
         toast({ title: 'New from Asset Panda', description: `${found.name} added to local inventory` });
       }
@@ -261,18 +247,25 @@ export default function AssetScannerPage() {
 
   const handleSelectResult = (asset) => {
     playSuccess();
-    setScanError('');
-    setLastScan(asset.name);
-    setScanResult(asset);
+    setBasket((prev) => prev.find(a => a.id === asset.id) ? prev : [...prev, asset]);
     pushRecent(asset);
-    setBasket((prev) => {
-      if (prev.find((a) => a.id === asset.id)) {
-        setDuplicateAsset(asset);
-        return prev;
-      }
-      return [...prev, asset];
-    });
   };
+
+  const handleScanNext = useCallback(() => {
+    setScanResult(null);
+    setScanError('');
+    setPendingPanda(null);
+    setAlreadyInBasket(false);
+  }, []);
+
+  const handleAddToBasket = useCallback((asset) => {
+    setBasket(prev => prev.find(a => a.id === asset.id) ? prev : [...prev, asset]);
+    handleScanNext();
+  }, [handleScanNext]);
+
+  const handleViewAsset = useCallback((asset) => {
+    setCommandAsset(asset);
+  }, []);
 
   const removeFromBasket = (id) => setBasket((prev) => prev.filter((a) => a.id !== id));
   const clearBasket = () => { setBasket([]); setSelectedJobId(''); setSelectedVehicleId(''); };
@@ -301,10 +294,10 @@ export default function AssetScannerPage() {
       const created = res.data?.asset || res.asset;
       if (created) {
         queryClient.invalidateQueries({ queryKey: ['site-assets'] });
-        setBasket((prev) => (prev.find((a) => a.id === created.id) ? prev : [...prev, created]));
         setScanResult(created);
         setLastScan(created.name);
         setPendingPanda(null);
+        setAlreadyInBasket(false);
         pushRecent(created);
         toast({ title: 'Linked to Asset Panda', description: `${created.name} added to your inventory` });
       } else {
@@ -412,7 +405,6 @@ export default function AssetScannerPage() {
   }
 
   const isSignOut = direction === 'signout';
-  const resultColor = COMPLIANCE_COLOR[scanResult?.compliance_status] || 'slate';
 
   return (
     <div className="fixed inset-0 bg-[#F5FBF6] flex flex-col">
@@ -570,41 +562,6 @@ export default function AssetScannerPage() {
                     </div>
                   )}
 
-                  {/* Panda confirm card */}
-                  {pendingPanda && !scanError && (
-                    <PandaScanConfirmCard
-                      panda={pendingPanda}
-                      confirming={confirming}
-                      onConfirm={handleConfirmPandaLink}
-                      onCancel={() => { setPendingPanda(null); setLastScan(''); }}
-                    />
-                  )}
-
-                  {/* Scan result card */}
-                  {scanResult && !scanError && (
-                    <ScanResultCard
-                      asset={scanResult}
-                      refreshing={refreshingId === scanResult.id}
-                      onBookToVehicle={(asset) => { setShowBook(true); }}
-                      onDriveAway={(asset) => { setDriveAwayAsset(asset); setScanResult(null); }}
-                      onOpenCommand={(asset) => { setCommandAsset(asset); setScanResult(null); }}
-                      onReportFault={(asset) => { setFaultAsset(asset); setScanResult(null); }}
-                      onDismiss={() => setScanResult(null)}
-                    />
-                  )}
-
-                  {/* Scan error */}
-                  {scanError && (
-                    <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                      <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-                      <p className="text-sm text-red-700 font-medium flex-1 truncate">No asset matches "{scanError}"</p>
-                      <button onClick={() => setScanError('')} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-100 rounded-lg">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-
-
                 </div>
 
                 {/* My Gear manifest — tablet sidebar */}
@@ -658,14 +615,19 @@ export default function AssetScannerPage() {
           onScan={handleScan}
           onClose={() => setShowFullScreen(false)}
           resolving={resolving}
-          lastResult={scanResult}
-          lastError={scanError}
-          resultColor={resultColor}
+          scanResult={scanResult}
+          scanError={scanError}
+          pendingPanda={pendingPanda}
+          alreadyInBasket={alreadyInBasket}
+          confirming={confirming}
+          refreshing={refreshingId === scanResult?.id}
+          onViewAsset={handleViewAsset}
+          onScanNext={handleScanNext}
+          onAddToBasket={handleAddToBasket}
+          onConfirmPanda={handleConfirmPandaLink}
+          onCancelPanda={() => { setPendingPanda(null); setLastScan(''); }}
         />
       )}
-
-      {/* Duplicate scan popup — replaces the old flood of toasts */}
-      <DuplicateScanPopup asset={duplicateAsset} onDismiss={() => setDuplicateAsset(null)} />
 
       {/* Book to Vehicle modal */}
       {showBook && (

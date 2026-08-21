@@ -1,20 +1,35 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Keyboard, CheckCircle2, AlertTriangle, ScanLine, Loader2, WifiOff, Zap } from 'lucide-react';
+import { X, Keyboard, AlertTriangle, ScanLine, Loader2, WifiOff, Zap } from 'lucide-react';
+import ScanResultPopup from './ScanResultPopup';
 
 /**
  * Full-screen camera viewfinder overlay — opens when the user taps the scan
- * button on the Asset Scanner. Continuous scanning with cooldown, inline result
- * toast, and a manual-entry fallback for devices without a native BarcodeDetector.
+ * button on the Asset Scanner. Continuous scanning with cooldown, a manual-entry
+ * fallback for devices without a native BarcodeDetector, and a ScanResultPopup
+ * bottom-sheet that overlays the live camera for every scan result.
  *
  * Props:
- *   onScan(val)      — called with every detected code (parent resolves it)
- *   onClose()        — close the viewfinder
- *   resolving        — true while parent is resolving the last scan
- *   lastResult       — last resolved SiteAsset (shown as inline toast)
- *   lastError        — last scan value that failed to resolve
- *   resultColor      — compliance color key for the inline toast ring
+ *   onScan(val)       — called with every detected code (parent resolves it)
+ *   onClose()         — close the viewfinder
+ *   resolving         — true while parent is resolving the last scan
+ *   scanResult        — last resolved SiteAsset (shown in popup)
+ *   scanError         — last scan value that failed to resolve
+ *   pendingPanda      — Panda confirm data (new-asset path)
+ *   alreadyInBasket   — true if scanResult is already in the basket
+ *   confirming        — true while Panda link is being confirmed
+ *   refreshing        — true while background Panda refresh is in flight
+ *   onViewAsset(a)    — open the Asset Command Drawer for this asset
+ *   onScanNext()      — dismiss popup, ready for next scan
+ *   onAddToBasket(a)  — add asset to basket, then scan next
+ *   onConfirmPanda()  — confirm Panda link
+ *   onCancelPanda()   — cancel Panda confirm
  */
-export default function FullScreenScanner({ onScan, onClose, resolving, lastResult, lastError, resultColor = 'emerald' }) {
+export default function FullScreenScanner({
+  onScan, onClose,
+  resolving, scanResult, scanError, pendingPanda, alreadyInBasket,
+  confirming, refreshing,
+  onViewAsset, onScanNext, onAddToBasket, onConfirmPanda, onCancelPanda,
+}) {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [cooldown, setCooldown] = useState(false);
@@ -42,6 +57,15 @@ export default function FullScreenScanner({ onScan, onClose, resolving, lastResu
   }, []);
 
   useEffect(() => () => stopCamera(), [stopCamera]);
+
+  // Reset the scan cooldown whenever the popup is cleared (Scan Next / Add to
+  // Basket) so the scanner is immediately ready for the next barcode.
+  useEffect(() => {
+    if (!scanResult && !scanError && !pendingPanda && !resolving) {
+      if (cooldownTimerRef.current) { clearTimeout(cooldownTimerRef.current); cooldownTimerRef.current = null; }
+      setCooldown(false);
+    }
+  }, [scanResult, scanError, pendingPanda, resolving]);
 
   const detectLoop = useCallback(async () => {
     if (!streamRef.current || !videoRef.current) return;
@@ -117,13 +141,6 @@ export default function FullScreenScanner({ onScan, onClose, resolving, lastResu
     setManualValue('');
   };
 
-  const ringColor = {
-    emerald: 'border-emerald-400 text-emerald-300',
-    amber: 'border-amber-400 text-amber-300',
-    red: 'border-red-400 text-red-300',
-    slate: 'border-slate-400 text-slate-300',
-  }[resultColor] || 'border-emerald-400 text-emerald-300';
-
   return (
     <div className="fixed inset-0 z-[70] bg-black flex flex-col">
       {/* Camera video — full bleed */}
@@ -178,32 +195,21 @@ export default function FullScreenScanner({ onScan, onClose, resolving, lastResu
         </div>
       </div>
 
-      {/* Inline result toast */}
-      {(resolving || lastResult || lastError) && (
-        <div className="relative z-10 px-4 pb-3">
-          {resolving && (
-            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-2xl px-4 py-3 border border-white/20">
-              <Loader2 className="w-5 h-5 text-white animate-spin" />
-              <p className="text-white text-sm font-medium">Checking Asset Panda…</p>
-            </div>
-          )}
-          {!resolving && lastResult && (
-            <div className={`flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-2xl px-4 py-3 border-2 ${ringColor}`}>
-              <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="text-white text-sm font-bold truncate">{lastResult.name}</p>
-                <p className="text-white/60 text-[11px] truncate">Added to basket · {(lastResult.compliance_status || 'unknown')}</p>
-              </div>
-            </div>
-          )}
-          {!resolving && lastError && (
-            <div className="flex items-center gap-3 bg-red-500/20 backdrop-blur-md rounded-2xl px-4 py-3 border-2 border-red-400/60">
-              <AlertTriangle className="w-5 h-5 text-red-300 flex-shrink-0" />
-              <p className="text-white text-sm font-medium truncate">No match for "{lastError}"</p>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Scan result popup — bottom sheet over the live camera */}
+      <ScanResultPopup
+        resolving={resolving}
+        scanResult={scanResult}
+        scanError={scanError}
+        pendingPanda={pendingPanda}
+        alreadyInBasket={alreadyInBasket}
+        confirming={confirming}
+        refreshing={refreshing}
+        onViewAsset={onViewAsset}
+        onScanNext={onScanNext}
+        onAddToBasket={onAddToBasket}
+        onConfirmPanda={onConfirmPanda}
+        onCancelPanda={onCancelPanda}
+      />
 
       {/* Bottom controls */}
       <div className="relative z-10 px-4 pb-6 safe-area-bottom">
