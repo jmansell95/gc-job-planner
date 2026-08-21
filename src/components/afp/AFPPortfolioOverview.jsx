@@ -154,97 +154,146 @@ export default function AFPPortfolioOverview({ onSelectJob, onUploadTemplate }) 
         ))}
       </div>
 
-      {/* Portfolio table */}
+      {/* Portfolio — Mobile card view */}
       {filtered.length === 0 ? (
-        <div className="insight-card rounded-2xl p-8 text-center">
-          <FileBarChart className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+        <div className="insight-card rounded-2xl p-6 sm:p-8 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
+            <FileBarChart className="w-7 h-7 text-slate-300" />
+          </div>
           <p className="text-sm font-semibold text-slate-500">
             {enrichedAfps.length === 0 ? 'No AFPs yet' : 'No AFPs match your filters'}
           </p>
-          <p className="text-xs text-slate-400 mt-1">
-            {enrichedAfps.length === 0 ? 'Create an AFP from any job\'s Financials tab to see it here' : 'Try a different filter or search'}
+          <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+            {enrichedAfps.length === 0 ? 'AFPs auto-create when jobs go live. Create one manually from any job\'s Financials tab.' : 'Try a different filter or search'}
           </p>
         </div>
       ) : (
-        <div className="insight-card rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-slate-50/80 sticky top-0">
-                <tr className="text-slate-500 uppercase tracking-wide text-[10px]">
-                  <th className="text-left px-3 py-2.5 font-semibold cursor-pointer hover:text-slate-700" onClick={() => handleSort('job_name')}>
-                    Job
-                  </th>
-                  <th className="text-left px-3 py-2.5 font-semibold cursor-pointer hover:text-slate-700" onClick={() => handleSort('afp_number')}>
-                    AFP #
-                  </th>
-                  <th className="text-left px-3 py-2.5 font-semibold cursor-pointer hover:text-slate-700" onClick={() => handleSort('period_end_date')}>
-                    Period
-                  </th>
-                  <th className="text-center px-3 py-2.5 font-semibold">Status</th>
-                  <th className="text-right px-3 py-2.5 font-semibold cursor-pointer hover:text-slate-700" onClick={() => handleSort('total_claimed')}>
-                    Claimed
-                  </th>
-                  <th className="text-right px-3 py-2.5 font-semibold cursor-pointer hover:text-slate-700" onClick={() => handleSort('disputed_total')}>
-                    Disputed
-                  </th>
-                  <th className="text-right px-3 py-2.5 font-semibold cursor-pointer hover:text-slate-700" onClick={() => handleSort('agreed_total')}>
-                    Agreed
-                  </th>
-                  <th className="px-3 py-2.5"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {filtered.map(afp => {
-                  const meta = STATUS_META[afp.status] || STATUS_META.draft;
-                  const isDisputed = afp.disputed_total > 0 && afp.status === 'submitted';
-                  return (
-                    <tr
-                      key={afp.id}
-                      onClick={() => onSelectJob?.(afp.job_id)}
-                      className="hover:bg-emerald-50/30 cursor-pointer transition group"
-                    >
-                      <td className="px-3 py-2.5">
-                        <p className="font-semibold text-slate-800 truncate max-w-[200px]">{afp.job_name || '—'}</p>
-                        {afp.job_reference && <p className="text-[10px] text-slate-400">{afp.job_reference}</p>}
-                      </td>
-                      <td className="px-3 py-2.5 text-slate-600 font-medium tabular-nums">{afp.afp_number || 1}</td>
-                      <td className="px-3 py-2.5 text-slate-500">
-                        {afp.period_end_date ? fmtDate(afp.period_end_date) : 'Open'}
-                      </td>
-                      <td className="text-center px-3 py-2.5">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${meta.bg} ${meta.color}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
-                          {isDisputed ? 'Disputed' : meta.label}
-                        </span>
-                      </td>
-                      <td className="text-right px-3 py-2.5 text-slate-700 font-medium tabular-nums">
-                        {fmt(afp.total_claimed || afp.original_total || 0)}
-                      </td>
-                      <td className={`text-right px-3 py-2.5 font-medium tabular-nums ${afp.disputed_total > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
-                        {afp.disputed_total > 0 ? fmt(afp.disputed_total) : '—'}
-                      </td>
-                      <td className="text-right px-3 py-2.5 font-bold text-emerald-700 tabular-nums">
-                        {fmt(afp.agreed_total || 0)}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-[#2E5A1A] transition" />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot className="bg-slate-50/80 border-t-2 border-slate-200">
-                <tr className="font-bold text-slate-800">
-                  <td className="px-3 py-2.5" colSpan={4}>Portfolio Total ({filtered.length})</td>
-                  <td className="text-right px-3 py-2.5 tabular-nums">{fmt(totals.claimed)}</td>
-                  <td className="text-right px-3 py-2.5 tabular-nums text-amber-600">{fmt(totals.disputed)}</td>
-                  <td className="text-right px-3 py-2.5 tabular-nums text-emerald-700">{fmt(totals.agreed)}</td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
+        <>
+          {/* Mobile cards */}
+          <div className="sm:hidden space-y-2.5">
+            {filtered.map(afp => {
+              const meta = STATUS_META[afp.status] || STATUS_META.draft;
+              const isDisputed = afp.disputed_total > 0 && afp.status === 'submitted';
+              return (
+                <div
+                  key={afp.id}
+                  onClick={() => onSelectJob?.(afp.job_id)}
+                  className="insight-card rounded-2xl p-3.5 cursor-pointer active:scale-[0.98] transition"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-slate-800 text-sm truncate">{afp.job_name || '—'}</p>
+                      {afp.job_reference && <p className="text-[10px] text-slate-400">{afp.job_reference}</p>}
+                    </div>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${meta.bg} ${meta.color} flex-shrink-0`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+                      {isDisputed ? 'Disputed' : meta.label}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="text-slate-400">AFP {afp.afp_number || 1} · {afp.period_end_date ? fmtDate(afp.period_end_date) : 'Open'}</span>
+                    <span className="font-bold text-emerald-700 tabular-nums">{fmt(afp.agreed_total || 0)}</span>
+                  </div>
+                  {afp.disputed_total > 0 && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
+                      <AlertTriangle className="w-3 h-3 text-amber-500" />
+                      <span className="text-amber-600 font-semibold tabular-nums">{fmt(afp.disputed_total)} in dispute</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {/* Mobile total */}
+            <div className="insight-card rounded-2xl p-3.5 bg-slate-50/80 flex items-center justify-between text-sm font-bold">
+              <span className="text-slate-700">Total ({filtered.length})</span>
+              <div className="flex items-center gap-3">
+                {totals.disputed > 0 && <span className="text-amber-600 tabular-nums text-xs">{fmt(totals.disputed)}</span>}
+                <span className="text-emerald-700 tabular-nums">{fmt(totals.agreed)}</span>
+              </div>
+            </div>
           </div>
-        </div>
+
+          {/* Desktop table */}
+          <div className="insight-card rounded-2xl overflow-hidden hidden sm:block">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-50/80 sticky top-0">
+                  <tr className="text-slate-500 uppercase tracking-wide text-[10px]">
+                    <th className="text-left px-3 py-2.5 font-semibold cursor-pointer hover:text-slate-700" onClick={() => handleSort('job_name')}>
+                      Job
+                    </th>
+                    <th className="text-left px-3 py-2.5 font-semibold cursor-pointer hover:text-slate-700" onClick={() => handleSort('afp_number')}>
+                      AFP #
+                    </th>
+                    <th className="text-left px-3 py-2.5 font-semibold cursor-pointer hover:text-slate-700" onClick={() => handleSort('period_end_date')}>
+                      Period
+                    </th>
+                    <th className="text-center px-3 py-2.5 font-semibold">Status</th>
+                    <th className="text-right px-3 py-2.5 font-semibold cursor-pointer hover:text-slate-700" onClick={() => handleSort('total_claimed')}>
+                      Claimed
+                    </th>
+                    <th className="text-right px-3 py-2.5 font-semibold cursor-pointer hover:text-slate-700" onClick={() => handleSort('disputed_total')}>
+                      Disputed
+                    </th>
+                    <th className="text-right px-3 py-2.5 font-semibold cursor-pointer hover:text-slate-700" onClick={() => handleSort('agreed_total')}>
+                      Agreed
+                    </th>
+                    <th className="px-3 py-2.5"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filtered.map(afp => {
+                    const meta = STATUS_META[afp.status] || STATUS_META.draft;
+                    const isDisputed = afp.disputed_total > 0 && afp.status === 'submitted';
+                    return (
+                      <tr
+                        key={afp.id}
+                        onClick={() => onSelectJob?.(afp.job_id)}
+                        className="hover:bg-emerald-50/30 cursor-pointer transition group"
+                      >
+                        <td className="px-3 py-2.5">
+                          <p className="font-semibold text-slate-800 truncate max-w-[200px]">{afp.job_name || '—'}</p>
+                          {afp.job_reference && <p className="text-[10px] text-slate-400">{afp.job_reference}</p>}
+                        </td>
+                        <td className="px-3 py-2.5 text-slate-600 font-medium tabular-nums">{afp.afp_number || 1}</td>
+                        <td className="px-3 py-2.5 text-slate-500">
+                          {afp.period_end_date ? fmtDate(afp.period_end_date) : 'Open'}
+                        </td>
+                        <td className="text-center px-3 py-2.5">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${meta.bg} ${meta.color}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+                            {isDisputed ? 'Disputed' : meta.label}
+                          </span>
+                        </td>
+                        <td className="text-right px-3 py-2.5 text-slate-700 font-medium tabular-nums">
+                          {fmt(afp.total_claimed || afp.original_total || 0)}
+                        </td>
+                        <td className={`text-right px-3 py-2.5 font-medium tabular-nums ${afp.disputed_total > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                          {afp.disputed_total > 0 ? fmt(afp.disputed_total) : '—'}
+                        </td>
+                        <td className="text-right px-3 py-2.5 font-bold text-emerald-700 tabular-nums">
+                          {fmt(afp.agreed_total || 0)}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-[#2E5A1A] transition" />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="bg-slate-50/80 border-t-2 border-slate-200">
+                  <tr className="font-bold text-slate-800">
+                    <td className="px-3 py-2.5" colSpan={4}>Portfolio Total ({filtered.length})</td>
+                    <td className="text-right px-3 py-2.5 tabular-nums">{fmt(totals.claimed)}</td>
+                    <td className="text-right px-3 py-2.5 tabular-nums text-amber-600">{fmt(totals.disputed)}</td>
+                    <td className="text-right px-3 py-2.5 tabular-nums text-emerald-700">{fmt(totals.agreed)}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
@@ -253,11 +302,12 @@ export default function AFPPortfolioOverview({ onSelectJob, onUploadTemplate }) 
 function KPICard({ icon: Icon, label, value, gradient }) {
   return (
     <div className="insight-card rounded-2xl p-3.5 relative overflow-hidden">
-      <div className={`w-9 h-9 rounded-lg ${gradient} flex items-center justify-center mb-2`}>
-        <Icon className="w-4.5 h-4.5 text-white" />
+      <div className={`absolute -top-8 -right-8 w-24 h-24 rounded-full ${gradient} opacity-[0.08]`} />
+      <div className={`relative w-9 h-9 rounded-lg ${gradient} flex items-center justify-center mb-2 shadow-sm`}>
+        <Icon className="w-4 h-4 text-white" />
       </div>
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="text-xl font-bold text-slate-900 tabular-nums leading-tight mt-0.5">{value}</p>
+      <p className="relative text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="relative text-lg sm:text-xl font-bold text-slate-900 tabular-nums leading-tight mt-0.5">{value}</p>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import {
   FileText, Calendar, RefreshCw, Send, ArrowRight, CheckCircle2,
   Plus, Download, Loader2, Clock, Receipt,
   ChevronDown, ChevronRight, MessageSquare, X, FileBarChart,
+  TrendingUp, Zap,
 } from 'lucide-react';
 import CreateFirstAFPModal from './CreateFirstAFPModal';
 import AFPDisputeRow from './AFPDisputeRow';
@@ -51,6 +52,7 @@ export default function AFPBuilder({ job }) {
   const [populating, setPopulating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pushing, setPushing] = useState(false);
+  const [repricing, setRepricing] = useState(false);
   const [expandedDisputes, setExpandedDisputes] = useState(new Set());
   const [showAddManual, setShowAddManual] = useState(false);
   const [manualItem, setManualItem] = useState({ item: '', unit: 'sum', qty: 1, rate: 0, category: 'other' });
@@ -173,6 +175,20 @@ export default function AFPBuilder({ job }) {
     setPushing(false);
   };
 
+  const handleReprice = async () => {
+    if (!selectedAfp) return;
+    setRepricing(true);
+    try {
+      const res = await base44.functions.invoke('repriceAFPFromRateCard', { afp_id: selectedAfp.id });
+      const data = res.data || res;
+      if (data.error) throw new Error(data.error);
+      invalidate();
+    } catch (e) {
+      console.error(e);
+    }
+    setRepricing(false);
+  };
+
   const handleLineItemUpdate = async (id, updates) => {
     try {
       await base44.entities.AFPLineItem.update(id, updates);
@@ -250,21 +266,37 @@ export default function AFPBuilder({ job }) {
   if (!afpsLoading && afps.length === 0) {
     return (
       <>
-        <div className="insight-card rounded-2xl p-8 text-center">
+        <div className="insight-card rounded-2xl p-6 sm:p-8 text-center relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#2E5A1A] to-[#8DC63F]" />
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2E5A1A]/10 to-[#8DC63F]/10 flex items-center justify-center mx-auto mb-4">
             <FileText className="w-8 h-8 text-[#2E5A1A]" />
           </div>
           <h3 className="text-lg font-bold text-slate-800 mb-1">No AFPs yet</h3>
-          <p className="text-sm text-slate-500 max-w-md mx-auto mb-5">
+          <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">
             Create the first Application for Payment to start the monthly billing chain.
-            The AFP will auto-populate with live field data from the job's start date.
+            It will auto-populate with live field data — driller logs, deliveries, subcontractors —
+            from the job's start date, priced against your rate card.
           </p>
+          <div className="flex items-center justify-center gap-2 mb-5 flex-wrap">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-semibold">
+              <FileText className="w-3 h-3" /> Driller logs auto-priced
+            </span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold">
+              <Zap className="w-3 h-3" /> Rate card linked
+            </span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 text-[11px] font-semibold">
+              <TrendingUp className="w-3 h-3" /> CVR auto-generated
+            </span>
+          </div>
           <button
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white rounded-xl text-sm font-bold transition active:scale-95 shadow-sm"
+            className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white rounded-xl text-sm font-bold transition active:scale-95 shadow-sm glow-brand"
           >
             <Plus className="w-4 h-4" /> Create First AFP
           </button>
+          <p className="text-[11px] text-slate-400 mt-3">
+            Tip: AFPs auto-create when the rota is published and the job goes live.
+          </p>
         </div>
         {showCreate && <CreateFirstAFPModal job={job} onClose={() => setShowCreate(false)} onCreated={(id) => { setSelectedAfpId(id); invalidate(); }} />}
       </>
@@ -338,7 +370,20 @@ export default function AFPBuilder({ job }) {
                   className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition active:scale-95 disabled:opacity-50"
                 >
                   {populating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                  Refresh from Field
+                  <span className="hidden sm:inline">Refresh from Field</span>
+                  <span className="sm:hidden">Refresh</span>
+                </button>
+              )}
+              {selectedAfp.status === 'draft' && (
+                <button
+                  onClick={handleReprice}
+                  disabled={repricing}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold transition active:scale-95 disabled:opacity-50"
+                  title="Re-resolve all auto-populated line items against the current rate card"
+                >
+                  {repricing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                  <span className="hidden sm:inline">Re-price from Rate Card</span>
+                  <span className="sm:hidden">Re-price</span>
                 </button>
               )}
               {selectedAfp.status === 'draft' && (
@@ -365,19 +410,40 @@ export default function AFPBuilder({ job }) {
             </div>
           </div>
 
-          {/* Totals bar */}
-          <div className="px-4 py-3 grid grid-cols-3 gap-3">
-            <div className="text-center">
-              <p className="text-[10px] text-slate-400 uppercase font-semibold tracking-wide">Original</p>
-              <p className="text-lg font-bold text-slate-700 tabular-nums">{fmt(totals.original)}</p>
-            </div>
-            <div className={`text-center ${totals.disputed > 0 ? 'bg-amber-50 rounded-lg' : ''}`}>
-              <p className="text-[10px] text-amber-600 uppercase font-semibold tracking-wide">Disputed</p>
-              <p className={`text-lg font-bold tabular-nums ${totals.disputed > 0 ? 'text-amber-700' : 'text-slate-400'}`}>{fmt(totals.disputed)}</p>
-            </div>
-            <div className="text-center bg-emerald-50 rounded-lg">
-              <p className="text-[10px] text-emerald-700 uppercase font-semibold tracking-wide">Agreed</p>
-              <p className="text-lg font-bold text-emerald-700 tabular-nums">{fmt(totals.agreed)}</p>
+          {/* Contract value summary with progress bar */}
+          <div className="px-4 py-3.5 space-y-3">
+            {/* Progress against contract value */}
+            {selectedAfp.contract_value > 0 && (() => {
+              const pct = Math.min(100, Math.round((totals.agreed / selectedAfp.contract_value) * 100));
+              return (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] text-slate-400 uppercase font-semibold tracking-wide">Contract Progress</span>
+                    <span className="text-[10px] font-bold text-slate-600 tabular-nums">{pct}% of {fmt(selectedAfp.contract_value)}</span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#2E5A1A] to-[#8DC63F] rounded-full transition-all duration-500"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+            {/* Three-column totals */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="text-center px-2 py-2 rounded-xl bg-slate-50">
+                <p className="text-[10px] text-slate-400 uppercase font-semibold tracking-wide">Claimed</p>
+                <p className="text-base sm:text-lg font-bold text-slate-700 tabular-nums">{fmt(totals.original)}</p>
+              </div>
+              <div className={`text-center px-2 py-2 rounded-xl ${totals.disputed > 0 ? 'bg-amber-50' : 'bg-slate-50'}`}>
+                <p className="text-[10px] text-amber-600 uppercase font-semibold tracking-wide">Disputed</p>
+                <p className={`text-base sm:text-lg font-bold tabular-nums ${totals.disputed > 0 ? 'text-amber-700' : 'text-slate-400'}`}>{fmt(totals.disputed)}</p>
+              </div>
+              <div className="text-center px-2 py-2 rounded-xl bg-emerald-50">
+                <p className="text-[10px] text-emerald-700 uppercase font-semibold tracking-wide">Agreed</p>
+                <p className="text-base sm:text-lg font-bold text-emerald-700 tabular-nums">{fmt(totals.agreed)}</p>
+              </div>
             </div>
           </div>
 
@@ -480,8 +546,42 @@ export default function AFPBuilder({ job }) {
         </div>
       )}
 
-      {/* ── Line Items Table (grouped by time bucket) ── */}
-      <div className="insight-card rounded-2xl overflow-hidden">
+      {/* ── Line Items — Mobile card view ── */}
+      <div className="sm:hidden space-y-3">
+        {groupedItems.map(([bucket, items]) => {
+          const bucketTotal = items.reduce((s, li) => s + (li.amount || 0), 0);
+          const bucketLabel = bucket === 'undated' ? 'Undated' :
+            granularity === 'day' ? fmtDate(bucket) :
+            granularity === 'week' ? `Week of ${fmtDate(bucket)}` :
+            new Date(bucket + '-01').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+          return (
+            <div key={bucket} className="insight-card rounded-2xl overflow-hidden">
+              <div className="px-3 py-2 bg-slate-100/80 flex items-center justify-between">
+                <span className="font-bold text-slate-700 text-[11px] uppercase tracking-wide">{bucketLabel}</span>
+                <span className="font-bold text-slate-700 text-xs tabular-nums">{fmt(bucketTotal)}</span>
+              </div>
+              <div className="divide-y divide-slate-50">
+                {items.map((li) => (
+                  <AFPDisputeRow
+                    key={li.id}
+                    item={li}
+                    mobile
+                    canEdit={selectedAfp.status === 'draft'}
+                    canDispute={selectedAfp.status === 'submitted'}
+                    expanded={expandedDisputes.has(li.id)}
+                    onToggleDispute={() => toggleDispute(li.id)}
+                    onUpdate={(updates) => handleLineItemUpdate(li.id, updates)}
+                    onDelete={() => handleDeleteItem(li.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Line Items Table (grouped by time bucket) — Desktop only ── */}
+      <div className="insight-card rounded-2xl overflow-hidden hidden sm:block">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-slate-50/80 sticky top-0">
@@ -544,20 +644,26 @@ export default function AFPBuilder({ job }) {
 
       {/* ── Sticky Running Total Bar ── */}
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-lg border-t border-slate-200 px-4 py-2.5 flex items-center justify-between safe-area-bottom">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <div>
             <p className="text-[10px] text-slate-400 uppercase font-semibold">Agreed Total</p>
-            <p className="text-xl font-bold text-emerald-700 tabular-nums">{fmt(totals.agreed)}</p>
+            <p className="text-lg sm:text-xl font-bold text-emerald-700 tabular-nums">{fmt(totals.agreed)}</p>
           </div>
           {totals.disputed > 0 && (
             <div>
               <p className="text-[10px] text-amber-500 uppercase font-semibold">Disputed</p>
-              <p className="text-xl font-bold text-amber-600 tabular-nums">{fmt(totals.disputed)}</p>
+              <p className="text-lg sm:text-xl font-bold text-amber-600 tabular-nums">{fmt(totals.disputed)}</p>
+            </div>
+          )}
+          {selectedAfp?.contract_value > 0 && (
+            <div className="hidden sm:block pl-4 border-l border-slate-200">
+              <p className="text-[10px] text-slate-400 uppercase font-semibold">Contract</p>
+              <p className="text-sm font-bold text-slate-600 tabular-nums">{fmt(selectedAfp.contract_value)}</p>
             </div>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">{lineItems.length} items</span>
+          <span className="text-xs text-slate-400 hidden sm:inline">{lineItems.length} items</span>
           {selectedAfp?.status === 'submitted' && (
             <button
               onClick={async () => {
@@ -570,7 +676,7 @@ export default function AFPBuilder({ job }) {
               }}
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold transition active:scale-95 shadow-sm"
             >
-              <CheckCircle2 className="w-3.5 h-3.5" /> Mark Approved
+              <CheckCircle2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Mark Approved</span><span className="sm:hidden">Approve</span>
             </button>
           )}
         </div>

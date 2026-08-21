@@ -29,7 +29,7 @@ const SOURCE_META = {
  * Supports inline editing (draft), dispute status changes (submitted),
  * and expandable dispute history.
  */
-export default function AFPDisputeRow({ item, canEdit, canDispute, expanded, onToggleDispute, onUpdate, onDelete }) {
+export default function AFPDisputeRow({ item, canEdit, canDispute, expanded, onToggleDispute, onUpdate, onDelete, mobile }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ qty: item.qty, rate: item.rate });
   const [disputeNote, setDisputeNote] = useState(item.dispute_note || '');
@@ -61,7 +61,6 @@ export default function AFPDisputeRow({ item, canEdit, canDispute, expanded, onT
       dispute_status: newStatus,
       dispute_note: disputeNote,
       dispute_history: history,
-      // If agreed, update agreed_amount to current amount
       ...(newStatus === 'agreed' ? { agreed_amount: item.amount } : {}),
     });
   };
@@ -82,6 +81,139 @@ export default function AFPDisputeRow({ item, canEdit, canDispute, expanded, onT
 
   const amount = item.dispute_status === 'rejected' ? 0 : (item.agreed_amount || item.amount || 0);
 
+  // ── Mobile card layout ──
+  if (mobile) {
+    return (
+      <div className="px-3 py-2.5 space-y-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold ${srcMeta.color} bg-slate-100 flex-shrink-0`}>
+              <SrcIcon className="w-2.5 h-2.5" /> {srcMeta.label}
+            </span>
+            <p className="text-xs text-slate-700 font-medium truncate">{item.item}</p>
+          </div>
+          {canEdit && (item.is_manual || item.source === 'manual') && (
+            <button onClick={onDelete} className="text-slate-400 hover:text-rose-600 transition flex-shrink-0">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+        {item.source_date && (
+          <p className="text-[10px] text-slate-400">{new Date(item.source_date).toLocaleDateString('en-GB')}</p>
+        )}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 text-xs">
+            <div>
+              <span className="text-slate-400">Qty: </span>
+              {editing ? (
+                <input
+                  type="number"
+                  value={draft.qty}
+                  onChange={e => setDraft(p => ({ ...p, qty: e.target.value }))}
+                  onBlur={saveEdit}
+                  onKeyDown={e => e.key === 'Enter' && saveEdit()}
+                  className="w-16 px-1.5 py-0.5 border border-slate-200 rounded text-right text-xs"
+                  autoFocus
+                />
+              ) : (
+                <span
+                  className={`tabular-nums font-semibold ${canEdit ? 'cursor-pointer hover:bg-slate-100 rounded px-1' : ''} ${item.is_manual ? 'text-[#2E5A1A]' : 'text-slate-700'}`}
+                  onClick={canEdit ? startEdit : undefined}
+                >
+                  {item.qty || '—'} {item.unit || ''}
+                </span>
+              )}
+            </div>
+            <div>
+              <span className="text-slate-400">Rate: </span>
+              {editing ? (
+                <input
+                  type="number"
+                  value={draft.rate}
+                  onChange={e => setDraft(p => ({ ...p, rate: e.target.value }))}
+                  onBlur={saveEdit}
+                  onKeyDown={e => e.key === 'Enter' && saveEdit()}
+                  className="w-20 px-1.5 py-0.5 border border-slate-200 rounded text-right text-xs"
+                />
+              ) : (
+                <span
+                  className={`tabular-nums font-semibold text-slate-700 ${canEdit ? 'cursor-pointer hover:bg-slate-100 rounded px-1' : ''}`}
+                  onClick={canEdit ? startEdit : undefined}
+                >
+                  {fmt(item.rate)}
+                </span>
+              )}
+            </div>
+          </div>
+          <span className={`text-sm font-bold tabular-nums ${item.dispute_status === 'rejected' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
+            {fmt(amount)}
+          </span>
+        </div>
+        {/* Dispute control */}
+        {canDispute ? (
+          <div className="flex items-center gap-2">
+            <select
+              value={item.dispute_status || 'none'}
+              onChange={e => handleDisputeChange(e.target.value)}
+              className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${disputeMeta.border} ${disputeMeta.bg} ${disputeMeta.color} cursor-pointer`}
+            >
+              <option value="none">—</option>
+              <option value="disputed">Disputed</option>
+              <option value="counter_offered">Counter</option>
+              <option value="agreed">Agreed</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            {item.dispute_status !== 'none' && (
+              <button onClick={onToggleDispute} className="text-slate-400 hover:text-slate-700 text-[10px] font-semibold">
+                {expanded ? 'Hide' : 'History'}
+              </button>
+            )}
+          </div>
+        ) : item.dispute_status !== 'none' && (
+          <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${disputeMeta.bg} ${disputeMeta.color}`}>
+            {disputeMeta.label}
+          </span>
+        )}
+        {/* Expanded dispute history */}
+        {expanded && item.dispute_status !== 'none' && (
+          <div className="pt-2 border-t border-slate-100 space-y-2">
+            <div className="flex items-start gap-2">
+              <MessageSquare className="w-3.5 h-3.5 text-slate-400 mt-1 flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="Add a dispute note…"
+                value={disputeNote}
+                onChange={e => setDisputeNote(e.target.value)}
+                className="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs"
+              />
+              {item.dispute_status === 'disputed' && (
+                <button onClick={handleCounterOffer} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold">
+                  Counter
+                </button>
+              )}
+            </div>
+            {item.dispute_history && item.dispute_history.length > 0 && (
+              <div className="space-y-1">
+                {item.dispute_history.map((h, i) => (
+                  <div key={i} className="flex items-start gap-2 text-[11px]">
+                    <span className="text-slate-400 tabular-nums flex-shrink-0">
+                      {new Date(h.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                    </span>
+                    <span className={`font-semibold ${DISPUTE_META[h.action]?.color || 'text-slate-600'}`}>
+                      {DISPUTE_META[h.action]?.label || h.action}
+                    </span>
+                    {h.note && <span className="text-slate-500 truncate">— {h.note}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Desktop table row layout ──
   return (
     <>
       <tr className="hover:bg-slate-50/50 group">

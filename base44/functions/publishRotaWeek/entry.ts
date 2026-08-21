@@ -272,18 +272,59 @@ Deno.serve(async (req) => {
 
     // Auto-move all involved jobs from 'planning' to 'in_progress'
     let jobsActivated = 0;
+    const newlyActiveJobs: any[] = [];
     if (jobIds.length > 0) {
-      const jobsToUpdate = jobs.filter((j) => j && j.status === 'planning').map((j) => j.id);
+      const jobsToUpdate = jobs.filter((j) => j && j.status === 'planning');
       if (jobsToUpdate.length > 0) {
         await base44.asServiceRole.entities.Job.updateMany(
-          { _id: { $in: jobsToUpdate } },
+          { _id: { $in: jobsToUpdate.map((j) => j.id) } },
           { $set: { status: 'in_progress', status_changed_at: now } }
         );
         jobsActivated = jobsToUpdate.length;
+        newlyActiveJobs.push(...jobsToUpdate);
       }
     }
 
-    return Response.json({ success: true, published: true, emailed, skipped, copies, disabled: false, jobsActivated });
+    // ── Auto-create AFP #1 for each newly-activated job ──
+    // When a job goes live (rota published → in_progress), automatically
+    // create the first AFP with period_start = job start date and populate
+    // it with live field data — zero manual steps for the billing team.
+    let afpsCreated = 0;
+    for (const job of newlyActiveJobs) {
+      try {
+        const existingAfps = await base44.asServiceRole.entities.AFP.filter({ job_id: job.id });
+        if (existingAfps.length > 0) continue; // already has AFPs
+
+        const afp = await base44.asServiceRole.entities.AFP.create({
+          job_id: job.id,
+          job_name: job.name,
+          job_reference: job.job_reference || '',
+          division_id: job.division_id || '',
+          afp_number: 1,
+          period_start_date: job.start_date || weekStart,
+          period_end_date: '',
+          submission_deadline: '',
+          status: 'draft',
+          client_name: job.client_name || '',
+          client_po: job.job_reference || '',
+          gc_job_number: job.job_reference || '',
+          contract_value: job.budget_amount || 0,
+          total_claimed: 0,
+          original_total: 0,
+          disputed_total: 0,
+          agreed_total: 0,
+          dispute_status: 'none',
+        });
+
+        // Immediately populate with field data
+        try {
+          await base44.asServiceRole.functions.invoke('populateAFPFromFieldData', { afp_id: afp.id });
+        } catch (e) { /* non-fatal — billing team can refresh later */ }
+        afpsCreated++;
+      } catch (e) { /* non-fatal — don't block rota publish for AFP creation */ }
+    }
+
+    return Response.json({ success: true, published: true, emailed, skipped, copies, disabled: false, jobsActivated, afpsCreated });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
