@@ -12,7 +12,13 @@ import {
   resolvePandaToken, buildFullFieldMap, fetchAllPandaGroups, fetchPandaGroupFields,
 } from './assetPandaClient.ts';
 
-const BARCODE_LABEL_KEYWORDS = ['barcode', 'asset tag', 'tag id'];
+const BARCODE_LABEL_KEYWORDS = ['barcode', 'asset tag', 'tag id', 'tag', 'qr', 'code', 'label', 'asset no', 'asset number', 'reference', 'ref'];
+
+// Normalize barcode values for comparison — strips spaces, dashes, and
+// common special characters so a scanned "AB-123-C" matches stored "AB123C".
+function normalizeBarcode(val) {
+  return String(val || '').toLowerCase().replace(/[\s\-_~`'"\\|/.,:;<>{}[\]()!@#$%^&*+=?]/g, '').trim();
+}
 
 export async function resolveAssetByQR(base44, scannedValue) {
   const q = String(scannedValue || '').trim().toLowerCase();
@@ -59,7 +65,12 @@ export async function resolveAssetByQR(base44, scannedValue) {
   }
   if (groups.length === 0) return localFallback(base44, q);
 
-  // --- Search each group for a match by panda_id / serial / name / barcode ---
+  // --- Search each group using targeted field filters + global search ---
+  // Uses the v3 search endpoint's field_filters and search body parameters to
+  // query Asset Panda directly by the scanned value, instead of paginating
+  // through every object (which was slow and often timed out before reaching
+  // the matching record). Tries barcode/serial/name field filters first, then
+  // falls back to a global text search.
   let pandaMatch = null;
   let matchGroupId = '';
   let matchGroupLabel = '';
@@ -78,45 +89,30 @@ export async function resolveAssetByQR(base44, scannedValue) {
     const serialKey = fieldMap.serial_number || findByLabel(['serial', 'asset tag', 'tag', 'registration', 'reg']);
     const barcodeKey = fieldMap.barcode || findByLabel(BARCODE_LABEL_KEYWORDS);
 
-    // Paginate and match by panda_id / serial / name / barcode
-    let offset = 0;
-    const limit = 100;
-    let pages = 0;
-    let foundInGroup = null;
-    while (!foundInGroup) {
-      const url = `${baseUrl}/v3/groups/${groupId}/search/objects?limit=${limit}&offset=${offset}`;
+    // Build targeted searches — most precise first, global text search last.
+    const searchAttempts = [];
+    if (barcodeKey) searchAttempts.push({ field_filters: { [barcodeKey]: scannedValue } });
+    if (serialKey) searchAttempts.push({ field_filters: { [serialKey]: scannedValue } });
+    if (nameKey) searchAttempts.push({ field_filters: { [nameKey]: scannedValue } });
+    searchAttempts.push({ search: scannedValue }); // global text search fallback
+
+    for (const searchBody of searchAttempts) {
+      const url = `${baseUrl}/v3/groups/${groupId}/search/objects?limit=50&offset=0`;
       let objRes;
       try {
-        objRes = await fetch(url, { method: 'POST', headers: authHeaders, body: JSON.stringify({ view_archived: 'all' }) });
-      } catch (_) { break; }
-      if (!objRes.ok) break;
+        objRes = await fetch(url, { method: 'POST', headers: authHeaders, body: JSON.stringify({ ...searchBody, view_archived: 'all' }) });
+      } catch (_) { continue; }
+      if (!objRes.ok) continue;
       const objJson = await objRes.json();
       const page = Array.isArray(objJson) ? objJson : (objJson.objects || objJson.data || objJson.results || objJson.group_objects || []);
-      if (!page.length) break;
-      for (const obj of page) {
-        const pandaId = String(obj.id || obj.object_id || obj._id || '').toLowerCase();
-        const serial = String(fieldValue(obj, serialKey) || obj.serial_number || '').toLowerCase().trim();
-        const name = String(fieldValue(obj, nameKey) || obj.name || '').toLowerCase().trim();
-        const barcodeVal = barcodeKey ? String(fieldValue(obj, barcodeKey) || '').toLowerCase().trim() : '';
-        if (
-          pandaId === q || serial === q || name === q || barcodeVal === q ||
-          (serial && serial.includes(q)) || (name && name.includes(q)) || (barcodeVal && barcodeVal.includes(q))
-        ) {
-          foundInGroup = obj;
-          break;
-        }
-      }
-      if (page.length < limit) break;
-      offset += limit;
-      if (pages++ > 30) break; // safety cap — 3000 objects per group
-    }
-    if (foundInGroup) {
-      pandaMatch = foundInGroup;
+      if (!page.length) continue;
+      pandaMatch = page[0];
       matchGroupId = groupId;
       matchGroupLabel = group.label;
       matchBarcodeKey = barcodeKey;
       break;
     }
+    if (pandaMatch) break;
   }
 
   if (!pandaMatch) return localFallback(base44, q);
@@ -130,7 +126,8 @@ export async function resolveAssetByQR(base44, scannedValue) {
   const serial = fieldValue(pandaMatch, fieldMap.serial_number) || pandaMatch.serial_number || '';
   const barcodeVal = matchBarcodeKey ? fieldValue(pandaMatch, matchBarcodeKey) : '';
   if (!local && serial) local = allLocal.find((a) => String(a.serial_number || '').toLowerCase().trim() === serial.toLowerCase().trim());
-  if (!local && barcodeVal) local = allLocal.find((a) => String(a.barcode || '').toLowerCase().trim() === barcodeVal.toLowerCase().trim());
+  if (!local && barcodeVal) local = allLocal.find((a) => normalizeBarcode(a.barcode) === normalizeBarcode(barcodeVal));
+  if (!local) local = allLocal.find((a) => String(a.fleet_number || '').toLowerCase().trim() === q);
   if (!local) local = allLocal.find((a) => String(a.name || '').toLowerCase().trim() === name.toLowerCase().trim());
 
   if (local) {
@@ -238,9 +235,12 @@ async function localFallback(base44, q, warning) {
     const nm = String(a.name || '').toLowerCase().trim();
     const pid = String(a.panda_asset_id || '').toLowerCase().trim();
     const bc = String(a.barcode || '').toLowerCase().trim();
+    const fn = String(a.fleet_number || '').toLowerCase().trim();
     const equip = String(a.equipment_type || '').toLowerCase().trim();
-    return sn === q || nm === q || pid === q || bc === q ||
-      (sn && sn.includes(q)) || (nm && nm.includes(q)) || (equip && equip.includes(q)) || (bc && bc.includes(q));
+    const nbc = normalizeBarcode(a.barcode);
+    return sn === q || nm === q || pid === q || bc === q || fn === q ||
+      (sn && sn.includes(q)) || (nm && nm.includes(q)) || (equip && equip.includes(q)) ||
+      (bc && bc.includes(q)) || (nbc && nbc === normalizeBarcode(q));
   });
   if (!found) return { source: 'none', warning };
   return { asset: found, source: 'local', live: false, warning };

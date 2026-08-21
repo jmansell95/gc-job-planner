@@ -71,7 +71,6 @@ export default function FullScreenScanner({ onScan, onClose, resolving, lastResu
           facingMode: 'environment',
           width: { ideal: 1920 },
           height: { ideal: 1080 },
-          advanced: [{ focusMode: 'continuous' }],
         },
       });
       streamRef.current = stream;
@@ -79,11 +78,15 @@ export default function FullScreenScanner({ onScan, onClose, resolving, lastResu
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
-      // Apply 2× zoom on mobile so the label fills the frame (if supported)
+      // Apply continuous autofocus and zoom via applyConstraints (more reliable
+      // than getUserMedia advanced constraints, which iOS silently ignores).
       const track = stream.getVideoTracks()[0];
       const caps = track.getCapabilities ? track.getCapabilities() : {};
+      if (caps.focusMode && caps.focusMode.includes('continuous')) {
+        try { await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (_) {}
+      }
       if (caps.zoom) {
-        const targetZoom = Math.min(2, caps.zoom);
+        const targetZoom = Math.min(3, caps.zoom);
         try { await track.applyConstraints({ advanced: [{ zoom: targetZoom }] }); } catch (_) {}
       }
       if (caps.torch) setTorchSupported(true);
@@ -135,7 +138,7 @@ export default function FullScreenScanner({ onScan, onClose, resolving, lastResu
     <div className="fixed inset-0 z-[70] bg-black flex flex-col">
       {/* Camera video — full bleed */}
       <div className="absolute inset-0">
-        <video ref={videoRef} playsInline muted className="w-full h-full object-cover" />
+        <video ref={videoRef} playsInline muted className="w-full h-full object-contain sm:object-cover" />
       </div>
 
       {/* Dark scrim for contrast */}
