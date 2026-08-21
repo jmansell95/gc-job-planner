@@ -107,7 +107,7 @@ export default function AssetCommandDrawer({ asset, allAssets = [], staffProfile
   const vaultAssetNames = Object.fromEntries(vaultAssets.map(a => [a.id, a.name]));
 
   return (
-    <div className="fixed inset-0 z-[65] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-blue-950/60 backdrop-blur-md" onClick={onClose} />
       <div className="relative w-full max-w-lg max-h-[calc(100dvh-2rem)] bg-white rounded-2xl shadow-2xl flex flex-col animate-pop-in overflow-hidden">
         {/* Header */}

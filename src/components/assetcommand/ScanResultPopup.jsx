@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   CheckCircle2, AlertTriangle, X, ArrowRight, Plus, ScanLine,
   ShieldCheck, ShieldAlert, ShieldX, Database, Package, Cog,
@@ -29,14 +29,6 @@ export default function ScanResultPopup({
   resolving, scanResult, scanError, pendingPanda, alreadyInBasket, confirming, refreshing,
   onViewAsset, onScanNext, onAddToBasket, onConfirmPanda, onCancelPanda,
 }) {
-  // Auto-dismiss after 8s (not while resolving or confirming)
-  useEffect(() => {
-    if (resolving || confirming) return;
-    if (!scanResult && !scanError && !pendingPanda) return;
-    const t = setTimeout(onScanNext, 8000);
-    return () => clearTimeout(t);
-  }, [scanResult, scanError, pendingPanda, resolving, confirming, onScanNext]);
-
   const hasContent = resolving || scanResult || scanError || pendingPanda;
   if (!hasContent) return null;
 
