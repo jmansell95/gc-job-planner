@@ -38,11 +38,11 @@ export default function AFPTemplateUploader({ onClose }) {
       const preview = data.preview || {};
       // Flatten all line items from all sheets
       const allItems = [
-        ...(preview.drilling || []).map(i => ({ ...i, sheet_name: 'drilling' })),
-        ...(preview.plant_hire || []).map(i => ({ ...i, sheet_name: 'plant_hire' })),
-        ...(preview.rates || []).map(i => ({ ...i, sheet_name: 'rates' })),
+        ...(preview.measured_works || []).map(i => ({ ...i, sheet_name: 'measured_works' })),
+        ...(preview.variations || []).map(i => ({ ...i, sheet_name: 'variations' })),
+        ...(preview.materials || []).map(i => ({ ...i, sheet_name: 'materials' })),
       ];
-      setParsedPreview({ file_url, file_name: file.name, items: allItems, contract: preview.contract || {} });
+      setParsedPreview({ file_url, file_name: file.name, items: allItems, contract: preview.contract_details || {} });
       setTemplateName(file.name.replace(/\.(xlsx|xls)$/, ''));
     } catch (e) {
       setError(e.message || 'Failed to parse template');
@@ -57,9 +57,9 @@ export default function AFPTemplateUploader({ onClose }) {
       const lineItems = parsedPreview.items.map((item, i) => ({
         description: item.item || item.description || '',
         unit: item.unit || '',
-        unit_price: item.unit_price || item.price || 0,
-        category: item.sheet_name === 'drilling' ? 'drilling' : item.sheet_name === 'plant_hire' ? 'plant_hire' : 'other',
-        sheet_name: item.sheet_name || 'drilling',
+        unit_price: item.unit_price || item.rate || item.cost || item.price || 0,
+        category: item.sheet_name === 'measured_works' ? 'drilling' : item.sheet_name === 'variations' ? 'subcontractor' : item.sheet_name === 'materials' ? 'materials' : 'other',
+        sheet_name: item.sheet_name || 'measured_works',
         sort_order: i,
       }));
 

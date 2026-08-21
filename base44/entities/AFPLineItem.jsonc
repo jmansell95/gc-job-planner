@@ -15,10 +15,13 @@
       "enum": [
         "drilling",
         "plant_hire",
-        "rates"
+        "rates",
+        "measured_works",
+        "variations",
+        "materials"
       ],
-      "default": "drilling",
-      "description": "Which AFP sheet this line item belongs to: 'drilling' = the Drilling sheet (weekly breakdown), 'plant_hire' = the Plant hire sheet, 'rates' = the Rates sheet (schedule of rates reference)."
+      "default": "measured_works",
+      "description": "Which AFP sheet this line item belongs to. Lump Sum format: 'measured_works' = Measured Works sheet (main line items), 'variations' = Variation Summary sheet, 'materials' = Materials On site sheet. Legacy format (kept for backward compat): 'drilling', 'plant_hire', 'rates'."
     },
     "category": {
       "type": "string",

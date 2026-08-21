@@ -1,32 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { toNum, toDateStr } from '../../shared/cvrHelpers.ts';
 import * as XLSX from 'npm:xlsx@0.18.5';
 
 /**
- * parseAFPUpload — fetches the AFP Excel file, parses all 4 sheets
- * deterministically using SheetJS, and returns a structured preview.
+ * parseAFPUpload — fetches the Lump Sum AFP Excel file, parses the four
+ * sheets (Valuation Summary, Measured Works, Variation Summary, Materials
+ * On site) deterministically using SheetJS, and returns a structured preview.
  *
  * Input:  { file_url: string }
- * Output: { preview: { contract_details, rates, drilling, plant_hire } }
+ * Output: { preview: { contract_details, measured_works, variations, materials } }
  */
-
-function toNum(val) {
-  if (val == null || val === '') return 0;
-  if (typeof val === 'number') return isNaN(val) ? 0 : val;
-  const cleaned = String(val).replace(/[^0-9.\-]/g, '');
-  const n = parseFloat(cleaned);
-  return isNaN(n) ? 0 : n;
-}
-
-function toDateStr(val) {
-  if (!val) return null;
-  if (val instanceof Date) return val.toISOString().slice(0, 10);
-  if (typeof val === 'string') {
-    const d = new Date(val);
-    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
-    return val;
-  }
-  return null;
-}
 
 function findHeaderRow(rows, keywords, startIdx = 0) {
   for (let i = startIdx; i < rows.length; i++) {
@@ -36,6 +19,18 @@ function findHeaderRow(rows, keywords, startIdx = 0) {
       const l = String(cell || '').toLowerCase().trim();
       if (keywords.some(kw => l === kw || l.includes(kw))) return i;
     }
+  }
+  return -1;
+}
+
+function colIdx(headerRow, exact, includes) {
+  for (let c = 0; c < headerRow.length; c++) {
+    const l = String(headerRow[c] || '').toLowerCase().trim();
+    if (exact && exact.some(e => l === e)) return c;
+  }
+  for (let c = 0; c < headerRow.length; c++) {
+    const l = String(headerRow[c] || '').toLowerCase().trim();
+    if (includes && includes.some(inc => l.includes(inc))) return c;
   }
   return -1;
 }
@@ -57,141 +52,175 @@ export default async function(req: Request): Promise<Response> {
 
     const preview = {
       contract_details: {},
-      rates: [],
-      drilling: [],
-      plant_hire: [],
+      measured_works: [],
+      variations: [],
+      materials: [],
     };
 
-    // ── Contract Value sheet ──
-    const cvName = workbook.SheetNames.find(n => /contract\s*value/i.test(n));
-    if (cvName) {
-      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[cvName], { header: 1, raw: true, defval: null, blankrows: false });
-      const details = {};
+    // ── Valuation Summary sheet (job metadata) ──
+    const vsName = workbook.SheetNames.find(n => /valuation\s*summary/i.test(n));
+    if (vsName) {
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[vsName], { header: 1, raw: true, defval: null, blankrows: false });
+      const details: any = {};
       for (const row of rows) {
-        const label = String(row[0] || '').toLowerCase().trim();
-        const val = row[1];
-        if (label.includes('date')) details.date = toDateStr(val);
-        else if (label.includes('client purchase') || label.includes('purchase order')) details.client_purchase_order = String(val || '').trim();
-        else if (label.includes('gc job number') || label.includes('gc job')) details.gc_job_number = String(val || '').trim();
-        else if (label === 'client') details.client = String(val || '').trim();
-        else if (label.includes('payment due')) details.payment_due_date = String(val || '').trim();
-        else if (label.includes('contract award') || label.includes('contract value')) details.contract_award_value = toNum(val);
+        if (!row) continue;
+        // Scan all cells for label/value pairs (merged cells make positions unreliable)
+        for (let c = 0; c < row.length; c++) {
+          const cellVal = row[c];
+          if (cellVal == null || cellVal === '') continue;
+          const l = String(cellVal).toLowerCase().trim();
+          // Look ahead for a value in the next non-empty cell
+          let valCell = null;
+          for (let c2 = c + 1; c2 < Math.min(row.length, c + 4); c2++) {
+            if (row[c2] != null && row[c2] !== '') { valCell = row[c2]; break; }
+          }
+          if (l.includes('project name') && valCell) details.project_name = String(valCell).trim();
+          else if ((l.includes('gcl') || l.includes('job no')) && valCell) details.gc_job_number = String(valCell).trim();
+          else if (l === 'client' && valCell) details.client = String(valCell).trim();
+          else if ((l.includes('order no') || l.includes('purchase order')) && valCell) details.client_purchase_order = String(valCell).trim();
+          else if (l.includes('contact address') && valCell) details.contact_address = String(valCell).trim();
+          else if (l.includes('payment due') && valCell) details.payment_due_date = String(valCell).trim();
+          else if ((l.includes('contract award') || l.includes('contract value')) && valCell) details.contract_award_value = toNum(valCell);
+          else if (l.includes('date') && !l.includes('payment') && valCell) details.date = toDateStr(valCell);
+        }
+        // Also capture PRJ- prefixed values (job number in col 0)
+        if (row[0] && /^PRJ-/i.test(String(row[0]).trim())) details.gc_job_number = String(row[0]).trim();
       }
       preview.contract_details = details;
     }
 
-    // ── Rates sheet ──
-    const ratesName = workbook.SheetNames.find(n => /rates/i.test(n) && !/drilling/i.test(n));
-    if (ratesName) {
-      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[ratesName], { header: 1, raw: true, defval: null, blankrows: false });
-      // Find header row with "Price" and "Per"
-      const headerIdx = findHeaderRow(rows, ['price'], 0);
-      if (headerIdx >= 0) {
-        for (let r = headerIdx + 1; r < rows.length; r++) {
-          const row = rows[r];
-          if (!row) continue;
-          const item = String(row[0] || '').trim();
-          if (!item) continue;
-          // Skip section headers like "Labour", "Plant", "Materials"
-          if (['labour', 'plant', 'materials', 'mobilisation'].includes(item.toLowerCase()) && row[1] == null) continue;
-          if (item.toLowerCase() === 'price' || item === '£') continue;
-
-          const price = toNum(row[1]);
-          const per = String(row[2] || '').trim();
-          const men = toNum(row[3]);
-          const notes = String(row[4] || '').trim();
-
-          if (price > 0 || item.length > 3) {
-            preview.rates.push({ item, price, per, men, notes });
-          }
-        }
-      }
-    }
-
-    // ── Drilling sheet ──
-    const drillName = workbook.SheetNames.find(n => /drilling/i.test(n));
-    if (drillName) {
-      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[drillName], { header: 1, raw: true, defval: null, blankrows: false });
-      // Find header row with "Item" and "Unit Price"
-      const headerIdx = findHeaderRow(rows, ['item'], 0);
+    // ── Measured Works sheet (main line items) ──
+    const mwName = workbook.SheetNames.find(n => /measured\s*works/i.test(n));
+    if (mwName) {
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[mwName], { header: 1, raw: true, defval: null, blankrows: false });
+      // Header row contains "Description" (row 4 in the sample, after title rows)
+      const headerIdx = findHeaderRow(rows, ['description'], 0);
       if (headerIdx >= 0) {
         const headerRow = rows[headerIdx];
-        // Find week commencing columns (columns with date values)
-        const weekCols = [];
-        for (let c = 0; c < headerRow.length; c++) {
-          const val = headerRow[c];
-          if (val instanceof Date || (typeof val === 'string' && /\d{4}-\d{2}-\d{2}/.test(val))) {
-            weekCols.push({ col: c, date: toDateStr(val) });
-          }
-        }
-
-        // Find column indices for item, unit price, qty, rate, amount
-        let itemCol = -1, unitCol = -1, qtyCol = -1, rateCol = -1, amountCol = -1;
-        for (let c = 0; c < headerRow.length; c++) {
-          const l = String(headerRow[c] || '').toLowerCase().trim();
-          if (l === 'item' && itemCol < 0) itemCol = c;
-          else if (l.includes('unit price') || l === 'unit') unitCol = c;
-          else if (l === 'qty') qtyCol = c;
-          else if (l === 'rate') rateCol = c;
-          else if (l === 'amount') amountCol = c;
-        }
+        const itemRefCol = colIdx(headerRow, ['item ref', 'item ref:'], ['item ref']);
+        const descCol = colIdx(headerRow, ['description'], ['description']);
+        const qtyCol = colIdx(headerRow, ['qty'], ['qty']);
+        const unitCol = colIdx(headerRow, ['unit'], ['unit']);
+        const rateCol = colIdx(headerRow, ['rate'], ['rate']);
+        const sumCol = colIdx(headerRow, ['sum'], ['sum']);
+        const appliedCol = colIdx(headerRow, null, ['applied in period']);
+        const commentsCol = colIdx(headerRow, ['comments'], ['comments']);
 
         for (let r = headerIdx + 1; r < rows.length; r++) {
           const row = rows[r];
           if (!row) continue;
-          const item = itemCol >= 0 ? String(row[itemCol] || '').trim() : '';
-          if (!item || item.toLowerCase() === 'item') continue;
-
-          const unit = unitCol >= 0 ? String(row[unitCol] || '').trim() : '';
-          const unitPrice = unitCol >= 0 ? toNum(row[unitCol]) : 0;
+          const desc = descCol >= 0 ? String(row[descCol] || '').trim() : '';
+          const itemRef = itemRefCol >= 0 ? String(row[itemRefCol] || '').trim() : '';
+          if (!desc && !itemRef) continue;
+          // Skip section headers (category labels with no qty/rate)
           const qty = qtyCol >= 0 ? toNum(row[qtyCol]) : 0;
           const rate = rateCol >= 0 ? toNum(row[rateCol]) : 0;
-          const amount = amountCol >= 0 ? toNum(row[amountCol]) : qty * rate;
+          if (!desc && !itemRef && qty === 0 && rate === 0) continue;
 
-          if (item.length < 3 && amount === 0 && qty === 0) continue;
+          const unit = unitCol >= 0 ? String(row[unitCol] || '').trim() : '';
+          const amount = sumCol >= 0 ? toNum(row[sumCol]) : qty * rate;
+          const appliedInPeriod = appliedCol >= 0 ? toNum(row[appliedCol]) : 0;
+          const comments = commentsCol >= 0 ? String(row[commentsCol] || '').trim() : '';
 
-          // Build week breakdown
-          const weekBreakdown = weekCols
-            .filter(wc => row[wc.col] != null && toNum(row[wc.col]) !== 0)
-            .map(wc => ({ week_date: wc.date, qty: toNum(row[wc.col]) }));
+          // Skip section headers (category labels with no financial data)
+          if (qty === 0 && rate === 0 && amount === 0 && appliedInPeriod === 0) continue;
 
-          preview.drilling.push({ item, unit, unit_price: unitPrice, qty, rate, amount, week_breakdown: weekBreakdown });
+          preview.measured_works.push({
+            item_ref: itemRef,
+            item: desc,
+            unit,
+            qty,
+            rate,
+            amount,
+            applied_in_period: appliedInPeriod,
+            comments,
+          });
         }
       }
     }
 
-    // ── Plant hire sheet ──
-    const phName = workbook.SheetNames.find(n => /plant\s*hire/i.test(n));
-    if (phName) {
-      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[phName], { header: 1, raw: true, defval: null, blankrows: false });
-      const headerIdx = findHeaderRow(rows, ['item'], 0);
+    // ── Variation Summary sheet ──
+    const varName = workbook.SheetNames.find(n => /variation\s*summary/i.test(n));
+    if (varName) {
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[varName], { header: 1, raw: true, defval: null, blankrows: false });
+      // Header row contains "Description" (row 4 in the sample)
+      const headerIdx = findHeaderRow(rows, ['description'], 0);
       if (headerIdx >= 0) {
         const headerRow = rows[headerIdx];
-        let itemCol = -1, unitCol = -1, priceCol = -1, qtyCol = -1, totalCol = -1;
-        for (let c = 0; c < headerRow.length; c++) {
-          const l = String(headerRow[c] || '').toLowerCase().trim();
-          if (l === 'item' && itemCol < 0) itemCol = c;
-          else if (l.includes('unit price') || l === 'unit') unitCol = c;
-          else if (l === 'qty') qtyCol = c;
-          else if (l === 'total') totalCol = c;
-        }
-        // If no explicit price column, use the column after unit
-        if (unitCol >= 0) priceCol = unitCol;
+        const voRefCol = colIdx(headerRow, ['vo ref', 'vo ref:'], ['vo ref']);
+        const dateCol = colIdx(headerRow, ['date', 'date:'], ['date']);
+        const refCol = colIdx(headerRow, ['ref'], ['ref']);
+        const descCol = colIdx(headerRow, ['description'], ['description']);
+        const qtyCol = colIdx(headerRow, ['qty'], ['qty']);
+        const unitCol = colIdx(headerRow, ['unit'], ['unit']);
+        const rateCol = colIdx(headerRow, ['rate'], ['rate']);
+        const totalCostCol = colIdx(headerRow, ['total cost'], ['total cost']);
+        const commentsCol = colIdx(headerRow, ['comments'], ['comments']);
 
         for (let r = headerIdx + 1; r < rows.length; r++) {
           const row = rows[r];
           if (!row) continue;
+          const desc = descCol >= 0 ? String(row[descCol] || '').trim() : '';
+          const voRef = voRefCol >= 0 ? String(row[voRefCol] || '').trim() : '';
+          if (!desc && !voRef) continue;
+          const qty = qtyCol >= 0 ? toNum(row[qtyCol]) : 0;
+          const rate = rateCol >= 0 ? toNum(row[rateCol]) : 0;
+          if (!desc && !voRef && qty === 0 && rate === 0) continue;
+
+          const date = dateCol >= 0 ? toDateStr(row[dateCol]) : null;
+          const ref = refCol >= 0 ? String(row[refCol] || '').trim() : '';
+          const unit = unitCol >= 0 ? String(row[unitCol] || '').trim() : '';
+          const totalCost = totalCostCol >= 0 ? toNum(row[totalCostCol]) : qty * rate;
+          const comments = commentsCol >= 0 ? String(row[commentsCol] || '').trim() : '';
+
+          preview.variations.push({
+            vo_ref: voRef,
+            date,
+            ref,
+            description: desc,
+            unit,
+            qty,
+            rate,
+            total_cost: totalCost,
+            comments,
+          });
+        }
+      }
+    }
+
+    // ── Materials On site sheet ──
+    const matName = workbook.SheetNames.find(n => /materials?\s*on\s*site/i.test(n));
+    if (matName) {
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[matName], { header: 1, raw: true, defval: null, blankrows: false });
+      // Header row contains "Description" (row 3 in the sample)
+      const headerIdx = findHeaderRow(rows, ['description'], 0);
+      if (headerIdx >= 0) {
+        const headerRow = rows[headerIdx];
+        const itemCol = colIdx(headerRow, ['item', 'item:'], ['item']);
+        const descCol = colIdx(headerRow, ['description', 'description:'], ['description']);
+        const qtyCol = colIdx(headerRow, ['quantity'], ['quantity']);
+        const unitCol = colIdx(headerRow, ['unit'], ['unit']);
+        const costCol = colIdx(headerRow, ['cost'], ['cost']);
+
+        for (let r = headerIdx + 1; r < rows.length; r++) {
+          const row = rows[r];
+          if (!row) continue;
+          const desc = descCol >= 0 ? String(row[descCol] || '').trim() : '';
           const item = itemCol >= 0 ? String(row[itemCol] || '').trim() : '';
-          if (!item || item.toLowerCase() === 'item') continue;
+          if (!desc && !item) continue;
+          const qty = qtyCol >= 0 ? toNum(row[qtyCol]) : 0;
+          const cost = costCol >= 0 ? toNum(row[costCol]) : 0;
+          if (!desc && !item && qty === 0 && cost === 0) continue;
 
           const unit = unitCol >= 0 ? String(row[unitCol] || '').trim() : '';
-          const unitPrice = unitCol >= 0 ? toNum(row[unitCol]) : 0;
-          const qty = qtyCol >= 0 ? toNum(row[qtyCol]) : 0;
-          const total = totalCol >= 0 ? toNum(row[totalCol]) : unitPrice * qty;
 
-          if (item.length < 3 && total === 0) continue;
-
-          preview.plant_hire.push({ item, unit, unit_price: unitPrice, qty, total });
+          preview.materials.push({
+            item,
+            description: desc,
+            unit,
+            qty,
+            cost,
+          });
         }
       }
     }
