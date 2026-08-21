@@ -101,6 +101,11 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
                 <GeocodeButton address={formData.location} onResult={(lat, lng) => setFormData(prev => ({ ...prev, site_lat: lat, site_lng: lng }))} />
               </div>
               <div className="mt-2">
+                <label className="block text-xs font-medium text-slate-500 mb-1">what3words Address</label>
+                <input type="text" value={formData.what3words || ''} onChange={(e) => setFormData({ ...formData, what3words: e.target.value })} placeholder="e.g. filled.count.soap" className={inputCls + ' font-mono'} />
+                <p className="text-[11px] text-slate-400 mt-0.5">3 words separated by dots — pinpoints a 3m × 3m square. Used by field crews to find the exact site entrance.</p>
+              </div>
+              <div className="mt-2">
                 <label className="block text-xs font-medium text-slate-500 mb-1">Geofence Radius Override (metres) — blank = global default</label>
                 <input type="number" min="0" step="1" value={num('geofence_radius_override')} onChange={(e) => setNum('geofence_radius_override', e.target.value)} placeholder="e.g. 150" className={inputCls + ' max-w-[200px]'} />
               </div>

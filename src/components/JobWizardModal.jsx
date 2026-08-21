@@ -43,7 +43,7 @@ const emptyForm = {
   status: 'planning', start_date: '', end_date: '', client_id: '', contractor_id: '',
   project_manager: '', site_contact_name: '', site_contact_phone: '',
   notes: '', budget_amount: '',
-  site_lat: '', site_lng: '', geofence_radius_override: '',
+  site_lat: '', site_lng: '', geofence_radius_override: '', what3words: '',
   requisition_list_url: '', requisition_list_name: '',
   // Billing & financials
   revenue_method: 'none', drilling_method: 'not_applicable',
@@ -168,6 +168,8 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
         if (clean[k] === '' || clean[k] === undefined || clean[k] === null) delete clean[k];
         else clean[k] = parseFloat(clean[k]);
       });
+      // what3words — strip empty strings so the field stays blank
+      if (!clean.what3words) delete clean.what3words;
 
       // Build the disciplines array from the editor. Each track inherits
       // the job-level dates, revenue method, and drilling method as defaults.
@@ -343,6 +345,13 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Location <span className="text-red-500">*</span></label>
                     <input type="text" value={form.location} onChange={e => set('location', e.target.value)} placeholder="Site address" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      <span className="inline-flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-[#2E5A1A]" /> what3words Address</span>
+                    </label>
+                    <input type="text" value={form.what3words || ''} onChange={e => set('what3words', e.target.value)} placeholder="e.g. filled.count.soap" className={`${inputCls} font-mono`} />
+                    <p className="text-[11px] text-slate-400 mt-0.5">3 words separated by dots — pinpoints a 3m × 3m square. Used by field crews to find the exact site entrance.</p>
                   </div>
                   {/* Template picker — pre-fills the form from Job Type defaults */}
                   {jobTypes.filter(jt => jt.is_active !== false).length > 0 && (

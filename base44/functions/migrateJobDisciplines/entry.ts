@@ -1,15 +1,34 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 
 // ---------------------------------------------------------------------------
-// Migrate Jobs to Multi-Discipline Schema
+// Migrate Jobs to Simplified Multi-Discipline Schema
 // ---------------------------------------------------------------------------
-// One-time migration: maps every existing Job's legacy single-type fields
-// (job_type, drilling_method, required_team_ids, revenue_method, etc.) into
-// the new `disciplines` array. Each job gets one discipline entry based on
-// its current job_type/drilling_method, marked as the primary discipline.
+// Maps every existing Job's legacy single-type fields and disciplines into
+// the simplified 3-discipline model: drilling, groundworks, depot.
 //
-// Idempotent: if a job already has disciplines populated, it is skipped.
+// Mapping rules:
+//   - coring, trial_pit, cp_drilling, rotary_drilling → drilling
+//   - enabling, enabling_works, supervisor → groundworks
+//   - depot stays as depot
+//   - groundworks stays as groundworks
+//
+// Idempotent: if a job already has disciplines in the new model (only
+// drilling/groundworks/depot types), it is skipped.
 // ---------------------------------------------------------------------------
+
+const LEGACY_MAP = {
+  enabling: 'groundworks',
+  enabling_works: 'groundworks',
+  supervisor: 'groundworks',
+  coring: 'drilling',
+  trial_pit: 'drilling',
+  cp_drilling: 'drilling',
+  rotary_drilling: 'drilling',
+};
+
+function mapDisciplineType(type) {
+  return LEGACY_MAP[type] || type;
+}
 
 export default async function(req) {
   try {
@@ -25,9 +44,33 @@ export default async function(req) {
     let skipped = 0;
 
     for (const job of allJobs) {
-      // Skip if already migrated
+      // Check if already in the new model (all discipline types are valid new types)
       if (job.disciplines && Array.isArray(job.disciplines) && job.disciplines.length > 0) {
-        skipped++;
+        const needsMigration = job.disciplines.some(d => LEGACY_MAP[d.type]);
+        if (!needsMigration) {
+          skipped++;
+          continue;
+        }
+        // Migrate legacy discipline types to new model
+        const newDisciplines = job.disciplines.map(d => ({
+          ...d,
+          type: mapDisciplineType(d.type),
+        }));
+        // Deduplicate if migration collapsed two legacy types into the same new type
+        const seen = new Set();
+        const deduped = [];
+        for (const d of newDisciplines) {
+          if (!seen.has(d.type)) {
+            seen.add(d.type);
+            deduped.push(d);
+          }
+        }
+        updates.push({
+          id: job.id,
+          disciplines: deduped,
+          primary_discipline: mapDisciplineType(job.primary_discipline || deduped[0]?.type),
+        });
+        migrated++;
         continue;
       }
 
@@ -39,12 +82,14 @@ export default async function(req) {
       }
       // If job_type contains 'drill' or 'cp' or 'rotary', it's drilling
       const jtLower = String(disciplineType).toLowerCase();
-      if (jtLower.includes('drill') || jtLower === 'cp' || jtLower === 'rotary' || jtLower === 'cp_drilling' || jtLower === 'rotary_drilling') {
+      if (jtLower.includes('drill') || jtLower === 'cp' || jtLower === 'rotary') {
         disciplineType = 'drilling';
       }
-      if (jtLower.includes('ground') || jtLower.includes('enabling') || jtLower.includes('trial')) {
+      if (jtLower.includes('ground') || jtLower.includes('enabling') || jtLower.includes('trial') || jtLower.includes('coring')) {
         disciplineType = 'groundworks';
       }
+      // Map any legacy type to the new model
+      disciplineType = mapDisciplineType(disciplineType);
 
       const discipline = {
         type: disciplineType,

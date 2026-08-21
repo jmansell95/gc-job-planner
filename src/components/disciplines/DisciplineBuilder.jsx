@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
 import {
-  Mountain, HardHat, Wrench, Warehouse, Users, Layers, CircleDashed,
-  User, Briefcase, Star, X, Plus, ChevronDown, ChevronRight,
+  Mountain, HardHat, Warehouse, Layers, CircleDashed,
+  Star, X, Plus, ChevronDown, ChevronRight,
   Sparkles,
 } from 'lucide-react';
 import { DISCIPLINE_CONFIG, getDisciplineConfig, getDisciplineSubcategories } from '@/utils/jobDisciplines';
 
 /**
  * DisciplineBuilder — a visual, expandable multi-discipline picker for the
- * Job Wizard. Shows disciplines as selectable icon tiles; each selected
- * discipline expands into a configuration card with its own status, drilling
- * method, and required teams. The first selected discipline is the primary
- * (drives dashboard color-coding and legacy field mirroring).
+ * Job Wizard. Simplified to three disciplines: Drilling (with CP/Rotary
+ * sub-choice), Groundworks (all groundworks crews), and Depot.
  *
  * Props:
  *   disciplines: array of { type, status, drilling_method, required_team_ids, ... }
@@ -22,23 +20,13 @@ import { DISCIPLINE_CONFIG, getDisciplineConfig, getDisciplineSubcategories } fr
 const DISCIPLINE_ICONS = {
   drilling: Mountain,
   groundworks: HardHat,
-  enabling: Wrench,
-  enabling_works: Wrench,
-  coring: CircleDashed,
-  trial_pit: Layers,
   depot: Warehouse,
-  supervisor: User,
 };
 
 const DISCIPLINE_TONES = {
   drilling:      { bg: 'bg-amber-50',   border: 'border-amber-200',   text: 'text-amber-700',   icon: 'bg-amber-100 text-amber-600',   bar: 'bg-amber-500',   ring: 'ring-amber-300' },
   groundworks:   { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', icon: 'bg-emerald-100 text-emerald-600', bar: 'bg-emerald-500', ring: 'ring-emerald-300' },
-  enabling:      { bg: 'bg-purple-50',  border: 'border-purple-200',  text: 'text-purple-700',  icon: 'bg-purple-100 text-purple-600',  bar: 'bg-purple-500',  ring: 'ring-purple-300' },
-  enabling_works:{ bg: 'bg-purple-50',  border: 'border-purple-200',  text: 'text-purple-700',  icon: 'bg-purple-100 text-purple-600',  bar: 'bg-purple-500',  ring: 'ring-purple-300' },
-  coring:        { bg: 'bg-blue-50',    border: 'border-blue-200',   text: 'text-blue-700',   icon: 'bg-blue-100 text-blue-600',     bar: 'bg-blue-500',    ring: 'ring-blue-300' },
-  trial_pit:     { bg: 'bg-teal-50',    border: 'border-teal-200',   text: 'text-teal-700',    icon: 'bg-teal-100 text-teal-600',     bar: 'bg-teal-500',    ring: 'ring-teal-300' },
   depot:         { bg: 'bg-slate-50',   border: 'border-slate-200',  text: 'text-slate-700',   icon: 'bg-slate-100 text-slate-600',   bar: 'bg-slate-400',   ring: 'ring-slate-300' },
-  supervisor:    { bg: 'bg-rose-50',    border: 'border-rose-200',   text: 'text-rose-700',    icon: 'bg-rose-100 text-rose-600',     bar: 'bg-rose-500',    ring: 'ring-rose-300' },
 };
 
 const STATUSES = [
@@ -58,11 +46,17 @@ function getTone(type) {
   return DISCIPLINE_TONES[type] || DISCIPLINE_TONES.depot;
 }
 function getIcon(type) {
-  return DISCIPLINE_ICONS[type] || Briefcase;
+  return DISCIPLINE_ICONS[type] || Layers;
 }
 
 export default function DisciplineBuilder({ disciplines, onChange, teams = [] }) {
-  const items = Array.isArray(disciplines) ? disciplines : [];
+  const items = (Array.isArray(disciplines) ? disciplines : []).map(d => {
+    // Map legacy types to new model for display
+    const mappedType = d.type === 'enabling' || d.type === 'enabling_works' || d.type === 'supervisor' ? 'groundworks'
+      : (d.type === 'coring' || d.type === 'trial_pit') ? 'drilling'
+      : d.type;
+    return mappedType === d.type ? d : { ...d, type: mappedType };
+  });
   const [expanded, setExpanded] = useState({});
 
   const toggleTeam = (idx, teamId) => {
@@ -121,7 +115,7 @@ export default function DisciplineBuilder({ disciplines, onChange, teams = [] })
               Disciplines
             </label>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              Stack multiple work tracks on one job — e.g. start with Drilling, add Groundworks later
+              Pick Drilling (CP or Rotary), Groundworks, or Depot — stack multiple tracks if needed
             </p>
           </div>
         </div>
@@ -134,7 +128,7 @@ export default function DisciplineBuilder({ disciplines, onChange, teams = [] })
 
       {/* Discipline picker tiles */}
       {availableTypes.length > 0 && (
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {availableTypes.map((type) => {
             const cfg = getDisciplineConfig(type);
             const Icon = getIcon(type);
@@ -199,7 +193,6 @@ export default function DisciplineBuilder({ disciplines, onChange, teams = [] })
                       {d.type === 'drilling' && d.drilling_method && d.drilling_method !== 'not_applicable' && (
                         <span className="ml-1.5">· {d.drilling_method.toUpperCase()}</span>
                       )}
-
                     </p>
                   </div>
 
@@ -257,7 +250,7 @@ export default function DisciplineBuilder({ disciplines, onChange, teams = [] })
                       </div>
                     </div>
 
-                    {/* Sub-category / crew type — e.g. Groundworks → Enabling Crew */}
+                    {/* Sub-category / crew type */}
                     {(() => {
                       const subs = getDisciplineSubcategories(d.type);
                       if (subs.length === 0) return null;
@@ -280,7 +273,7 @@ export default function DisciplineBuilder({ disciplines, onChange, teams = [] })
                               </button>
                             ))}
                           </div>
-                          <p className="text-[10px] text-slate-400 mt-1">Pick the crew flavour for this track — e.g. an Enabling Crew under Groundworks.</p>
+                          <p className="text-[10px] text-slate-400 mt-1">Pick the crew flavour for this track — e.g. a Coring Crew under Groundworks.</p>
                         </div>
                       );
                     })()}
@@ -324,7 +317,7 @@ export default function DisciplineBuilder({ disciplines, onChange, teams = [] })
           <div>
             <p className="text-sm font-medium text-slate-500">No disciplines selected yet</p>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              Pick a discipline tile above to start — e.g. Drilling. You can add Groundworks or any other track later.
+              Pick a discipline tile above to start — Drilling, Groundworks, or Depot.
             </p>
           </div>
         </div>

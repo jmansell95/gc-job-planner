@@ -113,6 +113,16 @@ export default function HiredEquipmentFields({ form, setForm, suppliers = [], ra
         />
       </div>
 
+      <div>
+        <label className="block text-xs font-medium text-slate-600 mb-1">PO Number</label>
+        <input
+          value={form.po_number || ''}
+          onChange={(e) => setForm({ ...form, po_number: e.target.value })}
+          placeholder="Purchase order number"
+          className={inputCls}
+        />
+      </div>
+
       {isHiredByDay && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>

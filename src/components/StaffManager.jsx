@@ -55,7 +55,7 @@ export default function StaffManager() {
   const [workerFilter, setWorkerFilter] = useState('all');
   const [showAvailability, setShowAvailability] = useState(false);
   const [showIdCards, setShowIdCards] = useState(false);
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: 'field' });
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', date_of_birth: '', ni_number: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: 'field' });
 
   const queryClient = useQueryClient();
 
@@ -178,7 +178,7 @@ export default function StaffManager() {
       }
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       queryClient.invalidateQueries({ queryKey: ['users-list'] });
-      setFormData({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: 'field' });
+      setFormData({ name: '', email: '', phone: '', date_of_birth: '', ni_number: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: 'field' });
       setShowForm(false);
       setEditingId(null);
     } catch (error) {

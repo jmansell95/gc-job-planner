@@ -9,6 +9,7 @@ import DisciplinePills from '@/components/disciplines/DisciplinePills';
 import WeatherBadge from '@/components/weather/WeatherBadge';
 import QuickEditJobModal from '@/components/jobs/QuickEditJobModal';
 import MiniLocationMap from '@/components/jobs/MiniLocationMap';
+import What3WordsPill from '@/components/jobs/What3WordsPill';
 
 const STATUS_META = {
   planning: { label: 'Planning', icon: CircleDashed, grad: 'from-slate-500 to-slate-600', chip: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200' },
@@ -186,14 +187,17 @@ export default function JobSummaryCard({
         </div>
 
         {/* Location */}
-        <div className="flex items-center gap-1.5 text-slate-500 text-sm">
-          <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-          <span className="truncate">{job.location}</span>
-          {siteCount > 1 && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold flex-shrink-0">
-              <Layers className="w-3 h-3" />{siteCount} sites
-            </span>
-          )}
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5 text-slate-500 text-sm">
+            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">{job.location}</span>
+            {siteCount > 1 && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold flex-shrink-0">
+                <Layers className="w-3 h-3" />{siteCount} sites
+              </span>
+            )}
+          </div>
+          {job.what3words && <What3WordsPill value={job.what3words} size="sm" />}
         </div>
 
         {/* Mini location map — visual site pinpoint */}

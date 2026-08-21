@@ -143,10 +143,15 @@ function SiteCard({ site, onEdit, onDelete }) {
           </span>
         )}
         {site.lat != null && site.lng != null && (
-          <span className="tabular-nums">{Number(site.lat).toFixed(6)}, {Number(site.lng).toFixed(6)}</span>
+            <span className="tabular-nums">{Number(site.lat).toFixed(6)}, {Number(site.lng).toFixed(6)}</span>
         )}
-      </div>
-      {site.notes && <p className="text-xs text-slate-500 mt-2 pt-2 border-t border-slate-100">{site.notes}</p>}
+        {site.what3words && (
+          <span className="inline-flex items-center gap-1 text-[#2E5A1A] bg-[#2E5A1A]/8 rounded-full px-2 py-0.5 font-mono font-semibold text-[10px]">
+            <MapPin className="w-2.5 h-2.5" /> {site.what3words}
+          </span>
+        )}
+        </div>
+        {site.notes && <p className="text-xs text-slate-500 mt-2 pt-2 border-t border-slate-100">{site.notes}</p>}
     </div>
   );
 }
@@ -157,6 +162,7 @@ function SiteEditor({ site, saving, onSave, onClose, useMyLocation }) {
     location: site.location || '',
     lat: site.lat != null ? String(site.lat) : '',
     lng: site.lng != null ? String(site.lng) : '',
+    what3words: site.what3words || '',
     status: site.status || 'planning',
     start_date: site.start_date || '',
     end_date: site.end_date || '',
@@ -207,6 +213,10 @@ function SiteEditor({ site, saving, onSave, onClose, useMyLocation }) {
           <button onClick={useMyLocation} type="button" className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition border border-blue-100">
             <Navigation className="w-3.5 h-3.5" /> Use My Current Location
           </button>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">what3words Address</label>
+            <input type="text" value={form.what3words} onChange={e => set('what3words', e.target.value)} placeholder="e.g. filled.count.soap" className={inputCls + ' font-mono'} />
+          </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Status</label>
             <select value={form.status} onChange={e => set('status', e.target.value)} className={inputCls}>
