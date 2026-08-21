@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Keyboard, CheckCircle2, AlertTriangle, ScanLine, Loader2, WifiOff } from 'lucide-react';
+import { X, Keyboard, CheckCircle2, AlertTriangle, ScanLine, Loader2, WifiOff, Zap } from 'lucide-react';
 
 /**
  * Full-screen camera viewfinder overlay — opens when the user taps the scan
@@ -20,6 +20,8 @@ export default function FullScreenScanner({ onScan, onClose, resolving, lastResu
   const [cooldown, setCooldown] = useState(false);
   const [manualValue, setManualValue] = useState('');
   const [showManual, setShowManual] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const detectorRef = useRef(null);
@@ -64,12 +66,27 @@ export default function FullScreenScanner({ onScan, onClose, resolving, lastResu
   const startCamera = useCallback(async () => {
     setCameraError('');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          advanced: [{ focusMode: 'continuous' }],
+        },
+      });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
+      // Apply 2× zoom on mobile so the label fills the frame (if supported)
+      const track = stream.getVideoTracks()[0];
+      const caps = track.getCapabilities ? track.getCapabilities() : {};
+      if (caps.zoom) {
+        const targetZoom = Math.min(2, caps.zoom);
+        try { await track.applyConstraints({ advanced: [{ zoom: targetZoom }] }); } catch (_) {}
+      }
+      if (caps.torch) setTorchSupported(true);
       setCameraActive(true);
       if (hasNativeDetector) {
         try {
@@ -88,6 +105,16 @@ export default function FullScreenScanner({ onScan, onClose, resolving, lastResu
   }, [detectLoop, hasNativeDetector]);
 
   useEffect(() => { startCamera(); }, [startCamera]);
+
+  const toggleTorch = useCallback(async () => {
+    if (!streamRef.current) return;
+    const track = streamRef.current.getVideoTracks()[0];
+    try {
+      const next = !torchOn;
+      await track.applyConstraints({ advanced: [{ torch: next }] });
+      setTorchOn(next);
+    } catch (_) {}
+  }, [torchOn]);
 
   const handleManualSubmit = (e) => {
     e?.preventDefault();
@@ -212,6 +239,14 @@ export default function FullScreenScanner({ onScan, onClose, resolving, lastResu
           </form>
         ) : (
           <div className="flex items-center justify-center gap-3">
+            {torchSupported && (
+              <button
+                onClick={toggleTorch}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold active:scale-95 transition ${torchOn ? 'bg-amber-400 text-amber-950' : 'bg-white/10 backdrop-blur-md text-white'}`}
+              >
+                <Zap className="w-4 h-4" /> {torchOn ? 'Torch On' : 'Torch'}
+              </button>
+            )}
             <button
               onClick={() => setShowManual(true)}
               className="flex items-center gap-2 px-4 py-3 bg-white/10 backdrop-blur-md text-white rounded-xl text-sm font-semibold active:scale-95 transition"

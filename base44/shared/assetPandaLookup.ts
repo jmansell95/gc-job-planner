@@ -18,12 +18,22 @@ export async function resolveAssetByQR(base44, scannedValue) {
   const q = String(scannedValue || '').trim().toLowerCase();
   if (!q) return { source: 'none', error: 'Empty scan' };
 
-  // --- Read Asset Panda config ---
+  // --- LOCAL FIRST: near-instant match against the cached SiteAsset table ---
+  // The local records already hold the synced Panda data (barcode, serial,
+  // panda_asset_id, name, compliance, stock). Matching locally first makes
+  // scanning near-instant; the frontend fires a background Panda refresh
+  // (refreshScannedAsset) to pull any live updates after the card is shown.
+  const localMatch = await localFallback(base44, q);
+  if (localMatch.asset) {
+    return { asset: localMatch.asset, source: 'local', live: false, refresh_from_panda: true };
+  }
+
+  // --- No local match — fall back to a live Asset Panda search (new-asset path) ---
   const configs = await base44.asServiceRole.entities.AssetPandaConfig.filter({ key: 'global' });
   const config = configs && configs[0];
 
-  // If Panda isn't configured, go straight to local fallback.
-  if (!config) return localFallback(base44, q);
+  // If Panda isn't configured, return the no-match result from the local fallback.
+  if (!config) return localMatch;
 
   const baseUrl = (config.base_url || 'https://api.assetpanda.com').replace(/\/+$/, '');
   const { token, skipped } = await resolvePandaToken(config, baseUrl);

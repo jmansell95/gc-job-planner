@@ -6,61 +6,60 @@ import {
   fetchPandaImages,
   fetchPandaObject,
 } from '../../shared/assetPandaClient.ts';
-import { fieldValue } from '../../shared/assetPandaLookup.ts';
+import {
+  fieldValue, detectStockLevel, deriveComplianceStatus,
+} from '../../shared/assetPandaLookup.ts';
 import { findRawByKeywords, parseQty } from '../../shared/assetPandaRawFields.ts';
 
 // ============================================================
-// getAssetPandaObject — pull the FULL live object (all fields) +
-// image attachments for an asset from Asset Panda and cache them
-// on the SiteAsset record. Called by the "Refresh from Panda"
-// button on the asset detail page so managers see the freshest
-// data without waiting for the next scheduled sync.
+// refreshScannedAsset — lightweight single-asset background
+// refresh fired by the scanner after showing the local record.
+// Pulls the live Asset Panda object + images for one asset and
+// updates the cached SiteAsset in place so the scan result card
+// reflects the latest stock / compliance / images without making
+// the user wait. Any authenticated user can call this (field staff).
 // ============================================================
-// Caches panda_raw_fields (label → value), panda_image_urls and
-// last_sync_timestamp. Does NOT overwrite the mapped system fields
-// (those are reconciled by the full syncAssetPanda run) so any
-// in-progress local edits are never clobbered by a refresh.
 
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (user.role !== 'admin' && user.is_enterprise_admin !== true) {
-      return Response.json({ error: 'Admin access required' }, { status: 403 });
-    }
 
     const body = await req.json().catch(() => ({}));
     const siteAssetId = String(body?.site_asset_id || '').trim();
     if (!siteAssetId) return Response.json({ error: 'site_asset_id is required' }, { status: 400 });
 
-    const asset = await base44.asServiceRole.entities.SiteAsset.get(siteAssetId);
-    if (!asset) return Response.json({ error: 'Asset not found' }, { status: 404 });
+    let asset;
+    try {
+      asset = await base44.asServiceRole.entities.SiteAsset.get(siteAssetId);
+    } catch (_) {
+      return Response.json({ error: 'Asset not found' }, { status: 404 });
+    }
     const pandaId = String(asset.panda_asset_id || '').trim();
-    if (!pandaId) return Response.json({ error: 'Asset has no Asset Panda ID', cached: false });
+    if (!pandaId) return Response.json({ asset, refreshed: false, reason: 'No Asset Panda ID' });
 
     const configs = await base44.asServiceRole.entities.AssetPandaConfig.filter({ key: 'global' });
     const config = configs[0];
-    if (!config) return Response.json({ error: 'Asset Panda not configured', cached: false });
+    if (!config) return Response.json({ asset, refreshed: false, reason: 'Asset Panda not configured' });
     const baseUrl = String(config.base_url || 'https://api.assetpanda.com').replace(/\/+$/, '');
 
     const tokenRes = await resolvePandaToken(config, baseUrl);
-    if (tokenRes.error && !tokenRes.token) {
-      return Response.json({ error: tokenRes.error, cached: true });
-    }
-    const token = tokenRes.token!;
+    if (!tokenRes.token) return Response.json({ asset, refreshed: false, reason: tokenRes.error || 'No token' });
+    const token = tokenRes.token;
 
     const groupId = resolveGroupIdForAsset(config, asset);
-    if (!groupId) return Response.json({ error: 'No Asset Panda group configured for this asset', cached: true });
+    if (!groupId) return Response.json({ asset, refreshed: false, reason: 'No group configured' });
 
-    // --- Fetch the live object + its field definitions ---
+    // --- Fetch the live object + its field definitions in parallel ---
     let rawFields: Record<string, string> = {};
-    let objectError = '';
+    let obj: any = null;
     try {
-      const [obj, groupFields] = await Promise.all([
+      const [liveObj, groupFields] = await Promise.all([
         fetchPandaObject(baseUrl, token, groupId, pandaId),
         fetchPandaGroupFields(baseUrl, token, groupId).catch(() => [] as any[]),
       ]);
+      obj = liveObj;
       const keyToLabel: Record<string, string> = {};
       for (const f of groupFields) { if (f.key && f.label) keyToLabel[f.key] = f.label; }
       const skipKeys = new Set(['id', '_id', 'object_id', 'group_id', 'created_at', 'updated_at', 'archived', 'created_by', 'modified_at', 'modified_by', 'archived_at', 'display_name']);
@@ -72,17 +71,13 @@ export default async function(req: Request): Promise<Response> {
         const label = keyToLabel[key] || key;
         rawFields[label] = v;
       }
-    } catch (e: any) {
-      objectError = `Could not fetch live object: ${e.message}`;
-    }
+    } catch (_) { /* best-effort — return the cached asset */ }
 
     // --- Fetch image attachments ---
     let images: any[] = [];
-    let imageError = '';
     try {
       images = await fetchPandaImages(baseUrl, token, pandaId);
-    } catch (e: any) {
-      imageError = e.message;
+    } catch (_) {
       images = Array.isArray(asset.panda_image_urls) ? asset.panda_image_urls : [];
     }
 
@@ -91,34 +86,39 @@ export default async function(req: Request): Promise<Response> {
       panda_image_urls: images,
       panda_images_cached_at: now,
       last_sync_timestamp: now,
-      sync_status: 'synced',
+      sync_status: 'synced' as const,
     };
     if (Object.keys(rawFields).length > 0) updateData.panda_raw_fields = rawFields;
 
-    // Re-sync Quantity Owned & Available from the cached raw fields so the
-    // card and detail view reflect Asset Panda's current stock numbers.
+    // Re-sync quantity owned/available + stock level + compliance from raw fields
     try {
       const findRaw = (keywords: string[]) => findRawByKeywords(rawFields, keywords);
       const qo = parseQty(findRaw(['quantity owned', 'qty owned', 'owned']));
       const qa = parseQty(findRaw(['quantity available', 'qty available', 'quantity avail', 'available']));
       if (qo !== null) updateData.quantity_owned = qo;
       if (qa !== null) updateData.quantity_available = qa;
+
+      const stockRaw = findRaw(['stock', 'condition', 'status']);
+      if (stockRaw) updateData.stock_level = detectStockLevel(stockRaw);
+
+      // Compliance expiry — detect from inspection/expiry labelled fields
+      const expiryRaw = findRaw(['next inspection', 'expiry', 'loler', 'puwer', 'pat expiry', 'expires', 'next test', 'next service', 'next loler', 'next pat']);
+      if (expiryRaw) {
+        const d = new Date(expiryRaw);
+        if (!isNaN(d.getTime())) {
+          updateData.compliance_expiry_date = d.toISOString().split('T')[0];
+          updateData.compliance_status = deriveComplianceStatus(updateData.compliance_expiry_date);
+          updateData.compliance_last_checked = now;
+        }
+      }
     } catch (_) { /* best-effort */ }
 
     try {
       await base44.asServiceRole.entities.SiteAsset.update(siteAssetId, updateData);
-    } catch (e) { /* best-effort cache */ }
+    } catch (_) { /* best-effort cache */ }
 
-    return Response.json({
-      success: true,
-      raw_fields: rawFields,
-      raw_field_count: Object.keys(rawFields).length,
-      images,
-      image_count: images.length,
-      last_sync_timestamp: now,
-      object_error: objectError || undefined,
-      image_error: imageError || undefined,
-    });
+    const updatedAsset = { ...asset, ...updateData, id: siteAssetId };
+    return Response.json({ asset: updatedAsset, refreshed: true });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

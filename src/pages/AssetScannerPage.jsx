@@ -132,6 +132,7 @@ export default function AssetScannerPage() {
   }, [assets]);
 
   const [resolving, setResolving] = useState(false);
+  const [refreshingId, setRefreshingId] = useState(null);
 
   const pushRecent = useCallback((asset) => {
     setRecent(prev => {
@@ -183,6 +184,21 @@ export default function AssetScannerPage() {
       });
       if (data.source === 'panda' && data.created) {
         toast({ title: 'New from Asset Panda', description: `${found.name} added to local inventory` });
+      }
+      // Background refresh from Asset Panda — non-blocking, updates the card in place
+      if (data.refresh_from_panda && found.panda_asset_id) {
+        setRefreshingId(found.id);
+        base44.functions.invoke('refreshScannedAsset', { site_asset_id: found.id })
+          .then((res) => {
+            const updated = res.data?.asset || res.asset;
+            if (updated) {
+              setScanResult((prev) => (prev?.id === updated.id ? { ...prev, ...updated } : prev));
+              setBasket((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
+              queryClient.invalidateQueries({ queryKey: ['site-assets'] });
+            }
+          })
+          .catch(() => {})
+          .finally(() => setRefreshingId(null));
       }
     } catch (e) {
       // Network/resolve failure — queue offline for retry
@@ -560,6 +576,7 @@ export default function AssetScannerPage() {
                   {scanResult && !scanError && (
                     <ScanResultCard
                       asset={scanResult}
+                      refreshing={refreshingId === scanResult.id}
                       onBookToVehicle={(asset) => { setShowBook(true); }}
                       onDriveAway={(asset) => { setDriveAwayAsset(asset); setScanResult(null); }}
                       onOpenCommand={(asset) => { setCommandAsset(asset); setScanResult(null); }}

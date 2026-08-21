@@ -26,7 +26,7 @@ const MAINT_META = {
  *   - Info grid: storage location, stock level, operating hours, last service
  *   - Large action buttons: Start Shift / Book to Vehicle / Details / Report Fault
  */
-export default function ScanResultCard({ asset, onBookToVehicle, onDriveAway, onOpenCommand, onReportFault, onDismiss }) {
+export default function ScanResultCard({ asset, onBookToVehicle, onDriveAway, onOpenCommand, onReportFault, onDismiss, refreshing }) {
   if (!asset) return null;
 
   const expiryDate = asset.compliance_expiry_date;
@@ -57,6 +57,12 @@ export default function ScanResultCard({ asset, onBookToVehicle, onDriveAway, on
 
   return (
     <div className="animate-pop-in bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
+      {/* Refreshing shimmer bar */}
+      {refreshing && (
+        <div className="h-1 w-full bg-emerald-50 overflow-hidden">
+          <div className="h-full w-1/3 bg-emerald-400 shimmer rounded-full" />
+        </div>
+      )}
       {/* Gradient status header */}
       <div className={`bg-gradient-to-r ${statusMeta.gradient} px-4 py-3 flex items-center gap-3`}>
         <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
