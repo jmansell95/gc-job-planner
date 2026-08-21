@@ -4,7 +4,7 @@
   "properties": {
     "job_id": {
       "type": "string",
-      "description": "The job this Application for Payment belongs to. Multiple AFPs per job \u2014 one per monthly period."
+      "description": "The job this Application for Payment belongs to. Multiple AFPs per job \u2014 one per monthly period, chained from job start to completion."
     },
     "job_name": {
       "type": "string",
@@ -18,10 +18,34 @@
       "type": "string",
       "description": "The division this AFP belongs to (denormalised from the job). Drives division-scoped filtering."
     },
+    "afp_number": {
+      "type": "number",
+      "default": 1,
+      "description": "Sequential AFP number per job (1 = first AFP, 2 = second, etc.). Auto-assigned when the next AFP is created on submission."
+    },
     "period_date": {
       "type": "string",
       "format": "date",
-      "description": "The billing period this AFP covers (the month being claimed). Pulled from the AFP 'Date' field."
+      "description": "Legacy billing period date. Superseded by period_start_date / period_end_date for the live AFP lifecycle, but retained for backward compatibility with uploaded AFPs."
+    },
+    "period_start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "The start date of this AFP's billing period. For the first AFP, this is the job start date. For subsequent AFPs, this is the day after the previous AFP's period_end_date."
+    },
+    "period_end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "The end date of this AFP's billing period \u2014 the agreed cut-off date with the client. Set by the billing team per AFP (per-AFP flexible). Blank for draft AFPs awaiting the next agreed date."
+    },
+    "submission_deadline": {
+      "type": "string",
+      "format": "date",
+      "description": "The date by which this AFP must be submitted to the client. Set by the billing team when creating the AFP."
+    },
+    "next_afp_id": {
+      "type": "string",
+      "description": "ID of the next AFP in the chain. Set when this AFP is submitted to the client \u2014 the system auto-creates the next AFP with period_start = this AFP's period_end + 1 day."
     },
     "client_po": {
       "type": "string",
@@ -48,6 +72,31 @@
       "default": 0,
       "description": "Total amount claimed in this AFP = sum of all AFPLineItem amounts. Auto-calculated."
     },
+    "original_total": {
+      "type": "number",
+      "default": 0,
+      "description": "The original total before any client disputes. Captured at the time of submission to the client. Equals sum of all line item original amounts."
+    },
+    "disputed_total": {
+      "type": "number",
+      "default": 0,
+      "description": "The total value of items currently in dispute (disputed + counter-offered statuses). Auto-calculated from line item dispute statuses."
+    },
+    "agreed_total": {
+      "type": "number",
+      "default": 0,
+      "description": "The final agreed total after all disputes are resolved. Equals sum of agreed/undisputed line item amounts. This is the amount pushed to the CVR."
+    },
+    "dispute_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "active",
+        "resolved"
+      ],
+      "default": "none",
+      "description": "Per-AFP dispute roll-up. 'none' = no disputes (draft or all items undisputed); 'active' = one or more items disputed/counter-offered; 'resolved' = all disputes resolved (all items agreed or rejected)."
+    },
     "status": {
       "type": "string",
       "enum": [
@@ -57,11 +106,31 @@
         "invoiced"
       ],
       "default": "draft",
-      "description": "AFP lifecycle. 'draft' = being prepared; 'submitted' = sent to client for approval; 'approved' = client approved; 'invoiced' = converted to a formal Invoice."
+      "description": "AFP lifecycle. 'draft' = being prepared/populated with live field data; 'submitted' = sent to client for approval (disputes can occur); 'approved' = client approved all items; 'invoiced' = pushed to CVR and converted to formal invoice."
+    },
+    "client_facing_pdf_url": {
+      "type": "string",
+      "description": "URL of the generated client-facing PDF. Created when the AFP is submitted to the client."
+    },
+    "pushed_to_cvr_at": {
+      "type": "string",
+      "description": "ISO timestamp when the AFP was pushed to the CVR."
+    },
+    "pushed_by": {
+      "type": "string",
+      "description": "Name of the user who pushed the AFP to the CVR."
+    },
+    "last_populated_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last 'Refresh from Field Data' run that populated this AFP's line items from daily field records."
+    },
+    "last_populated_by": {
+      "type": "string",
+      "description": "Name of the user who last triggered the field data population."
     },
     "source_file_url": {
       "type": "string",
-      "description": "URL of the uploaded AFP Excel file."
+      "description": "URL of the uploaded AFP Excel file (for AFPs imported via the Excel upload flow)."
     },
     "source_file_name": {
       "type": "string",

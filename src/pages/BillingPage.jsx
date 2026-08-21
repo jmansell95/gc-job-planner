@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   PoundSterling, Receipt, FileBarChart, Banknote, TrendingDown,
   FileCheck, ArrowRight, CheckCircle2, Lock, TrendingUp, Shield, ScrollText,
+  Upload,
 } from 'lucide-react';
 import HubShell from '@/components/HubShell';
 import SubPills from '@/components/SubPills';
@@ -19,6 +20,7 @@ import AfPPipelineWidget from '@/components/billing/AfPPipelineWidget';
 import GenerateInvoiceModal from '@/components/billing/GenerateInvoiceModal';
 import RunReportButton from '@/components/reports/RunReportButton';
 import CVRPortfolioOverview from '@/components/cvr/CVRPortfolioOverview';
+import AFPTemplateUploader from '@/components/afp/AFPTemplateUploader';
 import { base44 } from '@/api/base44Client';
 
 // ─── 3-step billing pipeline (now inline within the Pipeline tab) ──────────
@@ -98,6 +100,7 @@ export default function BillingPage() {
   const [priceSub, setPriceSub] = useState('rate-card');
   const [controlSub, setControlSub] = useState('contracts-orders');
   const [invoiceJob, setInvoiceJob] = useState(null);
+  const [showTemplateUploader, setShowTemplateUploader] = useState(false);
 
   const tabs = [
     { id: 'pipeline', label: 'Pipeline', icon: FileBarChart },
@@ -156,7 +159,17 @@ export default function BillingPage() {
 
       {/* ── CVR / AFP tab: portfolio overview of all jobs' Cost/Value Reports */}
       {tab === 'cvr-afp' && (
-        <CVRPortfolioOverview onSelectJob={goToJobById} />
+        <>
+          <div className="flex items-center justify-end mb-3">
+            <button
+              onClick={() => setShowTemplateUploader(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white rounded-xl text-xs font-bold transition active:scale-95 shadow-sm"
+            >
+              <Upload className="w-3.5 h-3.5" /> Upload AFP Template
+            </button>
+          </div>
+          <CVRPortfolioOverview onSelectJob={goToJobById} />
+        </>
       )}
 
       {/* ── Price & Rates tab: Price List + POA Locks + Billing Rules ── */}
@@ -198,6 +211,10 @@ export default function BillingPage() {
         onClose={() => setInvoiceJob(null)}
         job={invoiceJob}
       />
+
+      {showTemplateUploader && (
+        <AFPTemplateUploader onClose={() => setShowTemplateUploader(false)} />
+      )}
     </HubShell>
   );
 }

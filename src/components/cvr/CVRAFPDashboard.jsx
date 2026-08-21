@@ -10,9 +10,7 @@ import CVRSummaryHero from './CVRSummaryHero';
 import CVRLineItemsTable from './CVRLineItemsTable';
 import CVRVariationsTab from './CVRVariationsTab';
 import CVRCashFlowChart from './CVRCashFlowChart';
-import AFPTab from './AFPTab';
 import CVRUploadModal from './CVRUploadModal';
-import AFPUploadModal from './AFPUploadModal';
 
 /**
  * CVRAFPDashboard — the full job-level CVR/AFP dashboard. Shown as a new
@@ -22,7 +20,6 @@ import AFPUploadModal from './AFPUploadModal';
 export default function CVRAFPDashboard({ job }) {
   const [subTab, setSubTab] = useState('summary');
   const [showCVRUpload, setShowCVRUpload] = useState(false);
-  const [showAFPUpload, setShowAFPUpload] = useState(false);
 
   const { data: cvrs = [] } = useQuery({
     queryKey: ['cvr', job.id],
@@ -58,12 +55,6 @@ export default function CVRAFPDashboard({ job }) {
         >
           <Upload className="w-3.5 h-3.5" /> Upload CVR
         </button>
-        <button
-          onClick={() => setShowAFPUpload(true)}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-xl text-xs font-bold transition active:scale-95 shadow-sm"
-        >
-          <Upload className="w-3.5 h-3.5" /> Upload AFP
-        </button>
         {cvr?.source_file_url && (
           <a
             href={cvr.source_file_url}
@@ -97,7 +88,6 @@ export default function CVRAFPDashboard({ job }) {
             { id: 'line-items', label: 'Line Items', icon: BarChart3 },
             { id: 'variations', label: 'Variations', icon: FileBarChart },
             { id: 'cash-flow', label: 'Cash Flow', icon: Receipt },
-            { id: 'afp', label: 'AFP', icon: FileText },
           ]}
           activeTab={subTab}
           onChange={setSubTab}
@@ -109,11 +99,9 @@ export default function CVRAFPDashboard({ job }) {
       {cvr && subTab === 'line-items' && <CVRLineItemsTable cvr={cvr} lineItems={lineItems} />}
       {cvr && subTab === 'variations' && <CVRVariationsTab cvr={cvr} variations={variations} />}
       {cvr && subTab === 'cash-flow' && <CVRCashFlowChart cashFlow={cashFlow} />}
-      {cvr && subTab === 'afp' && <AFPTab job={job} />}
 
       {/* Upload modals */}
       {showCVRUpload && <CVRUploadModal job={job} onClose={() => setShowCVRUpload(false)} />}
-      {showAFPUpload && <AFPUploadModal job={job} onClose={() => setShowAFPUpload(false)} />}
     </div>
   );
 }

@@ -1,0 +1,122 @@
+{
+  "name": "AFPTemplate",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Template name (e.g. 'Standard AFP Template', 'Geotechnical AFP Template')."
+    },
+    "division_id": {
+      "type": "string",
+      "description": "The division this template belongs to. Blank = company-wide default template."
+    },
+    "line_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Item description from the template."
+          },
+          "unit": {
+            "type": "string",
+            "description": "Unit of measure (e.g. 'Sum', 'Day', 'm')."
+          },
+          "unit_price": {
+            "type": "number",
+            "description": "Default unit price from the template."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "drilling",
+              "plant_hire",
+              "labour",
+              "subcontractor",
+              "materials",
+              "mobilisation",
+              "delivery",
+              "other"
+            ],
+            "description": "Billing category."
+          },
+          "sheet_name": {
+            "type": "string",
+            "enum": [
+              "drilling",
+              "plant_hire",
+              "rates"
+            ],
+            "description": "AFP sheet this item belongs to."
+          },
+          "sort_order": {
+            "type": "number",
+            "default": 0,
+            "description": "Display order."
+          }
+        },
+        "required": [
+          "description"
+        ]
+      },
+      "default": [],
+      "description": "Template line items \u2014 the standard structure (headers/descriptions) for AFPs created from this template. The data (quantities, amounts) is populated per job from live field data."
+    },
+    "source_file_url": {
+      "type": "string",
+      "description": "URL of the uploaded template Excel file."
+    },
+    "source_file_name": {
+      "type": "string",
+      "description": "Original filename of the uploaded template."
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this template is active and available for new AFPs."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.division_id": "{{user.data.division_id}}"
+        },
+        {
+          "data.division_id": {
+            "$in": "{{user.data.managed_division_ids}}"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

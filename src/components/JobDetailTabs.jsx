@@ -35,6 +35,7 @@ import GeotechDataTab from '@/components/geotech/GeotechDataTab';
 import TabStatRibbon from '@/components/TabStatRibbon';
 import JobSiteManager from '@/components/jobs/JobSiteManager';
 import CVRAFPDashboard from '@/components/cvr/CVRAFPDashboard';
+import AFPBuilder from '@/components/afp/AFPBuilder';
 
 export default function JobDetailTabs({
   job, primaryType, assignedStaff, rotas, allStaff, vehicles, rotasByDate, sortedDates,
@@ -47,7 +48,7 @@ export default function JobDetailTabs({
   const [scheduleSub, setScheduleSub] = useState('daily');
   const [logsSub, setLogsSub] = useState('activity');
   const [logisticsSub, setLogisticsSub] = useState('equipment');
-  const [finSub, setFinSub] = useState('overview');
+  const [finSub, setFinSub] = useState('afp-builder');
   const [docsSub, setDocsSub] = useState('photos');
 
   const assignedVehicleIds = [...new Set(rotas.map(r => r.vehicle_id).filter(Boolean))];
@@ -269,26 +270,15 @@ export default function JobDetailTabs({
         <TabsContent value="financials" className="space-y-3 mt-0">
           <SubTabNav
             tabs={[
-              { id: 'overview', label: 'Overview', icon: TrendingUp },
-              { id: 'cvr-afp', label: 'CVR / AFP', icon: FileBarChart },
-              { id: 'subcon', label: 'Sub-contractors', icon: Users },
-              { id: 'boq', label: 'BOQ', icon: FileBarChart },
-              { id: 'costs', label: 'Daily Costs', icon: Receipt },
+              { id: 'afp-builder', label: 'AFP Builder', icon: FileBarChart },
+              { id: 'cvr', label: 'CVR', icon: TrendingUp },
               { id: 'export', label: 'Export', icon: Download },
             ]}
             activeTab={finSub}
             onChange={setFinSub}
           />
-          {finSub === 'overview' && (
-            <>
-              <AutoFinancialsBreakdown job={job} />
-              <JobFinancialFootprint job={job} />
-            </>
-          )}
-          {finSub === 'cvr-afp' && <CVRAFPDashboard job={job} />}
-          {finSub === 'subcon' && <SubcontractorLogManager job={job} />}
-          {finSub === 'boq' && <BOQManager job={job} />}
-          {finSub === 'costs' && <DailyCostViewer job={job} />}
+          {finSub === 'afp-builder' && <AFPBuilder job={job} />}
+          {finSub === 'cvr' && <CVRAFPDashboard job={job} />}
           {finSub === 'export' && (
             <div className="bg-gradient-to-br from-[#2E5A1A]/10 to-[#8DC63F]/10 rounded-xl border border-[#2E5A1A]/20 p-4">
               <div className="flex items-center gap-2 mb-2"><FileText className="w-4 h-4 text-[#2E5A1A]" /><h3 className="font-semibold text-slate-900 text-sm">Billing Export</h3></div>

@@ -17,31 +17,141 @@
         "plant_hire",
         "rates"
       ],
-      "description": "Which AFP sheet this line item came from: 'drilling' = the Drilling sheet (weekly breakdown), 'plant_hire' = the Plant hire sheet, 'rates' = the Rates sheet (schedule of rates reference)."
+      "default": "drilling",
+      "description": "Which AFP sheet this line item belongs to: 'drilling' = the Drilling sheet (weekly breakdown), 'plant_hire' = the Plant hire sheet, 'rates' = the Rates sheet (schedule of rates reference)."
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "drilling",
+        "plant_hire",
+        "labour",
+        "subcontractor",
+        "materials",
+        "mobilisation",
+        "delivery",
+        "other"
+      ],
+      "default": "other",
+      "description": "Billing category for this line item. Used to group items in the AFP Builder and for rate card matching. 'drilling' = meterage/rig items, 'plant_hire' = equipment hire, 'labour' = crew/time, 'subcontractor' = sub-contracted work, 'materials' = consumables, 'mobilisation' = site setup, 'delivery' = transport."
     },
     "item": {
       "type": "string",
-      "description": "Item description (e.g. 'Mobilise cable Percussion Rig to site - GC', 'Coreliners'). Pulled from the AFP sheet's item column."
+      "description": "Item description (e.g. 'Mobilise cable Percussion Rig to site - GC', 'Coreliners')."
     },
     "unit": {
       "type": "string",
-      "description": "Unit of measure (e.g. 'Sum', 'nr', 'Day', 'm'). Pulled from the AFP sheet's unit column."
+      "description": "Unit of measure (e.g. 'Sum', 'nr', 'Day', 'm', 'hour')."
     },
     "unit_price": {
       "type": "number",
-      "description": "Unit price / rate per unit. Pulled from the AFP sheet's 'Unit Price' column."
+      "description": "Unit price / rate per unit. Matched from the rate card / Master Price List during population."
     },
     "qty": {
       "type": "number",
-      "description": "Quantity for this line item. Pulled from the AFP sheet's 'Qty' column."
+      "description": "Quantity for this line item. Auto-populated from field data (e.g. metres drilled, days hired, hours worked)."
     },
     "rate": {
       "type": "number",
-      "description": "Rate applied to this line item. Pulled from the AFP sheet's 'Rate' column."
+      "description": "Rate applied to this line item. Matched from the rate card or manually set by the billing team."
     },
     "amount": {
       "type": "number",
-      "description": "Total amount for this line item = qty \u00d7 rate (or unit_price \u00d7 qty depending on the sheet). Auto-calculated or pulled from the AFP sheet's 'Amount' / 'Total' column."
+      "description": "Total amount for this line item = qty \u00d7 rate (or unit_price \u00d7 qty). Auto-calculated."
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "driller_log",
+        "delivery",
+        "subcontractor",
+        "timesheet",
+        "cost",
+        "template",
+        "manual"
+      ],
+      "default": "manual",
+      "description": "Where this line item came from. 'driller_log' = from InvestigationLog, 'delivery' = from DeliveryLog or JobAssetAssignment, 'subcontractor' = from SubcontractorLog, 'timesheet' = from Timesheet, 'cost' = from DailyCost, 'template' = from the AFP template, 'manual' = manually added by the billing team."
+    },
+    "source_date": {
+      "type": "string",
+      "format": "date",
+      "description": "The date of the underlying field record. Used for Day/Week/Month grouping in the AFP Builder. For grouped items (e.g. weekly labour), this is the week-commencing date."
+    },
+    "source_id": {
+      "type": "string",
+      "description": "ID of the source record (InvestigationLog ID, SubcontractorLog ID, etc.). Used to prevent duplicate line items when re-populating."
+    },
+    "is_manual": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this line item was manually added by the billing team (not auto-populated from field data). Manual items are preserved when 'Refresh from Field Data' is run."
+    },
+    "dispute_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "disputed",
+        "counter_offered",
+        "agreed",
+        "rejected"
+      ],
+      "default": "none",
+      "description": "Client dispute status for this line item. 'none' = undisputed (counts toward agreed total); 'disputed' = client pushed back, awaiting our response; 'counter_offered' = we've made a counter-offer, awaiting client response; 'agreed' = both parties agreed on the adjusted amount; 'rejected' = client rejected and we've accepted the rejection (item removed from agreed total)."
+    },
+    "dispute_note": {
+      "type": "string",
+      "description": "Latest dispute note from the billing team or client. Summarises the current state of the negotiation for this item."
+    },
+    "original_amount": {
+      "type": "number",
+      "description": "The original amount before any dispute adjustment. Captured when the AFP is submitted to the client. Used to show original vs agreed in the dispute UI."
+    },
+    "agreed_amount": {
+      "type": "number",
+      "description": "The final agreed amount after dispute resolution. Equals 'amount' for undisputed items. For disputed items, this is the counter-offered or agreed amount. Used to calculate the AFP's agreed_total."
+    },
+    "dispute_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "description": "ISO timestamp of the dispute action."
+          },
+          "user_name": {
+            "type": "string",
+            "description": "Name of the user who performed the action."
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "disputed",
+              "counter_offered",
+              "agreed",
+              "rejected",
+              "note_added",
+              "amount_adjusted"
+            ],
+            "description": "The type of dispute action."
+          },
+          "note": {
+            "type": "string",
+            "description": "Note accompanying the action."
+          },
+          "amount": {
+            "type": "number",
+            "description": "The amount at the time of this action (for counter-offers and adjustments)."
+          }
+        },
+        "required": [
+          "timestamp",
+          "action"
+        ]
+      },
+      "default": [],
+      "description": "Full back-and-forth negotiation history for this line item. Each entry records a dispute action (disputed, counter-offered, agreed, rejected) with timestamp, user, note, and amount at the time."
     },
     "week_breakdown": {
       "type": "array",
@@ -62,12 +172,12 @@
         ]
       },
       "default": [],
-      "description": "Week-by-week breakdown for drilling line items. Each entry maps a week-commencing date to the quantity drilled that week. Empty for plant hire and rates sheet items."
+      "description": "Week-by-week breakdown for drilling line items. Each entry maps a week-commencing date to the quantity drilled that week."
     },
     "sort_order": {
       "type": "number",
       "default": 0,
-      "description": "Display order within the AFP sheet."
+      "description": "Display order within the AFP."
     }
   },
   "required": [
