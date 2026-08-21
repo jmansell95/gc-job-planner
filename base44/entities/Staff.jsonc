@@ -14,6 +14,15 @@
       "type": "string",
       "description": "Staff member email address"
     },
+    "date_of_birth": {
+      "type": "string",
+      "format": "date",
+      "description": "Staff member date of birth. Used for training records, age verification, and birthday alerts (the daily birthday automation surfaces a banner on the staff's birthday). Admin-only field \u2014 not shown to the staff member themselves."
+    },
+    "ni_number": {
+      "type": "string",
+      "description": "National Insurance Number. Used for CIS verification, payroll, and training compliance. Format: 2 letters, 6 digits, 1 letter (e.g. 'AB123456C'). Admin-only field."
+    },
     "phone": {
       "type": "string",
       "description": "Staff member phone number"

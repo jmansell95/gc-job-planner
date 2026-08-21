@@ -38,6 +38,10 @@
       "type": "number",
       "description": "Per-job geofence radius override (metres). When set, this radius is used instead of the global default from the geofence config. Useful for large sites that need a wider zone, or compact sites that need a tighter one."
     },
+    "what3words": {
+      "type": "string",
+      "description": "what3words address for the primary site location (e.g. 'filled.count.soap'). A 3-word address separated by dots that pinpoints a 3m \u00d7 3m square. Used heavily by field crews for precise site finding \u2014 shown on job cards and the job detail hero."
+    },
     "sites": {
       "type": "array",
       "items": {
@@ -58,6 +62,10 @@
           "lng": {
             "type": "number",
             "description": "Site longitude for geofencing, maps and weather lookups"
+          },
+          "what3words": {
+            "type": "string",
+            "description": "what3words address for this site (e.g. 'filled.count.soap'). A 3-word address separated by dots that pinpoints a 3m \u00d7 3m square anywhere in the world. Used alongside lat/lng for precise site finding."
           },
           "geofence_radius_override": {
             "type": "number",
@@ -103,14 +111,9 @@
             "enum": [
               "drilling",
               "groundworks",
-              "enabling",
-              "enabling_works",
-              "depot",
-              "supervisor",
-              "coring",
-              "trial_pit"
+              "depot"
             ],
-            "description": "Discipline type key \u2014 matches JobType records. A job can have multiple disciplines active simultaneously (e.g. drilling + groundworks on the same site)."
+            "description": "Discipline type key. Simplified to three tracks: 'drilling' (with a CP/Rotary sub-choice via drilling_method), 'groundworks' (covers all groundworks crews \u2014 enabling, coring, trial pit, etc.), and 'depot' (for jobs based at the yard). Legacy types (enabling, enabling_works, supervisor, coring, trial_pit) are migrated to drilling or groundworks."
           },
           "status": {
             "type": "string",
@@ -178,7 +181,7 @@
         }
       },
       "default": [],
-      "description": "Multi-discipline array \u2014 tracks each discipline (drilling, groundworks, enabling, etc.) as a separate entry with its own status, dates, revenue method, and required teams. A job with both drilling and groundworks will have two entries here, each independently managed. The legacy single-type fields (job_type, drilling_method, required_team_ids, revenue_method) are kept for backward compatibility and mirror the primary discipline."
+      "description": "Multi-discipline array \u2014 tracks each discipline (drilling, groundworks, depot) as a separate entry with its own status, dates, revenue method, and required teams. A job with both drilling and groundworks will have two entries here, each independently managed. The legacy single-type fields (job_type, drilling_method, required_team_ids, revenue_method) are kept for backward compatibility and mirror the primary discipline."
     },
     "primary_discipline": {
       "type": "string",

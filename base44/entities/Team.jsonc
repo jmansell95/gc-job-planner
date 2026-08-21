@@ -21,15 +21,11 @@
     "job_type": {
       "type": "string",
       "enum": [
+        "drilling",
         "groundworks",
-        "coring",
-        "trial_pit",
-        "cp_drilling",
-        "rotary_drilling",
-        "enabling_works",
         "depot"
       ],
-      "description": "Job type this team handles \u2014 staff in this team can only be assigned to matching jobs. Blank/absent = flexible (any job type, e.g. supervisors). Coring and Trial Pit crews are specialised sub-teams of Groundworks."
+      "description": "Discipline this team handles \u2014 staff in this team can only be assigned to matching jobs. 'drilling' covers all drilling crews (CP and Rotary, via the drilling_method sub-choice on the job). 'groundworks' covers all groundworks crews (enabling, coring, trial pit, general). 'depot' for yard-based teams. Blank/absent = flexible (any discipline, e.g. supervisors)."
     },
     "category": {
       "type": "string",
