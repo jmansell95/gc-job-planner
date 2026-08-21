@@ -3,7 +3,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Boxes, PoundSterling, FolderOpen, FileText, Eye, Download, Activity, Mountain,
   LayoutGrid, CalendarDays, ShieldCheck, Users, Truck, Hotel,
-  Camera, Clock, FlaskConical, Link2, AlertTriangle, TrendingUp, Receipt, FileBarChart, ClipboardList
+  Camera, Clock, FlaskConical, Link2, AlertTriangle, ClipboardList
 } from 'lucide-react';
 import SubTabNav from '@/components/SubTabNav';
 import JobLogisticsHub from '@/components/logistics/JobLogisticsHub';
@@ -14,7 +14,6 @@ import AutoFinancialsBreakdown from '@/components/financials/AutoFinancialsBreak
 import SubcontractorLogManager from '@/components/financials/SubcontractorLogManager';
 import DailyCostViewer from '@/components/financials/DailyCostViewer';
 import JobFinancialFootprint from '@/components/financials/JobFinancialFootprint';
-import BillingExportButton from '@/components/BillingExportButton';
 import BOQManager from '@/components/billing/BOQManager';
 import JobPhotoGallery from '@/components/JobPhotoGallery';
 import DocumentManager from '@/components/DocumentManager';
@@ -34,8 +33,7 @@ import FloodRiskWidget from '@/components/jobs/FloodRiskWidget';
 import GeotechDataTab from '@/components/geotech/GeotechDataTab';
 import TabStatRibbon from '@/components/TabStatRibbon';
 import JobSiteManager from '@/components/jobs/JobSiteManager';
-import CVRAFPDashboard from '@/components/cvr/CVRAFPDashboard';
-import AFPBuilder from '@/components/afp/AFPBuilder';
+import JobFinancialsTab from '@/components/afp/JobFinancialsTab';
 
 export default function JobDetailTabs({
   job, primaryType, assignedStaff, rotas, allStaff, vehicles, rotasByDate, sortedDates,
@@ -48,7 +46,6 @@ export default function JobDetailTabs({
   const [scheduleSub, setScheduleSub] = useState('daily');
   const [logsSub, setLogsSub] = useState('activity');
   const [logisticsSub, setLogisticsSub] = useState('equipment');
-  const [finSub, setFinSub] = useState('afp-builder');
   const [docsSub, setDocsSub] = useState('photos');
 
   const assignedVehicleIds = [...new Set(rotas.map(r => r.vehicle_id).filter(Boolean))];
@@ -268,24 +265,7 @@ export default function JobDetailTabs({
       {/* ── Financials Tab ── */}
       {canSeeCosts && (
         <TabsContent value="financials" className="space-y-3 mt-0">
-          <SubTabNav
-            tabs={[
-              { id: 'afp-builder', label: 'AFP Builder', icon: FileBarChart },
-              { id: 'cvr', label: 'CVR', icon: TrendingUp },
-              { id: 'export', label: 'Export', icon: Download },
-            ]}
-            activeTab={finSub}
-            onChange={setFinSub}
-          />
-          {finSub === 'afp-builder' && <AFPBuilder job={job} />}
-          {finSub === 'cvr' && <CVRAFPDashboard job={job} />}
-          {finSub === 'export' && (
-            <div className="bg-gradient-to-br from-[#2E5A1A]/10 to-[#8DC63F]/10 rounded-xl border border-[#2E5A1A]/20 p-4">
-              <div className="flex items-center gap-2 mb-2"><FileText className="w-4 h-4 text-[#2E5A1A]" /><h3 className="font-semibold text-slate-900 text-sm">Billing Export</h3></div>
-              <p className="text-xs text-slate-600 mb-3">Pull every billable item — equipment, labour, hotel, deliveries, meterage — into one printable report for invoicing.</p>
-              <BillingExportButton jobId={job.id} jobName={job.name} />
-            </div>
-          )}
+          <JobFinancialsTab job={job} canSeeCosts={canSeeCosts} />
         </TabsContent>
       )}
 
