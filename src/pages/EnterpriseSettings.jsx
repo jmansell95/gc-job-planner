@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDivision } from '@/contexts/DivisionContext';
 import {
-  ArrowLeft, Building2, Link2, KeyRound, Settings, Database, Layers, Receipt,
+  ArrowLeft, Building2, Link2, KeyRound, Settings, Database, Layers,
 } from 'lucide-react';
 import EnterpriseHeader from '@/components/EnterpriseHeader';
 import DivisionManager from '@/components/settings/DivisionManager';
@@ -11,12 +11,10 @@ import IntegrationsHub from '@/components/settings/IntegrationsHub';
 import EnterpriseAccessManager from '@/components/settings/EnterpriseAccessManager';
 import BackupRestoreHub from '@/components/settings/BackupRestoreHub';
 import IntegrationConfigDrawer from '@/components/settings/IntegrationConfigDrawer';
-import RateCardManager from '@/components/RateCardManager';
 
 const TABS = [
   { id: 'business-units', label: 'Business Units', icon: Layers, gradient: 'from-emerald-600 to-teal-700' },
   { id: 'divisions', label: 'Business Streams', icon: Building2, gradient: 'from-blue-600 to-cyan-700' },
-  { id: 'price-list', label: 'Master Price List', icon: Receipt, gradient: 'from-emerald-600 to-green-700' },
   { id: 'backup', label: 'Backup & Restore', icon: Database, gradient: 'from-indigo-600 to-blue-700' },
   { id: 'integrations', label: 'Integrations', icon: Link2, gradient: 'from-blue-600 to-indigo-700' },
   { id: 'access', label: 'Access Levels', icon: KeyRound, gradient: 'from-amber-500 to-orange-600' },
@@ -36,7 +34,6 @@ export default function EnterpriseSettings() {
     switch (activeTab) {
       case 'business-units': return <BusinessUnitManager />;
       case 'divisions': return <DivisionManager />;
-      case 'price-list': return <RateCardManager />;
       case 'backup': return <BackupRestoreHub />;
       case 'integrations': return <IntegrationsHub onNavigate={setSelectedIntegration} />;
       case 'access': return <EnterpriseAccessManager />;

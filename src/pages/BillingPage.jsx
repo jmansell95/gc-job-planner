@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  PoundSterling, FileBarChart, Receipt,
+  PoundSterling, FileBarChart, Receipt, Tag,
 } from 'lucide-react';
 import HubShell from '@/components/HubShell';
 import AgedDebtorsDashboard from '@/components/billing/AgedDebtorsDashboard';
 import AFPPortfolioOverview from '@/components/afp/AFPPortfolioOverview';
 import AFPTemplateUploader from '@/components/afp/AFPTemplateUploader';
+import RateCardManager from '@/components/RateCardManager';
 import RunReportButton from '@/components/reports/RunReportButton';
 import { base44 } from '@/api/base44Client';
 
 /**
  * BillingPage — AFP-centric billing hub.
- * Two views: AFP Portfolio (primary) and Invoicing / Aged Debtors (secondary).
- * All per-job financial management (AFP builder, rate cards, controls) lives
- * inside each job's Financials tab. Master Price List lives in Enterprise Settings.
+ * Three views: AFP Portfolio (primary), Rate Card (per-division Master Price List),
+ * and Invoicing / Aged Debtors (secondary). All per-job financial management
+ * (AFP builder, rate cards, controls) lives inside each job's Financials tab.
  */
 export default function BillingPage() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function BillingPage() {
 
   const tabs = [
     { id: 'afp-portfolio', label: 'AFP Portfolio', icon: FileBarChart },
+    { id: 'rate-card', label: 'Rate Card', icon: Tag },
     { id: 'invoicing', label: 'Invoicing', icon: Receipt },
   ];
 
@@ -37,7 +39,7 @@ export default function BillingPage() {
     <HubShell
       icon={PoundSterling}
       title="Financial Control"
-      subtitle="AFP portfolio, invoicing & aged debtors"
+      subtitle="AFP portfolio, rate card & aged debtors"
       actions={<RunReportButton hub="billing" />}
       tabs={tabs}
       activeTab={tab}
@@ -49,6 +51,11 @@ export default function BillingPage() {
           onSelectJob={goToJobById}
           onUploadTemplate={() => setShowTemplateUploader(true)}
         />
+      )}
+
+      {/* ── Rate Card: per-division Master Price List ── */}
+      {tab === 'rate-card' && (
+        <RateCardManager />
       )}
 
       {/* ── Invoicing: aged debtors & invoice tracking ── */}
