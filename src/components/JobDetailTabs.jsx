@@ -34,6 +34,7 @@ import FloodRiskWidget from '@/components/jobs/FloodRiskWidget';
 import GeotechDataTab from '@/components/geotech/GeotechDataTab';
 import TabStatRibbon from '@/components/TabStatRibbon';
 import JobSiteManager from '@/components/jobs/JobSiteManager';
+import CVRAFPDashboard from '@/components/cvr/CVRAFPDashboard';
 
 export default function JobDetailTabs({
   job, primaryType, assignedStaff, rotas, allStaff, vehicles, rotasByDate, sortedDates,
@@ -269,6 +270,7 @@ export default function JobDetailTabs({
           <SubTabNav
             tabs={[
               { id: 'overview', label: 'Overview', icon: TrendingUp },
+              { id: 'cvr-afp', label: 'CVR / AFP', icon: FileBarChart },
               { id: 'subcon', label: 'Sub-contractors', icon: Users },
               { id: 'boq', label: 'BOQ', icon: FileBarChart },
               { id: 'costs', label: 'Daily Costs', icon: Receipt },
@@ -283,6 +285,7 @@ export default function JobDetailTabs({
               <JobFinancialFootprint job={job} />
             </>
           )}
+          {finSub === 'cvr-afp' && <CVRAFPDashboard job={job} />}
           {finSub === 'subcon' && <SubcontractorLogManager job={job} />}
           {finSub === 'boq' && <BOQManager job={job} />}
           {finSub === 'costs' && <DailyCostViewer job={job} />}

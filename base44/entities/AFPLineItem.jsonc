@@ -1,0 +1,110 @@
+{
+  "name": "AFPLineItem",
+  "type": "object",
+  "properties": {
+    "afp_id": {
+      "type": "string",
+      "description": "The AFP this line item belongs to."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "The job this line item belongs to (denormalised for direct job-level queries)."
+    },
+    "sheet_name": {
+      "type": "string",
+      "enum": [
+        "drilling",
+        "plant_hire",
+        "rates"
+      ],
+      "description": "Which AFP sheet this line item came from: 'drilling' = the Drilling sheet (weekly breakdown), 'plant_hire' = the Plant hire sheet, 'rates' = the Rates sheet (schedule of rates reference)."
+    },
+    "item": {
+      "type": "string",
+      "description": "Item description (e.g. 'Mobilise cable Percussion Rig to site - GC', 'Coreliners'). Pulled from the AFP sheet's item column."
+    },
+    "unit": {
+      "type": "string",
+      "description": "Unit of measure (e.g. 'Sum', 'nr', 'Day', 'm'). Pulled from the AFP sheet's unit column."
+    },
+    "unit_price": {
+      "type": "number",
+      "description": "Unit price / rate per unit. Pulled from the AFP sheet's 'Unit Price' column."
+    },
+    "qty": {
+      "type": "number",
+      "description": "Quantity for this line item. Pulled from the AFP sheet's 'Qty' column."
+    },
+    "rate": {
+      "type": "number",
+      "description": "Rate applied to this line item. Pulled from the AFP sheet's 'Rate' column."
+    },
+    "amount": {
+      "type": "number",
+      "description": "Total amount for this line item = qty \u00d7 rate (or unit_price \u00d7 qty depending on the sheet). Auto-calculated or pulled from the AFP sheet's 'Amount' / 'Total' column."
+    },
+    "week_breakdown": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "week_date": {
+            "type": "string",
+            "description": "Week commencing date (ISO date string)."
+          },
+          "qty": {
+            "type": "number",
+            "description": "Quantity for this specific week."
+          }
+        },
+        "required": [
+          "week_date"
+        ]
+      },
+      "default": [],
+      "description": "Week-by-week breakdown for drilling line items. Each entry maps a week-commencing date to the quantity drilled that week. Empty for plant hire and rates sheet items."
+    },
+    "sort_order": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order within the AFP sheet."
+    }
+  },
+  "required": [
+    "afp_id",
+    "job_id",
+    "sheet_name",
+    "item"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

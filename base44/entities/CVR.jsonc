@@ -1,0 +1,139 @@
+{
+  "name": "CVR",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "The job this Cost/Value Report belongs to. One CVR per job \u2014 re-uploading replaces the previous version's line items."
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (denormalised for display in the portfolio overview and CVR dashboard)."
+    },
+    "job_reference": {
+      "type": "string",
+      "description": "Job reference / PO number (denormalised for display)."
+    },
+    "division_id": {
+      "type": "string",
+      "description": "The division this CVR belongs to (denormalised from the job). Drives division-scoped filtering on the portfolio overview."
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Client company name (denormalised from the job's client for display on the CVR dashboard)."
+    },
+    "contract_value": {
+      "type": "number",
+      "description": "Total contract / tender value (net) \u2014 the original agreed value before variations. Pulled from the CVR Financial Summary 'Contract Value' field."
+    },
+    "variations_total": {
+      "type": "number",
+      "default": 0,
+      "description": "Sum of all variation order agreed values. Auto-calculated from the linked VariationOrder records."
+    },
+    "budget": {
+      "type": "number",
+      "description": "Job budget (net) \u2014 the internal cost budget for the job. Pulled from the CVR Financial Summary 'Budget' field."
+    },
+    "forecast_final_value": {
+      "type": "number",
+      "description": "Forecast final contract value including all variations \u2014 the projected total revenue at completion. Auto-calculated as contract_value + variations_total, or overridden from the CVR sheet."
+    },
+    "total_cost": {
+      "type": "number",
+      "default": 0,
+      "description": "Total actual + committed cost to date. Auto-calculated from the sum of CVRLineItem total_cost values, or overridden from the CVR sheet."
+    },
+    "profit_loss": {
+      "type": "number",
+      "description": "Net profit/loss = forecast_final_value - total_cost. Auto-calculated by recalculateCVR. Positive = profit, negative = loss."
+    },
+    "profit_pct": {
+      "type": "number",
+      "description": "Profit margin % = (profit_loss / forecast_final_value) \u00d7 100. Auto-calculated by recalculateCVR."
+    },
+    "project_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Project start date. Pulled from the CVR Project Plan 'Project Start' field."
+    },
+    "project_end": {
+      "type": "string",
+      "format": "date",
+      "description": "Project end / forecast completion date. Pulled from the CVR Project Plan 'Project End' field."
+    },
+    "weeks_in_progress": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of weeks the project has been running. Pulled from the CVR Project Plan 'Weeks in Progress' field."
+    },
+    "costs_to_date": {
+      "type": "number",
+      "default": 0,
+      "description": "Total costs incurred to date (invoiced + committed). Aggregated from CVR line items."
+    },
+    "value_to_date": {
+      "type": "number",
+      "default": 0,
+      "description": "Value of production to date \u2014 the revenue recognised for work completed. Aggregated from CVR line items."
+    },
+    "source_file_url": {
+      "type": "string",
+      "description": "URL of the last uploaded CVR Excel file. Stored so the billing team can download the original spreadsheet."
+    },
+    "source_file_name": {
+      "type": "string",
+      "description": "Original filename of the uploaded CVR Excel file."
+    },
+    "last_updated_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last upload or in-app edit. Shown on the portfolio overview as 'Last updated'."
+    },
+    "last_updated_by": {
+      "type": "string",
+      "description": "Name of the user who last uploaded or edited the CVR."
+    }
+  },
+  "required": [
+    "job_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.division_id": "{{user.data.division_id}}"
+        },
+        {
+          "data.division_id": {
+            "$in": "{{user.data.managed_division_ids}}"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

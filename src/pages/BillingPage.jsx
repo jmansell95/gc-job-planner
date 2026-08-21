@@ -18,6 +18,8 @@ import MarginGuardTab from '@/components/billing/MarginGuardTab';
 import AfPPipelineWidget from '@/components/billing/AfPPipelineWidget';
 import GenerateInvoiceModal from '@/components/billing/GenerateInvoiceModal';
 import RunReportButton from '@/components/reports/RunReportButton';
+import CVRPortfolioOverview from '@/components/cvr/CVRPortfolioOverview';
+import { base44 } from '@/api/base44Client';
 
 // ─── 3-step billing pipeline (now inline within the Pipeline tab) ──────────
 const PIPELINE_STEPS = [
@@ -99,11 +101,19 @@ export default function BillingPage() {
 
   const tabs = [
     { id: 'pipeline', label: 'Pipeline', icon: FileBarChart },
+    { id: 'cvr-afp', label: 'CVR / AFP', icon: FileBarChart },
     { id: 'price-rates', label: 'Price & Rates', icon: Receipt },
     { id: 'control', label: 'Control', icon: Shield },
   ];
 
   const goToJob = (job) => navigate('/admin', { state: { section: 'job-detail', job } });
+
+  const goToJobById = async (jobId) => {
+    try {
+      const jobs = await base44.entities.Job.filter({ id: jobId });
+      if (jobs[0]) navigate('/admin', { state: { section: 'job-detail', job: jobs[0] } });
+    } catch (e) { /* ignore */ }
+  };
 
   // Map FinancialOverviewWidget's legacy tab ids onto the new 3-tab structure
   const handleOverviewSelect = (t) => {
@@ -142,6 +152,11 @@ export default function BillingPage() {
           {pipelineStep === 'invoicing' && <InvoiceDiscrepancyWidget />}
           {pipelineStep === 'aged-debtors' && <AgedDebtorsDashboard />}
         </>
+      )}
+
+      {/* ── CVR / AFP tab: portfolio overview of all jobs' Cost/Value Reports */}
+      {tab === 'cvr-afp' && (
+        <CVRPortfolioOverview onSelectJob={goToJobById} />
       )}
 
       {/* ── Price & Rates tab: Price List + POA Locks + Billing Rules ── */}

@@ -1,0 +1,121 @@
+{
+  "name": "AFP",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "The job this Application for Payment belongs to. Multiple AFPs per job \u2014 one per monthly period."
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (denormalised for display)."
+    },
+    "job_reference": {
+      "type": "string",
+      "description": "Job reference / GC job number (denormalised for display)."
+    },
+    "division_id": {
+      "type": "string",
+      "description": "The division this AFP belongs to (denormalised from the job). Drives division-scoped filtering."
+    },
+    "period_date": {
+      "type": "string",
+      "format": "date",
+      "description": "The billing period this AFP covers (the month being claimed). Pulled from the AFP 'Date' field."
+    },
+    "client_po": {
+      "type": "string",
+      "description": "Client purchase order number. Pulled from the AFP 'Client Purchase Order' field (e.g. '26/4168')."
+    },
+    "gc_job_number": {
+      "type": "string",
+      "description": "GC internal job number. Pulled from the AFP 'GC Job Number' field (e.g. 'I260236')."
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Client company name. Pulled from the AFP 'Client' field (e.g. 'Concept SI')."
+    },
+    "payment_due_date": {
+      "type": "string",
+      "description": "Payment due date for this AFP. Pulled from the AFP 'Payment Due Date' field."
+    },
+    "contract_value": {
+      "type": "number",
+      "description": "Contract award value for this AFP. Pulled from the AFP 'Contract award value' field."
+    },
+    "total_claimed": {
+      "type": "number",
+      "default": 0,
+      "description": "Total amount claimed in this AFP = sum of all AFPLineItem amounts. Auto-calculated."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "submitted",
+        "approved",
+        "invoiced"
+      ],
+      "default": "draft",
+      "description": "AFP lifecycle. 'draft' = being prepared; 'submitted' = sent to client for approval; 'approved' = client approved; 'invoiced' = converted to a formal Invoice."
+    },
+    "source_file_url": {
+      "type": "string",
+      "description": "URL of the uploaded AFP Excel file."
+    },
+    "source_file_name": {
+      "type": "string",
+      "description": "Original filename of the uploaded AFP Excel file."
+    },
+    "last_updated_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last upload or in-app edit."
+    },
+    "last_updated_by": {
+      "type": "string",
+      "description": "Name of the user who last uploaded or edited the AFP."
+    }
+  },
+  "required": [
+    "job_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.division_id": "{{user.data.division_id}}"
+        },
+        {
+          "data.division_id": {
+            "$in": "{{user.data.managed_division_ids}}"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

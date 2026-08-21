@@ -1,0 +1,111 @@
+{
+  "name": "VariationOrder",
+  "type": "object",
+  "properties": {
+    "cvr_id": {
+      "type": "string",
+      "description": "The CVR this variation order belongs to."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "The job this variation order belongs to (denormalised for direct job-level queries)."
+    },
+    "vo_number": {
+      "type": "number",
+      "description": "Variation order number (1, 2, 3, \u2026). Pulled from the VO Account sheet 'VO No.' column."
+    },
+    "description": {
+      "type": "string",
+      "description": "Variation description (e.g. 'Provision of CP Rig and Crew SDA - Rig No. 3'). Pulled from the VO Account sheet 'Description' column."
+    },
+    "agreed_value": {
+      "type": "number",
+      "description": "Agreed value of the variation \u2014 the revenue we'll bill the client for this VO. Pulled from the VO Account sheet 'Agreed' column."
+    },
+    "firm": {
+      "type": "number",
+      "description": "Firm value (the fixed/confirmed portion of the agreed value). Pulled from the VO Account sheet 'Firm' column."
+    },
+    "budget": {
+      "type": "number",
+      "description": "Budgeted cost for this variation. Pulled from the VO Account sheet 'Budget' column."
+    },
+    "prelim_cost": {
+      "type": "number",
+      "description": "Preliminary cost component. Pulled from the VO Account sheet 'Prelim Cost' column."
+    },
+    "labour_cost": {
+      "type": "number",
+      "description": "Labour cost component. Pulled from the VO Account sheet 'Labour Cost' column."
+    },
+    "plant_cost": {
+      "type": "number",
+      "description": "Plant / equipment cost component. Pulled from the VO Account sheet 'Plant Cost' column."
+    },
+    "material_cost": {
+      "type": "number",
+      "description": "Material cost component. Pulled from the VO Account sheet 'Material Cost' column."
+    },
+    "nursery_cost": {
+      "type": "number",
+      "description": "Nursery cost component. Pulled from the VO Account sheet 'Nursery Cost' column."
+    },
+    "maintenance_cost": {
+      "type": "number",
+      "description": "Maintenance cost component. Pulled from the VO Account sheet 'Maintenance Cost' column."
+    },
+    "total_cost": {
+      "type": "number",
+      "description": "Total cost = sum of all cost components (prelim + labour + plant + material + nursery + maintenance). Auto-calculated, or pulled from the VO Account sheet 'Total Cost' column."
+    },
+    "profit_margin": {
+      "type": "number",
+      "description": "Profit margin = agreed_value - total_cost. Auto-calculated by recalculateCVR."
+    },
+    "profit_margin_pct": {
+      "type": "number",
+      "description": "Profit margin % = (profit_margin / agreed_value) \u00d7 100. Auto-calculated by recalculateCVR."
+    },
+    "sort_order": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order (matches VO number order in the original spreadsheet)."
+    }
+  },
+  "required": [
+    "cvr_id",
+    "job_id",
+    "vo_number"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
