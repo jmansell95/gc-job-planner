@@ -15,6 +15,7 @@ import DriveAwayModal from '@/components/assetcommand/DriveAwayModal';
 import ReportFaultModal from '@/components/assetcommand/ReportFaultModal';
 import BookToVehicleModal from '@/components/assetcommand/BookToVehicleModal';
 import FullScreenScanner from '@/components/assetcommand/FullScreenScanner';
+import DuplicateScanPopup from '@/components/assetcommand/DuplicateScanPopup';
 import RecentScansStrip from '@/components/assetcommand/RecentScansStrip';
 import OfflineScanQueueBanner from '@/components/assetcommand/OfflineScanQueueBanner';
 import FieldHubTabs from '@/components/fieldhub/FieldHubTabs';
@@ -74,6 +75,8 @@ export default function AssetScannerPage() {
   const [recent, setRecent] = useState(() => loadJSON(RECENT_KEY, []));
   const [offlineScans, setOfflineScans] = useState(() => loadJSON(OFFLINE_KEY, []));
   const [retrying, setRetrying] = useState(false);
+  const [duplicateAsset, setDuplicateAsset] = useState(null);
+  const lastScanRef = useRef({ value: '', ts: 0 });
 
   useEffect(() => {
     base44.functions.invoke('getMyStaffProfile').then(res => setStaffProfile(res.data)).catch(() => {});
@@ -146,6 +149,11 @@ export default function AssetScannerPage() {
   const handleScan = useCallback(async (val) => {
     const q = val.trim();
     if (!q) return;
+    // Deduplicate rapid-fire scans from the BarcodeDetector (fires every frame).
+    // Same value within 2s is ignored entirely — prevents duplicate toasts/popups.
+    const now = Date.now();
+    if (lastScanRef.current.value === q && now - lastScanRef.current.ts < 2000) return;
+    lastScanRef.current = { value: q, ts: now };
     setResolving(true);
     setScanError('');
     try {
@@ -177,7 +185,7 @@ export default function AssetScannerPage() {
       queryClient.invalidateQueries({ queryKey: ['site-assets'] });
       setBasket((prev) => {
         if (prev.find((a) => a.id === found.id)) {
-          toast({ title: 'Already in basket', description: found.name });
+          setDuplicateAsset(found);
           return prev;
         }
         return [...prev, found];
@@ -259,7 +267,7 @@ export default function AssetScannerPage() {
     pushRecent(asset);
     setBasket((prev) => {
       if (prev.find((a) => a.id === asset.id)) {
-        toast({ title: 'Already in basket', description: asset.name });
+        setDuplicateAsset(asset);
         return prev;
       }
       return [...prev, asset];
@@ -655,6 +663,9 @@ export default function AssetScannerPage() {
           resultColor={resultColor}
         />
       )}
+
+      {/* Duplicate scan popup — replaces the old flood of toasts */}
+      <DuplicateScanPopup asset={duplicateAsset} onDismiss={() => setDuplicateAsset(null)} />
 
       {/* Book to Vehicle modal */}
       {showBook && (
