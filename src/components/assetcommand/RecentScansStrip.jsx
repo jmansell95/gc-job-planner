@@ -34,7 +34,13 @@ export default function RecentScansStrip({ recent = [], onSelect, onClear }) {
             onClick={() => onSelect(r)}
             className="flex-shrink-0 flex items-center gap-2 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-xl pl-2 pr-3 py-2 transition active:scale-95"
           >
-            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${RING[r.compliance_status] || RING.unknown}`} />
+            {(() => {
+              const photo = r.panda_image_urls?.[0];
+              const photoUrl = photo?.thumb || photo?.medium || photo?.url;
+              return photoUrl
+                ? <img src={photoUrl} alt={r.name} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+                : <span className={`w-2 h-2 rounded-full flex-shrink-0 ${RING[r.compliance_status] || RING.unknown}`} />;
+            })()}
             <div className="text-left min-w-0">
               <p className="text-xs font-semibold text-slate-700 truncate max-w-[120px]">{r.name}</p>
               {r.serial_number && <p className="text-[10px] text-slate-400 font-mono truncate max-w-[120px]">{r.serial_number}</p>}

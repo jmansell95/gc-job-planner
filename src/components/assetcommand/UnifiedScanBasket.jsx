@@ -119,10 +119,12 @@ export default function UnifiedScanBasket({
                 {items.map(a => {
                   const meta = COMPLIANCE_META[a.compliance_status || 'unknown'];
                   const emoji = TYPE_ICON[a.asset_type] || '📦';
+                  const photo = a.panda_image_urls?.[0];
+                  const photoUrl = photo?.thumb || photo?.medium || photo?.url;
                   return (
                     <div key={a.id} className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-2.5 animate-pop-in">
-                      <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-lg flex-shrink-0">
-                        {emoji}
+                      <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
+                        {photoUrl ? <img src={photoUrl} alt={a.name} className="w-full h-full object-cover" /> : emoji}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold text-slate-900 truncate">{a.name}</p>

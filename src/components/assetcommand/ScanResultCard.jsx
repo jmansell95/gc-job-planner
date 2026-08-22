@@ -86,8 +86,12 @@ export default function ScanResultCard({ asset, onBookToVehicle, onDriveAway, on
 
       {/* Asset identity */}
       <div className="px-4 py-3.5 flex items-center gap-3 border-b border-slate-100">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center flex-shrink-0">
-          <TypeIcon className="w-6 h-6 text-slate-600" />
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
+          {(() => {
+            const photo = asset.panda_image_urls?.[0];
+            const photoUrl = photo?.thumb || photo?.medium || photo?.url;
+            return photoUrl ? <img src={photoUrl} alt={asset.name} className="w-full h-full object-cover" /> : <TypeIcon className="w-6 h-6 text-slate-600" />;
+          })()}
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-base font-bold text-slate-900 truncate">{asset.name}</p>
