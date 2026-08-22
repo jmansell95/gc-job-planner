@@ -16,17 +16,35 @@ function csvEscape(val) {
 
 function generateCVRPackCSV(cvrs) {
   const rows = [];
-  // Header
-  rows.push(['CVR Export Pack', `Generated ${new Date().toLocaleDateString('en-GB')}`].join(','));
+  // ── Portfolio Summary ──
+  rows.push('CVR EXPORT PACK — PORTFOLIO SUMMARY');
+  rows.push(`Generated,${new Date().toLocaleDateString('en-GB')}`);
   rows.push('');
+  rows.push('Job,Client,Contract Value,Forecast Final,Total Cost,Profit/Loss,Margin %');
+  let totalContract = 0, totalForecast = 0, totalCost = 0, totalPL = 0;
   for (const entry of cvrs) {
     const cvr = entry.cvr;
-    rows.push(['Job', csvEscape(cvr?.job_name || ''), 'Ref', csvEscape(cvr?.job_reference || '')].join(','));
-    rows.push(['Client', csvEscape(cvr?.client_name || '')].join(','));
-    rows.push(['Contract Value', cvr?.contract_value || 0, 'Forecast Final', cvr?.forecast_final_value || 0, 'Total Cost', cvr?.total_cost || 0, 'Profit/Loss', cvr?.profit_loss || 0, 'Margin %', (cvr?.profit_pct || 0).toFixed(1)].join(','));
+    const contract = Number(cvr?.contract_value) || 0;
+    const forecast = Number(cvr?.forecast_final_value) || 0;
+    const cost = Number(cvr?.total_cost) || 0;
+    const pl = Number(cvr?.profit_loss) || 0;
+    totalContract += contract; totalForecast += forecast; totalCost += cost; totalPL += pl;
+    rows.push([csvEscape(cvr?.job_name || ''), csvEscape(cvr?.client_name || ''), contract, forecast, cost, pl, (cvr?.profit_pct || 0).toFixed(1)].join(','));
+  }
+  rows.push(['TOTAL', '', totalContract, totalForecast, totalCost, totalPL, totalForecast > 0 ? ((totalPL / totalForecast) * 100).toFixed(1) : '0.0'].join(','));
+  rows.push('');
+  rows.push('===');
+  rows.push('');
+
+  // ── Per-CVR detail ──
+  for (const entry of cvrs) {
+    const cvr = entry.cvr;
+    rows.push(`JOB: ${csvEscape(cvr?.job_name || '')} (Ref: ${csvEscape(cvr?.job_reference || '')})`);
+    rows.push(`Client,${csvEscape(cvr?.client_name || '')}`);
+    rows.push(`Contract Value,${cvr?.contract_value || 0},Forecast Final,${cvr?.forecast_final_value || 0},Total Cost,${cvr?.total_cost || 0},Profit/Loss,${cvr?.profit_loss || 0},Margin %,${(cvr?.profit_pct || 0).toFixed(1)}`);
     rows.push('');
     // Line items
-    rows.push(['Line Items'].join(','));
+    rows.push('Line Items:');
     rows.push(['Description', 'Supplier', 'Tender Value', 'Forecast Final', 'Total Cost', 'Profit/Loss', 'Profit %'].join(','));
     for (const li of (entry.line_items || [])) {
       rows.push([csvEscape(li.description), csvEscape(li.supplier || ''), li.tender_value || 0, li.forecast_final_value || 0, li.total_cost || 0, li.profit_loss || 0, (li.profit_pct || 0).toFixed(1)].join(','));
@@ -34,10 +52,19 @@ function generateCVRPackCSV(cvrs) {
     rows.push('');
     // Variations
     if ((entry.variations || []).length > 0) {
-      rows.push(['Variations'].join(','));
+      rows.push('Variations:');
       rows.push(['VO #', 'Description', 'Agreed Value', 'Total Cost', 'Margin'].join(','));
       for (const v of entry.variations) {
         rows.push([v.vo_number, csvEscape(v.description || ''), v.agreed_value || 0, v.total_cost || 0, v.profit_margin || 0].join(','));
+      }
+      rows.push('');
+    }
+    // Cash flow
+    if ((entry.cash_flow || []).length > 0) {
+      rows.push('Cash Flow:');
+      rows.push(['Month', 'Description', 'App Value', 'Amount'].join(','));
+      for (const cf of entry.cash_flow) {
+        rows.push([cf.month_date || '', csvEscape(cf.description || ''), cf.app_value || 0, cf.amount || 0].join(','));
       }
       rows.push('');
     }

@@ -7,11 +7,13 @@ import AFPBuilder from '@/components/afp/AFPBuilder';
 import AFPControlsSubTab from '@/components/afp/AFPControlsSubTab';
 import AFPCVRView from '@/components/afp/AFPCVRView';
 import JobRateCardSubTab from '@/components/afp/JobRateCardSubTab';
+import PricingReviewBanner from '@/components/billing/PricingReviewBanner';
 
 /**
  * JobFinancialsTab — the redesigned Financials tab for job details.
  * Sub-tabs: AFP Builder (primary), Rate Card, Controls, CVR (read-only).
- * Replaces the old CVRAFPDashboard + export sub-tab structure.
+ * Shows the pricing review banner so pending log pricing is surfaced
+ * right where the billing team is working on the job.
  */
 export default function JobFinancialsTab({ job, canSeeCosts }) {
   const [finSub, setFinSub] = useState('afp-builder');
@@ -29,7 +31,12 @@ export default function JobFinancialsTab({ job, canSeeCosts }) {
         onChange={setFinSub}
       />
 
-      {finSub === 'afp-builder' && <AFPBuilder job={job} />}
+      {finSub === 'afp-builder' && (
+        <>
+          <PricingReviewBanner jobId={job?.id} />
+          <AFPBuilder job={job} />
+        </>
+      )}
 
       {finSub === 'rate-card' && <JobRateCardSubTab job={job} />}
 

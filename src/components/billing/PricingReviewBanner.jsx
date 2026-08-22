@@ -12,7 +12,7 @@ const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { maximumFracti
  * 'pending_review' so the billing team can confirm or correct the
  * fuzzy-proposed rate card match. Confirmation teaches the dictionary.
  */
-export default function PricingReviewBanner() {
+export default function PricingReviewBanner({ jobId }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -20,10 +20,13 @@ export default function PricingReviewBanner() {
   const [selectedRCI, setSelectedRCI] = useState({});
 
   const { data: pending = [], isLoading } = useQuery({
-    queryKey: ['pricing-review-pending'],
+    queryKey: ['pricing-review-pending', jobId],
     queryFn: () => base44.entities.InvestigationLog.filter({ pricing_review_status: 'pending_review' }, '-created_date', 100),
     refetchInterval: 30000,
   });
+
+  // Filter to just this job when jobId is provided (job Financials tab)
+  const filteredPending = jobId ? pending.filter(l => l.job_id === jobId) : pending;
 
   const { data: rateCardItems = [] } = useQuery({
     queryKey: ['rate-card-items-for-review'],
@@ -31,7 +34,7 @@ export default function PricingReviewBanner() {
     enabled: open,
   });
 
-  const count = pending.length;
+  const count = filteredPending.length;
 
   const handleConfirm = async (log) => {
     setConfirming(log.id);
@@ -94,8 +97,8 @@ export default function PricingReviewBanner() {
   if (count === 0 && !open) return null;
 
   const filtered = search
-    ? pending.filter(l => (l.description || '').toLowerCase().includes(search.toLowerCase()))
-    : pending;
+    ? filteredPending.filter(l => (l.description || '').toLowerCase().includes(search.toLowerCase()))
+    : filteredPending;
 
   return (
     <>

@@ -1,19 +1,25 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  TrendingUp, Users, Calendar, Loader2, Download,
+  TrendingUp, Users, Calendar, Loader2, Download, LayoutDashboard,
+  PoundSterling,
 } from 'lucide-react';
 import HubShell from '@/components/HubShell';
 import RigProfitabilityView from '@/components/performance/RigProfitabilityView';
 import CrewEarningsView from '@/components/performance/CrewEarningsView';
+import PerformanceOverviewTab from '@/components/performance/PerformanceOverviewTab';
 import RunReportButton from '@/components/reports/RunReportButton';
+import { base44 } from '@/api/base44Client';
 
 /**
  * PerformanceHub — dedicated rig & crew financial intelligence page.
- * Two views: Rig Profitability (earned vs cost per rig) and
- * Crew Earnings (total earned by team for a date range).
+ * Three views: Overview (combined), Rig Profitability, Crew Earnings.
+ * Everything links: rig/crew rows drill into job detail, quick links
+ * jump to the Billing hub.
  */
 export default function PerformanceHub() {
-  const [tab, setTab] = useState('rig-profitability');
+  const navigate = useNavigate();
+  const [tab, setTab] = useState('overview');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -26,16 +32,35 @@ export default function PerformanceHub() {
   }, [dateFrom, dateTo]);
 
   const tabs = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'rig-profitability', label: 'Rig Profitability', icon: TrendingUp },
     { id: 'crew-earnings', label: 'Crew Earnings', icon: Users },
   ];
+
+  // Navigate to a job's detail in the admin dashboard
+  const handleSelectJob = async (jobId) => {
+    try {
+      const jobs = await base44.entities.Job.filter({ id: jobId });
+      if (jobs[0]) navigate('/admin', { state: { section: 'job-detail', job: jobs[0] } });
+    } catch (e) { /* ignore */ }
+  };
 
   return (
     <HubShell
       icon={TrendingUp}
       title="Performance Hub"
       subtitle="Rig & crew financial intelligence"
-      actions={<RunReportButton hub="billing" />}
+      actions={
+        <div className="flex items-center gap-2">
+          <a
+            href="/billing"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition active:scale-95"
+          >
+            <PoundSterling className="w-3.5 h-3.5" /> Billing Hub
+          </a>
+          <RunReportButton hub="billing" />
+        </div>
+      }
       tabs={tabs}
       activeTab={tab}
       onTabChange={setTab}
@@ -81,8 +106,19 @@ export default function PerformanceHub() {
         </div>
       </div>
 
-      {tab === 'rig-profitability' && <RigProfitabilityView dateRange={dateRange} />}
-      {tab === 'crew-earnings' && <CrewEarningsView dateRange={dateRange} />}
+      {tab === 'overview' && (
+        <PerformanceOverviewTab
+          dateRange={dateRange}
+          onSelectJob={handleSelectJob}
+          onGoToTab={setTab}
+        />
+      )}
+      {tab === 'rig-profitability' && (
+        <RigProfitabilityView dateRange={dateRange} onSelectJob={handleSelectJob} />
+      )}
+      {tab === 'crew-earnings' && (
+        <CrewEarningsView dateRange={dateRange} onSelectJob={handleSelectJob} />
+      )}
     </HubShell>
   );
 }

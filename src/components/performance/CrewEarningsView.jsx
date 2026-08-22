@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   Users, PoundSterling, Loader2, Search, Trophy,
-  ChevronDown, ChevronRight, Briefcase, TrendingUp,
+  ChevronDown, ChevronRight, Briefcase, TrendingUp, ArrowRight,
 } from 'lucide-react';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
@@ -12,7 +12,7 @@ const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { maximumFracti
  * CrewEarningsView — manager picks a date range and optional team,
  * sees total earned by crew with per-job breakdown.
  */
-export default function CrewEarningsView({ dateRange }) {
+export default function CrewEarningsView({ dateRange, onSelectJob }) {
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState(new Set());
 
@@ -112,14 +112,21 @@ export default function CrewEarningsView({ dateRange }) {
               {isOpen && crew.job_breakdown && (
                 <div className="px-3.5 pb-3 space-y-1.5 border-t border-slate-100 pt-2">
                   {crew.job_breakdown.map((jb, j) => (
-                    <div key={j} className="flex items-center justify-between gap-2 text-xs">
+                    <button
+                      key={j}
+                      onClick={() => onSelectJob?.(jb.job_id)}
+                      className="w-full flex items-center justify-between gap-2 text-xs py-1 hover:bg-emerald-50/50 rounded-lg px-1.5 transition group"
+                    >
                       <div className="flex items-center gap-1.5 min-w-0">
                         <Briefcase className="w-3 h-3 text-slate-400 flex-shrink-0" />
                         <span className="text-slate-600 truncate">{jb.job_name}</span>
                         {jb.job_reference && <span className="text-[9px] text-slate-400">({jb.job_reference})</span>}
                       </div>
-                      <span className="font-semibold text-slate-700 tabular-nums flex-shrink-0">{fmt(jb.earned)}</span>
-                    </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <span className="font-semibold text-slate-700 tabular-nums">{fmt(jb.earned)}</span>
+                        <ArrowRight className="w-3 h-3 text-slate-300 group-hover:text-[#2E5A1A] transition" />
+                      </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -170,16 +177,23 @@ export default function CrewEarningsView({ dateRange }) {
                     <tr className="bg-slate-50/50">
                       <td colSpan={6} className="px-4 py-2">
                         <div className="space-y-1">
-                          <p className="text-[10px] text-slate-400 uppercase font-semibold mb-1">Job Breakdown</p>
+                          <p className="text-[10px] text-slate-400 uppercase font-semibold mb-1">Job Breakdown — click to open job</p>
                           {crew.job_breakdown.map((jb, j) => (
-                            <div key={j} className="flex items-center justify-between gap-2 text-xs py-0.5">
+                            <button
+                              key={j}
+                              onClick={() => onSelectJob?.(jb.job_id)}
+                              className="w-full flex items-center justify-between gap-2 text-xs py-0.5 hover:bg-emerald-50/50 rounded-lg px-1.5 transition group"
+                            >
                               <div className="flex items-center gap-1.5">
                                 <Briefcase className="w-3 h-3 text-slate-400" />
                                 <span className="text-slate-600">{jb.job_name}</span>
                                 {jb.job_reference && <span className="text-[9px] text-slate-400">({jb.job_reference})</span>}
                               </div>
-                              <span className="font-semibold text-slate-700 tabular-nums">{fmt(jb.earned)}</span>
-                            </div>
+                              <div className="flex items-center gap-1">
+                                <span className="font-semibold text-slate-700 tabular-nums">{fmt(jb.earned)}</span>
+                                <ArrowRight className="w-3 h-3 text-slate-300 group-hover:text-[#2E5A1A] transition" />
+                              </div>
+                            </button>
                           ))}
                         </div>
                       </td>

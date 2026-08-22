@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  PoundSterling, FileBarChart, Download, Tag,
+  PoundSterling, FileBarChart, Download, Tag, TrendingUp,
 } from 'lucide-react';
 import HubShell from '@/components/HubShell';
 import CVRExportTab from '@/components/billing/CVRExportTab';
@@ -42,7 +42,17 @@ export default function BillingPage() {
       icon={PoundSterling}
       title="Financial Control"
       subtitle="AFP portfolio, rate card & CVR export"
-      actions={<RunReportButton hub="billing" />}
+      actions={
+        <div className="flex items-center gap-2">
+          <a
+            href="/performance"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition active:scale-95"
+          >
+            <TrendingUp className="w-3.5 h-3.5" /> Performance Hub
+          </a>
+          <RunReportButton hub="billing" />
+        </div>
+      }
       tabs={tabs}
       activeTab={tab}
       onTabChange={setTab}

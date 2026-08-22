@@ -44,20 +44,34 @@ export default async function(req: Request): Promise<Response> {
       }
     }
 
-    // 4. Aggregate per rig
-    const rigStats: Record<string, { earned: number; jobs: Set<string> }> = {};
+    // 4. Aggregate per rig (with per-job breakdown)
+    const rigStats: Record<string, { earned: number; jobs: Set<string>; jobEarned: Record<string, number> }> = {};
     for (const li of filtered) {
       const rigId = jobToRig[li.job_id];
       if (!rigId) continue;
-      if (!rigStats[rigId]) rigStats[rigId] = { earned: 0, jobs: new Set() };
+      if (!rigStats[rigId]) rigStats[rigId] = { earned: 0, jobs: new Set(), jobEarned: {} };
       const amt = li.dispute_status === 'rejected' ? 0 : (li.agreed_amount || li.amount || 0);
       rigStats[rigId].earned += amt;
       rigStats[rigId].jobs.add(li.job_id);
+      rigStats[rigId].jobEarned[li.job_id] = (rigStats[rigId].jobEarned[li.job_id] || 0) + amt;
+    }
+
+    // 4a. Fetch job names for breakdown
+    const allJobIds = new Set<string>();
+    for (const stats of Object.values(rigStats)) {
+      for (const jid of stats.jobs) allJobIds.add(jid);
+    }
+    const jobNames: Record<string, { name: string; reference: string }> = {};
+    for (const jid of allJobIds) {
+      try {
+        const j = await base44.asServiceRole.entities.Job.get(jid);
+        jobNames[jid] = { name: j.name || '—', reference: j.job_reference || '' };
+      } catch (_) { jobNames[jid] = { name: '—', reference: '' }; }
     }
 
     // 5. Build result with cost data
     const results = rigs.map(rig => {
-      const stats = rigStats[rig.id] || { earned: 0, jobs: new Set() };
+      const stats = rigStats[rig.id] || { earned: 0, jobs: new Set(), jobEarned: {} };
       const operatingHours = Number(rig.operating_hours) || 0;
       const costRate = Number(rig.cost_price) || 0;
       // Cost = operating hours × hourly cost rate (if available), else 0
@@ -65,6 +79,13 @@ export default async function(req: Request): Promise<Response> {
       const earned = round2(stats.earned);
       const margin = round2(earned - cost);
       const marginPct = earned > 0 ? round2((margin / earned) * 100) : 0;
+      // Build job breakdown sorted by earned desc
+      const job_breakdown = Object.entries(stats.jobEarned || {}).map(([jid, amt]) => ({
+        job_id: jid,
+        job_name: jobNames[jid]?.name || '—',
+        job_reference: jobNames[jid]?.reference || '',
+        earned: round2(amt),
+      })).sort((a, b) => b.earned - a.earned);
       return {
         rig_id: rig.id,
         rig_name: rig.name,
@@ -78,6 +99,7 @@ export default async function(req: Request): Promise<Response> {
         jobs_count: stats.jobs.size,
         compliance_status: rig.compliance_status || 'unknown',
         maintenance_status: rig.maintenance_status || 'unknown',
+        job_breakdown,
       };
     });
 
