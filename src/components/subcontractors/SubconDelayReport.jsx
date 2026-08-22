@@ -22,7 +22,7 @@ const STATUS_STYLE = {
   rejected: { bg: 'bg-red-50', text: 'text-red-700', label: 'Rejected', icon: XCircle },
 };
 
-// Sub-contractor delay reporting card. Shown on the SubcontractorDashboard so
+// Subcontractor delay reporting card. Shown on the SubcontractorDashboard so
 // sub-cons can report site delays directly to the project manager. Creates a
 // JobDelayLog with reported_by_role = 'subcontractor'.
 export default function SubconDelayReport({ staff, jobs = [] }) {
@@ -48,7 +48,7 @@ export default function SubconDelayReport({ staff, jobs = [] }) {
     c.contact_name === staff?.name
   );
 
-  // Delays reported by this sub-contractor
+  // Delays reported by this subcontractor
   const { data: myDelays = [], isLoading } = useQuery({
     queryKey: ['subcon-delays', contractor?.id],
     queryFn: () => base44.entities.JobDelayLog.filter({ subcontractor_id: contractor.id, reported_by_role: 'subcontractor' }, '-reported_at', 20),

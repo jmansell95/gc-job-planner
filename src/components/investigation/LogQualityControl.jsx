@@ -373,7 +373,7 @@ export default function LogQualityControl() {
           <option value="all">All crews</option>
           <option value="internal">Internal</option>
           <option value="enabling">Enabling</option>
-          <option value="subcontractor">Sub-contractor</option>
+          <option value="subcontractor">Subcontractor</option>
         </select>
         <select value={jobFilter} onChange={e => setJobFilter(e.target.value)}
           className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:border-slate-400 max-w-[180px]">

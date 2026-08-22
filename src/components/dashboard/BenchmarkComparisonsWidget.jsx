@@ -155,7 +155,7 @@ export default function BenchmarkComparisonsWidget({ onJobSelect }) {
         <div>
           <div className="flex items-center gap-1.5 mb-2">
             <Users className="w-3.5 h-3.5 text-slate-400" />
-            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Crew Utilization — Top 5 (30 days)</p>
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Crew Utilisation — Top 5 (30 days)</p>
           </div>
           <div className="space-y-1.5">
             {analysis.topCrews.length === 0 ? (

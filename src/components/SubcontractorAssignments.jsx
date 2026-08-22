@@ -95,14 +95,14 @@ export default function SubcontractorAssignments({ assignments, onChange, contra
       {/* Header */}
       <div className="flex items-center gap-2 mb-1">
         <Building2 className="w-4 h-4 text-[#2E5A1A]" />
-        <h3 className="text-sm font-bold text-slate-800">Sub-Contractor Assignments</h3>
+        <h3 className="text-sm font-bold text-slate-800">Subcontractor Assignments</h3>
         <button type="button" onClick={addAssignment}
           className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] transition">
-          <Plus className="w-3.5 h-3.5" /> Add Sub-Contractor
+          <Plus className="w-3.5 h-3.5" /> Add Subcontractor
         </button>
       </div>
       <p className="text-xs text-slate-400 -mt-2 mb-2">
-        Assign sub-contractors for different parts of this job (e.g. 3 boreholes subbed to one driller, groundworks to another). These are saved as pending logs — manage them from the Financials tab after creation.
+        Assign subcontractors for different parts of this job (e.g. 3 boreholes subbed to one driller, groundworks to another). These are saved as pending logs — manage them from the Financials tab after creation.
       </p>
 
       {/* Summary bar */}
@@ -131,8 +131,8 @@ export default function SubcontractorAssignments({ assignments, onChange, contra
       {assignments.length === 0 ? (
         <div className="text-center py-6 px-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
           <Building2 className="w-6 h-6 text-slate-300 mx-auto mb-2" />
-          <p className="text-sm text-slate-500 font-medium">No sub-contractors assigned</p>
-          <p className="text-xs text-slate-400 mt-0.5">Tap "Add Sub-Contractor" above to assign one.</p>
+          <p className="text-sm text-slate-500 font-medium">No subcontractors assigned</p>
+          <p className="text-xs text-slate-400 mt-0.5">Tap "Add Subcontractor" above to assign one.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -172,7 +172,7 @@ function SubcontractorAssignmentCard({ assignment, index, onChange, onRemove, co
           <WtIcon className="w-3 h-3" /> {wt.label}
         </span>
         <p className="text-sm font-semibold text-slate-800 truncate flex-1">
-          {sub?.name || `Sub-Contractor ${index + 1}`}
+          {sub?.name || `Subcontractor ${index + 1}`}
           {assignment.borehole_ref && <span className="text-slate-400 font-normal"> · {assignment.borehole_ref}</span>}
         </p>
         {buy > 0 && (
@@ -190,7 +190,7 @@ function SubcontractorAssignmentCard({ assignment, index, onChange, onRemove, co
           {/* Row 1: Subcontractor + Work type */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Sub-Contractor <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Subcontractor <span className="text-red-500">*</span></label>
               <select value={assignment.subcontractor_id} onChange={e => onChange(index, 'subcontractor_id', e.target.value)} className={inputCls}>
                 <option value="">Select…</option>
                 {contractors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}

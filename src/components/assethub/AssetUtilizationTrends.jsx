@@ -93,7 +93,7 @@ export default function AssetUtilizationTrends() {
         <div className="flex items-center gap-4">
           <div className="text-right">
             <p className="text-lg font-bold text-slate-900 tabular-nums">{summary.avgUtil}%</p>
-            <p className="text-[10px] text-slate-500">Avg utilization</p>
+            <p className="text-[10px] text-slate-500">Avg utilisation</p>
           </div>
           <div className="text-right">
             <p className="text-lg font-bold text-amber-600 tabular-nums">{summary.idleAssets}</p>

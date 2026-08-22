@@ -19,7 +19,7 @@ const STEPS = [
   { id: 1, label: 'Identity', icon: Briefcase },
   { id: 2, label: 'Schedule & Contacts', icon: CalendarDays },
   { id: 3, label: 'Billing', icon: Receipt },
-  { id: 4, label: 'Sub-Contractors', icon: Building2 },
+  { id: 4, label: 'Subcontractors', icon: Building2 },
   { id: 5, label: 'Review', icon: Check },
 ];
 
@@ -139,7 +139,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
       if (form.revenue_method === 'unit_rate' && !form.unit_price) return false;
       return true;
     }
-    // Sub-Contractors & Review are always valid
+    // Subcontractors & Review are always valid
     return true;
   };
 
@@ -207,7 +207,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
       }
       const jobId = saved.id || editingJob?.id;
 
-      // Save sub-contractor assignments
+      // Save subcontractor assignments
       const keptIds = new Set();
       for (const a of subAssignments) {
         if (!a.subcontractor_id) continue;
@@ -649,7 +649,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                 </div>
               )}
 
-              {/* STEP 4 — Sub-Contractors */}
+              {/* STEP 4 — Subcontractors */}
               {step === 4 && (
                 <SubcontractorAssignments
                   assignments={subAssignments}
@@ -686,12 +686,12 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                     <ReviewRow label="VAT Rate" value={`${form.vat_rate || 20}%`} />
                     <ReviewRow label="Budget" value={form.budget_amount ? `£${form.budget_amount}` : '—'} />
                   </div>
-                  {/* Sub-contractor summary */}
+                  {/* Subcontractor summary */}
                   {subAssignments.filter(a => a.subcontractor_id).length > 0 && (
                     <div className="bg-slate-50 rounded-xl border border-slate-200 p-3 space-y-2">
                       <div className="flex items-center gap-2">
                         <ArrowRightLeft className="w-4 h-4 text-[#2E5A1A]" />
-                        <p className="text-sm font-semibold text-slate-800">Sub-Contractors ({subAssignments.filter(a => a.subcontractor_id).length})</p>
+                        <p className="text-sm font-semibold text-slate-800">Subcontractors ({subAssignments.filter(a => a.subcontractor_id).length})</p>
                       </div>
                       {subAssignments.filter(a => a.subcontractor_id).map((a, i) => {
                         const sub = contractors.find(c => c.id === a.subcontractor_id);

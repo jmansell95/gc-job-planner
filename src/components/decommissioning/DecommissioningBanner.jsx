@@ -139,7 +139,7 @@ function CompleteJobModal({ job, onClose, onCompleted }) {
 
   const checklistItems = [
     { key: 'photos_uploaded', label: 'Site photos uploaded', icon: Camera },
-    { key: 'final_meters_recorded', label: 'Final meters recorded', icon: Ruler },
+    { key: 'final_meters_recorded', label: 'Final metres recorded', icon: Ruler },
     { key: 'site_handback_confirmed', label: 'Site handback confirmed', icon: MapPin },
   ];
 

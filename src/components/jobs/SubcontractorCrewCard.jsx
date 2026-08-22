@@ -4,9 +4,9 @@ import { base44 } from '@/api/base44Client';
 import { HardHat, Briefcase, ArrowRightLeft } from 'lucide-react';
 
 /**
- * SubcontractorCrewCard — a visual box showing sub-contractors and agency
+ * SubcontractorCrewCard — a visual box showing subcontractors and agency
  * staff assigned to the job via SubcontractorLog entries (the Job Wizard's
- * "Sub-Contractors" step). Mirrors the CrewCompositionBar style so external
+ * "Subcontractors" step). Mirrors the CrewCompositionBar style so external
  * resources get the same visual treatment as direct staff.
  */
 export default function SubcontractorCrewCard({ job }) {
@@ -61,7 +61,7 @@ export default function SubcontractorCrewCard({ job }) {
           <ArrowRightLeft className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1">
-          <h3 className="text-sm font-semibold text-slate-900">Sub-Contractors & Agency Staff</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Subcontractors & Agency Staff</h3>
           <p className="text-xs text-slate-500">{total} external {total === 1 ? 'resource' : 'resources'} on this job</p>
         </div>
       </div>
@@ -69,7 +69,7 @@ export default function SubcontractorCrewCard({ job }) {
       {/* Proportional bar */}
       <div className="flex h-3 rounded-full overflow-hidden bg-slate-100 mb-4 shadow-inner">
         {subcontractors.length > 0 && (
-          <div className="bg-orange-500 transition-all duration-500" style={{ width: `${(subcontractors.length / total) * 100}%` }} title={`Sub-contractors: ${subcontractors.length}`} />
+          <div className="bg-orange-500 transition-all duration-500" style={{ width: `${(subcontractors.length / total) * 100}%` }} title={`Subcontractors: ${subcontractors.length}`} />
         )}
         {agencies.length > 0 && (
           <div className="bg-blue-500 transition-all duration-500" style={{ width: `${(agencies.length / total) * 100}%` }} title={`Agency: ${agencies.length}`} />
@@ -85,7 +85,7 @@ export default function SubcontractorCrewCard({ job }) {
                 <HardHat className="w-3.5 h-3.5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-orange-700">Sub-Contractors</p>
+                <p className="text-xs font-bold text-orange-700">Subcontractors</p>
                 <p className="text-lg font-bold text-slate-900 leading-none">{subcontractors.length}</p>
               </div>
             </div>

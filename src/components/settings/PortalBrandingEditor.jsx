@@ -5,7 +5,7 @@ import { useToast } from '@/components/ui/use-toast';
 
 const PORTALS = [
   { key: 'client_portal', label: 'Client Portal', icon: Building2, desc: 'Branded job progress portal shared with your clients via a private link.' },
-  { key: 'subcontractor_onboarding', label: 'Sub-contractor Onboarding', icon: HardHat, desc: 'Self-service compliance form subcontractors fill in to get approved.' },
+  { key: 'subcontractor_onboarding', label: 'Subcontractor Onboarding', icon: HardHat, desc: 'Self-service compliance form subcontractors fill in to get approved.' },
 ];
 
 export default function PortalBrandingEditor() {
@@ -59,7 +59,7 @@ export default function PortalBrandingEditor() {
     <div className="space-y-4">
       <div>
         <h2 className="text-xl font-bold text-slate-900">Portal Branding Editor</h2>
-        <p className="text-sm text-slate-500 mt-1">Customise the look, welcome message and contact details shown on your client and sub-contractor portals. Changes appear instantly for anyone using a portal link.</p>
+        <p className="text-sm text-slate-500 mt-1">Customise the look, welcome message and contact details shown on your client and subcontractor portals. Changes appear instantly for anyone using a portal link.</p>
       </div>
 
       {/* Portal selector */}
@@ -96,7 +96,7 @@ export default function PortalBrandingEditor() {
 
             <Field label="Welcome title" icon={Type}>
               <input type="text" value={branding.welcome_title || ''} onChange={e => set('welcome_title', e.target.value)}
-                placeholder={activePortal === 'client_portal' ? '(uses job name)' : 'Sub-contractor Onboarding'}
+                placeholder={activePortal === 'client_portal' ? '(uses job name)' : 'Subcontractor Onboarding'}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
             </Field>
 
@@ -166,7 +166,7 @@ export default function PortalBrandingEditor() {
 
 function PortalPreview({ branding, portalType }) {
   const accent = branding.accent_color || '#2E5A1A';
-  const title = branding.welcome_title || (portalType === 'client_portal' ? 'Job Name' : 'Sub-contractor Onboarding');
+  const title = branding.welcome_title || (portalType === 'client_portal' ? 'Job Name' : 'Subcontractor Onboarding');
   return (
     <div>
       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Live Preview</p>

@@ -101,7 +101,7 @@ function CrewCompositionBar({ assignedStaff, rotas, contractors, onAddStaff }) {
   const total = assignedStaff.length;
   const segments = [
     { label: 'Direct', count: direct.length, color: 'bg-emerald-500', light: 'bg-emerald-50', text: 'text-emerald-700', icon: User },
-    { label: 'Sub-Contractor', count: subbies.length, color: 'bg-orange-500', light: 'bg-orange-50', text: 'text-orange-700', icon: HardHat },
+    { label: 'Subcontractor', count: subbies.length, color: 'bg-orange-500', light: 'bg-orange-50', text: 'text-orange-700', icon: HardHat },
     { label: 'Agency', count: agency.length, color: 'bg-blue-500', light: 'bg-blue-50', text: 'text-blue-700', icon: Briefcase },
   ].filter(s => s.count > 0);
 
@@ -134,7 +134,7 @@ function CrewCompositionBar({ assignedStaff, rotas, contractors, onAddStaff }) {
         {segments.map(s => {
           const Icon = s.icon;
           const staffList = s.label === 'Direct' ? assignedStaff.filter(st => !st.worker_type || st.worker_type === 'direct_employee')
-            : s.label === 'Sub-Contractor' ? assignedStaff.filter(st => st.worker_type === 'subcontractor')
+            : s.label === 'Subcontractor' ? assignedStaff.filter(st => st.worker_type === 'subcontractor')
             : assignedStaff.filter(st => st.worker_type === 'agency');
           return (
             <div key={s.label} className={'rounded-xl p-3 border ' + s.light + ' border-slate-200'}>
@@ -328,7 +328,7 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
         </div>
       )}
 
-      {/* Sub-contractors & agency staff from the Sub-Contractors wizard step */}
+      {/* Subcontractors & agency staff from the Subcontractors wizard step */}
       <SubcontractorCrewCard job={job} />
 
       {/* Main 3-pane grid */}

@@ -264,7 +264,7 @@ export default function BillingPage({ onSelectJob }) {
           <button onClick={() => setView('statements')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><FileSpreadsheet className="w-4 h-4" /> Statements</button>
           <button onClick={() => setView('reconciliation')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition bg-[#2E5A1A] text-white shadow-sm"><ArrowRightLeft className="w-4 h-4" /> Reconciliation</button>
         </div>
-        <SettingsSectionHeader icon={ArrowRightLeft} title="Vendor Invoice Reconciliation" description="Match supplier invoices against logged sub-contractor costs — flag mismatches before payment." />
+        <SettingsSectionHeader icon={ArrowRightLeft} title="Vendor Invoice Reconciliation" description="Match supplier invoices against logged subcontractor costs — flag mismatches before payment." />
         <VendorInvoiceReconciliation />
       </div>
     );

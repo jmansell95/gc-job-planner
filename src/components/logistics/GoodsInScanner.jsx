@@ -162,7 +162,7 @@ export default function GoodsInScanner({ onBack }) {
               ) : filtered.length === 0 ? (
                 <div className="text-center py-6">
                   <Package className="w-10 h-10 text-slate-200 mx-auto mb-2" />
-                  <p className="text-sm text-slate-400">No catalog items match. Submit as ad-hoc below.</p>
+                  <p className="text-sm text-slate-400">No catalogue items match. Submit as ad-hoc below.</p>
                 </div>
               ) : (
                 <div className="space-y-1.5 max-h-64 overflow-y-auto">

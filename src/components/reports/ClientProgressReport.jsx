@@ -142,7 +142,7 @@ export default function ClientProgressReport() {
       <tr>
         <td style="padding:6px 10px;border-bottom:1px solid #eee;">${s.name || ''}</td>
         <td style="padding:6px 10px;border-bottom:1px solid #eee;">${s.job_title || ''}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #eee;">${s.worker_type === 'subcontractor' ? 'Sub-contractor' : 'Direct employee'}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;">${s.worker_type === 'subcontractor' ? 'Subcontractor' : 'Direct employee'}</td>
       </tr>
     `).join('');
 

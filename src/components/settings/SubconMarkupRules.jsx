@@ -50,7 +50,7 @@ export default function SubconMarkupRules() {
     <div className="space-y-4">
       <SettingsSectionHeader
         icon={TrendingUp}
-        title="Sub-Contractor Markup Rules"
+        title="Subcontractor Markup Rules"
         description="Default markup percentages applied to subcontractor costs when billing clients. Guardrails prevent zero-margin billing — individual jobs and contractors can override these defaults."
       />
 

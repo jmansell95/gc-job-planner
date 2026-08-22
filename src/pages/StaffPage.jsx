@@ -58,7 +58,7 @@ const TABS = [
   {
     id: 'contacts', label: 'Contacts', icon: Building2, sub: [
       { id: 'clients', label: 'Clients' },
-      { id: 'contractors', label: 'Sub-contractors' },
+      { id: 'contractors', label: 'Subcontractors' },
       { id: 'suppliers', label: 'Suppliers' },
     ],
   },

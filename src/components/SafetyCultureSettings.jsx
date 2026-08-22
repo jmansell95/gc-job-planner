@@ -116,7 +116,7 @@ export default function SafetyCultureSettings() {
       <SettingsSectionHeader
         icon={ShieldAlert}
         title="SafetyCulture (iAuditor) Sync"
-        description="Sync site safety audits & inspection forms from SafetyCulture — every audit auto-links to its job and sub-contractor"
+        description="Sync site safety audits & inspection forms from SafetyCulture — every audit auto-links to its job and subcontractor"
       />
 
       {/* Get Started guide — shown until the webhook secret is set */}

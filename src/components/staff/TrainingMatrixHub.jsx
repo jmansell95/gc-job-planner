@@ -31,7 +31,7 @@ const DEFAULT_CATEGORIES = [
   { label: 'CPCS Card', short_code: 'CPCS', qualification_type: 'cpcs_card', requires_front_back: true, is_card: true, icon: 'IdCard', sort_order: 1, is_active: true },
   { label: 'NPORS Card', short_code: 'NPORS', qualification_type: 'npors_card', requires_front_back: true, is_card: true, icon: 'IdCard', sort_order: 2, is_active: true },
   { label: 'First Aid', short_code: 'FA', qualification_type: 'first_aid_cert', requires_front_back: false, is_card: false, icon: 'ShieldCheck', sort_order: 3, is_active: true },
-  { label: 'Driver License', short_code: 'DRV', qualification_type: 'driver_license', requires_front_back: true, is_card: true, icon: 'Car', sort_order: 4, is_active: true },
+  { label: 'Driver Licence', short_code: 'DRV', qualification_type: 'driver_license', requires_front_back: true, is_card: true, icon: 'Car', sort_order: 4, is_active: true },
   { label: 'DBS', short_code: 'DBS', qualification_type: 'dbs_certificate', requires_front_back: false, is_card: false, icon: 'FileText', sort_order: 5, is_active: true },
   { label: 'Forklift', short_code: 'FL', qualification_type: 'forklift', requires_front_back: false, is_card: false, icon: 'Award', sort_order: 6, is_active: true },
 ];

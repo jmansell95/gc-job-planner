@@ -59,7 +59,7 @@ export default function JobFinancialFootprint({ job }) {
     });
     subconLogs.forEach((l) => {
       entries.push({
-        date: l.date, type: 'Sub-Contractor', desc: l.description || l.work_type || 'Subcon work',
+        date: l.date, type: 'Subcontractor', desc: l.description || l.work_type || 'Subcon work',
         ref: l.subcontractor_name, cost: l.purchase_cost_net || 0, revenue: l.client_charge_net || 0,
         status: l.status, source: 'subcon',
       });
@@ -115,11 +115,11 @@ export default function JobFinancialFootprint({ job }) {
   }, [ledger]);
 
   const TYPE_ICON = {
-    Investigation: Mountain, 'Sub-Contractor': ArrowRightLeft, Timesheet: Clock,
+    Investigation: Mountain, 'Subcontractor': ArrowRightLeft, Timesheet: Clock,
     Delivery: Truck, 'Cost Item': Receipt,
   };
   const TYPE_COLOR = {
-    Investigation: 'text-blue-600 bg-blue-50', 'Sub-Contractor': 'text-orange-600 bg-orange-50',
+    Investigation: 'text-blue-600 bg-blue-50', 'Subcontractor': 'text-orange-600 bg-orange-50',
     Timesheet: 'text-violet-600 bg-violet-50', Delivery: 'text-emerald-600 bg-emerald-50',
     'Cost Item': 'text-slate-600 bg-slate-50',
   };

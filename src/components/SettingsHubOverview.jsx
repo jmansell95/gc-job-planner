@@ -74,7 +74,7 @@ export default function SettingsHubOverview({ onNavigate }) {
       { id: 'dropdowns', icon: ListChecks, label: 'Dropdown Manager', value: '—', sub: 'Edit every dropdown', color: 'violet' },
       { id: 'global-branding', icon: Palette, label: 'Global Branding', value: '—', sub: 'Email colours & banners', color: 'violet' },
       { id: 'login-branding', icon: Lock, label: 'Login Page Customiser', value: '—', sub: 'Login & reset screen branding', color: 'blue' },
-      { id: 'portal-branding', icon: Palette, label: 'Portal Branding Editor', value: '—', sub: 'Client & sub-contractor portal', color: 'violet' },
+      { id: 'portal-branding', icon: Palette, label: 'Portal Branding Editor', value: '—', sub: 'Client & subcontractor portal', color: 'violet' },
       { id: 'email-templates', icon: Mail, label: 'Email Templates', value: '—', sub: 'Branded email templates', color: 'blue' },
       { id: 'email-alerts', icon: Mail, label: 'Email Alerts', value: '—', sub: 'Templates & timing', color: 'blue' },
       { id: 'automations', icon: Zap, label: 'Automations', value: '—', sub: 'Background automations & alerts', color: 'amber' },

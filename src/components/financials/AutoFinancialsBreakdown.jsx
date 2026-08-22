@@ -516,12 +516,12 @@ export default function AutoFinancialsBreakdown({ job }) {
         )}
       </div>
 
-      {/* === Sub-Contractor Margin Summary === */}
+      {/* === Subcontractor Margin Summary === */}
       {cb.subcon_client_charge_net > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-3">
             <ArrowRightLeft className="w-4 h-4 text-orange-600" />
-            <h3 className="text-sm font-semibold text-slate-800">Sub-Contractor Margin</h3>
+            <h3 className="text-sm font-semibold text-slate-800">Subcontractor Margin</h3>
             <span className="ml-auto text-xs text-slate-400">{data.subcontractor_logs?.length || 0} log(s)</span>
           </div>
           <div className="grid grid-cols-3 gap-3">

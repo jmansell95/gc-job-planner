@@ -114,7 +114,7 @@ export default function ContractorManager() {
   };
 
   const handleDelete = async (id) => {
-    if (confirm('Delete this sub-contractor? This cannot be undone.')) {
+    if (confirm('Delete this subcontractor? This cannot be undone.')) {
       await base44.entities.Contractor.delete(id);
       queryClient.invalidateQueries({ queryKey: ['scoped', 'Contractor'] });
     }
@@ -149,11 +149,11 @@ export default function ContractorManager() {
       });
       queryClient.invalidateQueries({ queryKey: ['scoped', 'Contractor'] });
       const link = window.location.origin + '/subcontractor-onboarding/' + token;
-      const subject = 'Sub-contractor onboarding — ' + c.name;
+      const subject = 'Subcontractor onboarding — ' + c.name;
       const body = [
         'Hi ' + (c.contact_name || 'there') + ',',
         '',
-        'Please complete your sub-contractor onboarding so we can clear you for work on our sites. Use the link below to upload your insurance, accreditations and company details:',
+        'Please complete your subcontractor onboarding so we can clear you for work on our sites. Use the link below to upload your insurance, accreditations and company details:',
         '',
         link,
         '',
@@ -195,13 +195,13 @@ export default function ContractorManager() {
     <div>
       <SettingsSectionHeader
         icon={HardHat}
-        title="Sub-contractor Onboarding"
-        description="Onboard, vet and approve sub-contractors — insurance, accreditations & SafetyCulture email auto-link audits"
+        title="Subcontractor Onboarding"
+        description="Onboard, vet and approve subcontractors — insurance, accreditations & SafetyCulture email auto-link audits"
         actions={
           <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData(emptyForm); }}
             className="flex items-center justify-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-medium hover:opacity-90 transition"
             style={{ background: ACCENT }}>
-            <Plus className="w-4 h-4" /> Add Sub-contractor
+            <Plus className="w-4 h-4" /> Add Subcontractor
           </button>
         }
       />
@@ -233,7 +233,7 @@ export default function ContractorManager() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-xl p-5 border border-emerald-200 mb-6 shadow-sm">
-          <h3 className="font-semibold text-slate-900 mb-4">{editingId ? 'Edit Sub-contractor' : 'New Sub-contractor'}</h3>
+          <h3 className="font-semibold text-slate-900 mb-4">{editingId ? 'Edit Subcontractor' : 'New Subcontractor'}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Company Name *</label>
@@ -347,7 +347,7 @@ export default function ContractorManager() {
           </div>
           <div className="flex gap-2 mt-5">
             <button type="submit" className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition font-medium text-sm" style={{ background: ACCENT }}>
-              {editingId ? 'Update' : 'Add'} Sub-contractor
+              {editingId ? 'Update' : 'Add'} Subcontractor
             </button>
             <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium text-sm">
               Cancel
@@ -359,7 +359,7 @@ export default function ContractorManager() {
       {isLoading ? (
         <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
       ) : contractors.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">No sub-contractors yet. Add your first above.</div>
+        <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">No subcontractors yet. Add your first above.</div>
       ) : (
         <>
           <div className="mb-5">
@@ -372,7 +372,7 @@ export default function ContractorManager() {
             />
           </div>
           {filtered.length === 0 ? (
-            <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">No sub-contractors match your filters.</div>
+            <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">No subcontractors match your filters.</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filtered.map((c) => {

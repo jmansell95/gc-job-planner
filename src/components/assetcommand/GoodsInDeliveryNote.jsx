@@ -400,7 +400,7 @@ export default function GoodsInDeliveryNote({ onBack }) {
                 <ScanLine className="w-10 h-10 text-amber-300" />
               </div>
               <p className="text-slate-700 font-bold text-base">Ready to Receive</p>
-              <p className="text-slate-400 text-sm mt-1">Scan a barcode or tap an item from the catalog to start your delivery note.</p>
+              <p className="text-slate-400 text-sm mt-1">Scan a barcode or tap an item from the catalogue to start your delivery note.</p>
             </div>
           )}
         </div>

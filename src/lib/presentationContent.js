@@ -48,8 +48,8 @@ export const safetyPoints = [
     proof: 'Three-tier signature trail: crew sign-off, manager approval, weekly official lock.',
   },
   {
-    title: 'Sub-contractor accountability',
-    body: 'Sub-contractor and enabling-crew logs are flagged with a distinct badge in Log QC, so managers apply the correct review and billing path. Audits submitted from SafetyCulture are auto-linked to the contractor record by email, keeping the safety evidence chain intact across third parties.',
+    title: 'Subcontractor accountability',
+    body: 'Subcontractor and enabling-crew logs are flagged with a distinct badge in Log QC, so managers apply the correct review and billing path. Audits submitted from SafetyCulture are auto-linked to the contractor record by email, keeping the safety evidence chain intact across third parties.',
     proof: 'No more "who logged this?" — crew type and origin are visible on every record.',
   },
 ];
@@ -136,7 +136,7 @@ export const integrationsPoints = [
   },
   {
     title: 'SAP Concur — expense sync & reconciliation',
-    body: 'Approved site expenses and sub-contractor costs export to SAP Concur as Quick Expenses with GL codes mapped automatically, then lock to prevent audit mismatches. A reverse-sync pulls Concur report IDs and approval status back so finance can trace every expense to its report.',
+    body: 'Approved site expenses and subcontractor costs export to SAP Concur as Quick Expenses with GL codes mapped automatically, then lock to prevent audit mismatches. A reverse-sync pulls Concur report IDs and approval status back so finance can trace every expense to its report.',
     proof: 'Credentials stored securely in-app — no external secret manager dependency.',
   },
   {

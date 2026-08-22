@@ -151,7 +151,7 @@ export default function SubcontractorOnboarding() {
 
   // Portal branding — falls back to defaults if not loaded yet
   const accent = branding?.accent_color || '#2E5A1A';
-  const welcomeTitle = branding?.welcome_title || 'Sub-contractor Onboarding';
+  const welcomeTitle = branding?.welcome_title || 'Subcontractor Onboarding';
   const welcomeSubtitle = branding?.welcome_subtitle || '';
   const showLogo = branding?.show_logo && branding?.logo_url;
   const portalDisabled = branding && branding.enabled === false;
@@ -384,7 +384,7 @@ export default function SubcontractorOnboarding() {
         </form>
 
         <p className="text-center text-xs text-slate-400 mt-6">
-          {branding?.footer_text || 'Ground Control'} · Sub-contractor Onboarding Portal
+          {branding?.footer_text || 'Ground Control'} · Subcontractor Onboarding Portal
           {branding?.support_phone && <span className="block mt-1">📞 {branding.support_phone}</span>}
           {branding?.support_email && <span className="block">✉️ {branding.support_email}</span>}
         </p>

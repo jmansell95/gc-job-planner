@@ -27,7 +27,7 @@ export default function BillingLockBanner({ lockedInvoices, lockReason, job, tem
         <div className="min-w-0 flex-1">
           <h4 className="text-sm font-bold text-emerald-900">Billing Temporarily Opened</h4>
           <p className="text-xs text-emerald-800 mt-0.5">
-            You can now edit cost items, sub-contractor logs and timesheets. The lock will reinstate when you leave this page — re-lock now if you're done.
+            You can now edit cost items, subcontractor logs and timesheets. The lock will reinstate when you leave this page — re-lock now if you're done.
           </p>
         </div>
         {onTempOpen && (
@@ -57,7 +57,7 @@ export default function BillingLockBanner({ lockedInvoices, lockReason, job, tem
           </h4>
           <p className="text-xs text-orange-700 mt-0.5">
             {isCompleted
-              ? "This job is completed. New cost items, sub-contractor logs, and timesheets can't be added. Reactivate the job if late costs need recording."
+              ? "This job is completed. New cost items, subcontractor logs, and timesheets can't be added. Reactivate the job if late costs need recording."
               : "This job is being decommissioned — new billable items are frozen while equipment is collected. Finish or cancel the decommissioning to unlock."}
           </p>
         </div>
@@ -85,7 +85,7 @@ export default function BillingLockBanner({ lockedInvoices, lockReason, job, tem
       <div className="min-w-0 flex-1">
         <h4 className="text-sm font-bold text-indigo-900">Billing Locked — {lockedInvoices.length} invoice{lockedInvoices.length === 1 ? '' : 's'} issued{isStatusLock ? ' · job finalised' : ''}</h4>
         <p className="text-xs text-indigo-700 mt-0.5">
-          This job's cost data is frozen. {lockedInvoices.map((i) => i.invoice_number).join(', ')} ({totalGross > 0 ? '£' + totalGross.toLocaleString('en-GB', { minimumFractionDigits: 2 }) : ''} gross) — editing cost items or sub-contractor logs now would desync the invoice from its source data. Void the invoice first if changes are needed.
+          This job's cost data is frozen. {lockedInvoices.map((i) => i.invoice_number).join(', ')} ({totalGross > 0 ? '£' + totalGross.toLocaleString('en-GB', { minimumFractionDigits: 2 }) : ''} gross) — editing cost items or subcontractor logs now would desync the invoice from its source data. Void the invoice first if changes are needed.
         </p>
         {onTempOpen && (
           <button

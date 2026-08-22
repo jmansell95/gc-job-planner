@@ -141,7 +141,7 @@ export default function AssetFinancialLifecycle({ assetId }) {
       {/* Utilization indicator */}
       <div className="insight-card rounded-2xl p-4">
         <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
-          <Activity className="w-4 h-4 text-slate-500" /> Asset Utilization
+          <Activity className="w-4 h-4 text-slate-500" /> Asset Utilisation
         </h4>
         <div className="flex items-center gap-3">
           <div className="flex-1">

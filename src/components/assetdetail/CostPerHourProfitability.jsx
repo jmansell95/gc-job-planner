@@ -118,7 +118,7 @@ export default function CostPerHourProfitability({ asset }) {
       {hasRevenue && analysis.breakEvenHours > 0 && (
         <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-semibold text-slate-600">Break-even Utilization</span>
+            <span className="text-xs font-semibold text-slate-600">Break-even Utilisation</span>
             <span className="text-xs font-bold text-slate-800">{analysis.breakEvenHours}h / year</span>
           </div>
           <div className="h-2 bg-slate-100 rounded-full overflow-hidden">

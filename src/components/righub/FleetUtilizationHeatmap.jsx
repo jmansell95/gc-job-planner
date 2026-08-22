@@ -92,7 +92,7 @@ export default function FleetUtilizationHeatmap({ assets }) {
       <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
         <Activity className="w-10 h-10 text-slate-200 mx-auto mb-2" />
         <p className="text-sm font-semibold text-slate-700">No rigs to analyze</p>
-        <p className="text-xs text-slate-400 mt-1">Add rig assets to see fleet utilization.</p>
+        <p className="text-xs text-slate-400 mt-1">Add rig assets to see fleet utilisation.</p>
       </div>
     );
   }
@@ -106,8 +106,8 @@ export default function FleetUtilizationHeatmap({ assets }) {
             <Calendar className="w-4 h-4 text-white" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-slate-800">Fleet Utilization — Last 30 Days</h3>
-            <p className="text-[11px] text-slate-400">Green = on job · Grey = idle · Sorted by utilization</p>
+            <h3 className="text-sm font-bold text-slate-800">Fleet Utilisation — Last 30 Days</h3>
+            <p className="text-[11px] text-slate-400">Green = on job · Grey = idle · Sorted by utilisation</p>
           </div>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">

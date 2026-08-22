@@ -206,7 +206,7 @@ export default function SubcontractorLogManager({ job }) {
             <ArrowRightLeft className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-lg font-bold">Sub-Contractor Activity Logs</h3>
+            <h3 className="text-lg font-bold">Subcontractor Activity Logs</h3>
             <p className="text-[11px] text-white/60">Buy-side cost · sell-side margin · verification workflow</p>
           </div>
           <button onClick={() => setShowForm(!showForm)} disabled={effectiveLocked} className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 bg-white text-[#2E5A1A] rounded-lg text-xs font-bold hover:bg-white/90 transition disabled:opacity-40 disabled:cursor-not-allowed">
@@ -231,7 +231,7 @@ export default function SubcontractorLogManager({ job }) {
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Sub-Contractor <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Subcontractor <span className="text-red-500">*</span></label>
               <select value={form.subcontractor_id} onChange={e => set('subcontractor_id', e.target.value)} className={inputCls}>
                 <option value="">Select…</option>
                 {contractors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -335,7 +335,7 @@ export default function SubcontractorLogManager({ job }) {
           </div>
           <button onClick={handleSubmit} disabled={saving || !form.subcontractor_id || purchaseCost <= 0} className="w-full px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] transition disabled:opacity-50 flex items-center justify-center gap-2">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            {saving ? 'Saving…' : 'Log Sub-Contractor Work'}
+            {saving ? 'Saving…' : 'Log Subcontractor Work'}
           </button>
         </div>
       )}
@@ -346,7 +346,7 @@ export default function SubcontractorLogManager({ job }) {
       ) : logs.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm text-center py-8 px-4">
           <Building2 className="w-7 h-7 text-slate-200 mx-auto mb-2" />
-          <p className="text-sm text-slate-500 font-medium">No sub-contractor logs yet</p>
+          <p className="text-sm text-slate-500 font-medium">No subcontractor logs yet</p>
           <p className="text-xs text-slate-400 mt-1">Log sub-con work to track buy/sell margins.</p>
         </div>
       ) : (

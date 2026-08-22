@@ -181,7 +181,7 @@ export function resolveRoleLandingPage(profile, isPlatformAdmin) {
 
   const role = resolveRole(profile, isPlatformAdmin);
 
-  // Sub-contractors get the minimalist logging portal
+  // Subcontractors get the minimalist logging portal
   if (profile?.worker_type === 'subcontractor') return '/subcontractor';
 
   // Field staff — schedule or profile

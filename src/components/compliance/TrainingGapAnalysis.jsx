@@ -11,7 +11,7 @@ export const ALL_QUALIFICATIONS = [
   { value: 'cpcs_card', label: 'CPCS Card' },
   { value: 'npors_card', label: 'NPORS Card' },
   { value: 'first_aid_cert', label: 'First Aid Certificate' },
-  { value: 'driver_license', label: 'Driver License' },
+  { value: 'driver_license', label: 'Driver Licence' },
   { value: 'dbs_certificate', label: 'DBS Certificate' },
   { value: 'forklift', label: 'Forklift Training' },
   { value: 'sts_triple', label: 'STS Triple (STS)' },

@@ -11,7 +11,7 @@ const FALLBACK_QUALIFICATION_TYPES = [
   { value: 'cpcs_card', label: 'CPCS Card', requiresFrontBack: true },
   { value: 'npors_card', label: 'NPORS Card', requiresFrontBack: true },
   { value: 'first_aid_cert', label: 'First Aid Certificate', requiresFrontBack: false },
-  { value: 'driver_license', label: 'Driver License', requiresFrontBack: true },
+  { value: 'driver_license', label: 'Driver Licence', requiresFrontBack: true },
   { value: 'dbs_certificate', label: 'DBS Certificate', requiresFrontBack: false },
   { value: 'other', label: 'Other', requiresFrontBack: false },
 ];

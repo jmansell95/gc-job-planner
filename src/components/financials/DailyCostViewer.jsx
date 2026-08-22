@@ -14,7 +14,7 @@ const CATEGORY_META = {
   subsistence: { label: 'Subsistence', color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
   materials: { label: 'Materials', color: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
   equipment_hire: { label: 'Equipment Hire', color: 'bg-violet-100 text-violet-700', dot: 'bg-violet-500' },
-  subcontractor: { label: 'Sub-Contractor', color: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' },
+  subcontractor: { label: 'Subcontractor', color: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' },
   misc: { label: 'Misc', color: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' },
   tolls_parking: { label: 'Tolls & Parking', color: 'bg-cyan-100 text-cyan-700', dot: 'bg-cyan-500' },
   travel: { label: 'Travel', color: 'bg-indigo-100 text-indigo-700', dot: 'bg-indigo-500' },

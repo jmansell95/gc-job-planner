@@ -180,7 +180,7 @@ function DelayRow({ log, onApprove, onReject, busy }) {
           <p className="text-xs text-slate-600 mt-1">{log.description}</p>
           <p className="text-[10px] text-slate-400 mt-1">
             {log.reported_at ? format(new Date(log.reported_at), 'dd MMM yyyy HH:mm') : ''}
-            {' · '}by {log.reported_by_role === 'subcontractor' ? (log.subcontractor_name || 'Sub-contractor') : (log.staff_name || 'Staff')}
+            {' · '}by {log.reported_by_role === 'subcontractor' ? (log.subcontractor_name || 'Subcontractor') : (log.staff_name || 'Staff')}
             {' · '}Impact: <b className="text-amber-700">+{impactStr}</b>
           </p>
         </div>

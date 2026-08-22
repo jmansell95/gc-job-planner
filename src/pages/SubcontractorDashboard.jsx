@@ -12,8 +12,8 @@ import { useNavigate } from 'react-router-dom';
 import FieldPageShell from '@/components/field/FieldPageShell';
 import StaffHeaderActions from '@/components/field/StaffHeaderActions';
 
-// Sub-contractor "Lite" portal — a minimalist daily logging interface.
-// Sub-contractors log their day (including metres drilled), see their weekly
+// Subcontractor "Lite" portal — a minimalist daily logging interface.
+// Subcontractors log their day (including metres drilled), see their weekly
 // progress, and trust the Sync HUD that their data reached the office.
 export default function SubcontractorDashboard() {
   const { toast } = useToast();
@@ -76,7 +76,7 @@ export default function SubcontractorDashboard() {
 
   return (
     <FieldPageShell
-      title="Sub-contractor Portal"
+      title="Subcontractor Portal"
       subtitle={`Welcome, ${staff.name.split(' ')[0]}`}
       icon={HardHat}
       onBack={() => navigate('/staff-schedule')}
@@ -102,7 +102,7 @@ export default function SubcontractorDashboard() {
           </div>
         )}
 
-        {/* Sub-contractor delay reporting */}
+        {/* Subcontractor delay reporting */}
         <SubconDelayReport staff={staff} jobs={jobs} />
 
         {/* Log My Day form */}
