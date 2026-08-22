@@ -77,7 +77,7 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
     { id: 'jobs', label: 'Jobs Hub', icon: Briefcase },
     { id: 'scheduling', label: 'Scheduling Hub', icon: Calendar },
     { id: 'staff', label: 'Staff Hub', icon: Users },
-    { id: 'logistics', label: 'Driver Hub', icon: Truck },
+    { id: 'logistics', label: 'Logistics Hub', icon: Truck },
     { id: 'assets', label: 'Assets Hub', icon: Boxes },
     { id: 'fleet', label: 'Fleet Hub', icon: Car },
     { id: 'investigation', label: 'Investigation Hub', icon: FlaskConical },

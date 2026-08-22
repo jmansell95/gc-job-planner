@@ -30,7 +30,7 @@ const SECTION_LABELS = {
   scheduling: 'Scheduling Hub',
   rota: 'Scheduling Hub',
   calendar: 'Calendar',
-  logistics: 'Driver Hub',
+  logistics: 'Logistics Hub',
   timesheets: 'Timesheets',
   teams: 'Staff Hub',
   compliance: 'Compliance Hub',
