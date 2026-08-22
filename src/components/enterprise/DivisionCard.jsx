@@ -19,7 +19,7 @@ export default function DivisionCard({ ds, onEnter }) {
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, rgba(255,255,255,0.3) 0%, transparent 60%)' }} />
         <div className="relative flex items-center gap-2.5 sm:gap-3 min-w-0">
           <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg ring-1 ring-white/30">
-            <Building2 className="w-5.5 h-5.5 sm:w-7 sm:h-7 text-white" />
+            <Building2 className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
           </div>
           <div className="min-w-0">
             <h3 className="text-sm sm:text-base font-extrabold text-white truncate drop-shadow-sm">{d.name}</h3>

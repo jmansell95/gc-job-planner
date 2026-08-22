@@ -148,7 +148,7 @@ export default function EnterpriseDashboard() {
         <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-emerald-50/40" />
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 15% 20%, #2E5A1A 0%, transparent 45%), radial-gradient(circle at 85% 80%, #8DC63F 0%, transparent 50%)' }} />
         <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-[#2E5A1A] to-transparent" />
-        <div className="relative px-4 lg:px-6 pt-2 lg:pt-8 pb-6">
+        <div className="relative px-4 lg:px-6 pt-3 lg:pt-8 pb-6">
           <div className="max-w-7xl mx-auto">
             {/* Title row */}
             <div className="flex items-center justify-between gap-3 mb-5">
@@ -219,7 +219,7 @@ export default function EnterpriseDashboard() {
                     <m.icon className="w-4 h-4 text-white" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide truncate">{m.label}</p>
+                    <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide truncate">{m.label}</p>
                     <p className="text-base sm:text-lg font-extrabold text-white tabular-nums truncate">{m.value}</p>
                   </div>
                 </div>
@@ -296,7 +296,7 @@ export default function EnterpriseDashboard() {
                 <div className="absolute right-1 top-1 opacity-20"><Truck className="w-7 h-7 sm:w-9 sm:h-9" /></div>
                 <div className="relative">
                   <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide">Vehicles</p>
-                  <p className="text-xl sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.vehicles}</p>
+                  <p className="text-lg sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.vehicles}</p>
                   <p className="text-[9px] sm:text-[10px] text-white/70">in fleet</p>
                 </div>
               </div>
@@ -304,7 +304,7 @@ export default function EnterpriseDashboard() {
                 <div className="absolute right-1 top-1 opacity-20"><Wrench className="w-7 h-7 sm:w-9 sm:h-9" /></div>
                 <div className="relative">
                   <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide">Assets</p>
-                  <p className="text-xl sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.assets || 0}</p>
+                  <p className="text-lg sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.assets || 0}</p>
                   <p className="text-[9px] sm:text-[10px] text-white/70">active equipment</p>
                 </div>
               </div>
@@ -312,7 +312,7 @@ export default function EnterpriseDashboard() {
                 <div className="absolute right-1 top-1 opacity-20"><AlertTriangle className="w-7 h-7 sm:w-9 sm:h-9" /></div>
                 <div className="relative">
                   <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide">Attention</p>
-                  <p className="text-xl sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.assetsExpiring || 0}</p>
+                  <p className="text-lg sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.assetsExpiring || 0}</p>
                   <p className="text-[9px] sm:text-[10px] text-white/70">compliance expiring</p>
                 </div>
               </div>
@@ -332,7 +332,7 @@ export default function EnterpriseDashboard() {
                 <div className="absolute right-1 top-1 opacity-20"><TrendingUp className="w-7 h-7 sm:w-9 sm:h-9" /></div>
                 <div className="relative">
                   <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide">Total Earned</p>
-                  <p className="text-xl sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{gbp(rigData?.totals?.total_earned)}</p>
+                  <p className="text-lg sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{gbp(rigData?.totals?.total_earned)}</p>
                   <p className="text-[9px] sm:text-[10px] text-white/70">{rigData?.totals?.rigs_count || 0} rigs</p>
                 </div>
               </div>
@@ -340,7 +340,7 @@ export default function EnterpriseDashboard() {
                 <div className="absolute right-1 top-1 opacity-20"><PoundSterling className="w-7 h-7 sm:w-9 sm:h-9" /></div>
                 <div className="relative">
                   <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide">Margin</p>
-                  <p className="text-xl sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{gbp(rigData?.totals?.total_margin)}</p>
+                  <p className="text-lg sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{gbp(rigData?.totals?.total_margin)}</p>
                   <p className="text-[9px] sm:text-[10px] text-white/70">net profit</p>
                 </div>
               </div>
@@ -368,7 +368,7 @@ export default function EnterpriseDashboard() {
                 <div className="absolute right-1 top-1 opacity-20"><Users className="w-7 h-7 sm:w-9 sm:h-9" /></div>
                 <div className="relative">
                   <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide">Total Staff</p>
-                  <p className="text-xl sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.staff}</p>
+                  <p className="text-lg sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.staff}</p>
                   <p className="text-[9px] sm:text-[10px] text-white/70">across all BUs</p>
                 </div>
               </div>
@@ -376,7 +376,7 @@ export default function EnterpriseDashboard() {
                 <div className="absolute right-1 top-1 opacity-20"><CheckCircle2 className="w-7 h-7 sm:w-9 sm:h-9" /></div>
                 <div className="relative">
                   <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide">Active</p>
-                  <p className="text-xl sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.activeStaff || 0}</p>
+                  <p className="text-lg sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{globalStats.activeStaff || 0}</p>
                   <p className="text-[9px] sm:text-[10px] text-white/70">currently working</p>
                 </div>
               </div>
