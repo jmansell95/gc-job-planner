@@ -19,6 +19,7 @@ import FieldHubTabs from '@/components/fieldhub/FieldHubTabs';
 import MyGearTab from '@/components/fieldhub/MyGearTab';
 import MyTodayTab from '@/components/fieldhub/MyTodayTab';
 import GoodsInDeliveryNote from '@/components/assetcommand/GoodsInDeliveryNote';
+import ConsumableUsageModal from '@/components/assetcommand/ConsumableUsageModal';
 import SiteCollectMode from '@/components/logistics/SiteCollectMode';
 import SiteCollectionScanner from '@/components/logistics/SiteCollectionScanner';
 import { enableKioskScannerMode, disableKioskScannerMode, isKioskScannerMode } from '@/utils/kioskMode';
@@ -64,6 +65,7 @@ export default function AssetScannerPage() {
   const [selectedJobId, setSelectedJobId] = useState('');
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [showFullScreen, setShowFullScreen] = useState(false);
+  const [showConsumableModal, setShowConsumableModal] = useState(false);
   const [recent, setRecent] = useState(() => loadJSON(RECENT_KEY, []));
   const [offlineScans, setOfflineScans] = useState(() => loadJSON(OFFLINE_KEY, []));
   const [retrying, setRetrying] = useState(false);
@@ -459,6 +461,12 @@ export default function AssetScannerPage() {
         >
           <PackageOpen className="w-3.5 h-3.5" /> Collect
         </button>
+        <button
+          onClick={() => setShowConsumableModal(true)}
+          className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition active:scale-95 bg-white text-slate-600 border border-slate-200"
+        >
+          <Package className="w-3.5 h-3.5" /> Use Stock
+        </button>
       </div>
 
       {/* Direction toggle — Sign Out / Return */}
@@ -547,7 +555,7 @@ export default function AssetScannerPage() {
                     <Barcode className="w-10 h-10 text-white relative z-10" />
                   </button>
                   <p className="mt-4 text-base font-bold text-slate-900">Tap to Scan</p>
-                  <p className="text-sm text-slate-500 mt-0.5">Opens full-screen camera viewfinder</p>
+                  <p className="text-sm text-slate-500 mt-0.5">Opens the camera scanner</p>
                 </div>
               </div>
 
@@ -663,6 +671,14 @@ export default function AssetScannerPage() {
           asset={faultAsset}
           staffProfile={staffProfile}
           onClose={() => setFaultAsset(null)}
+        />
+      )}
+
+      {/* Consumable Usage Modal */}
+      {showConsumableModal && (
+        <ConsumableUsageModal
+          onClose={() => setShowConsumableModal(false)}
+          onUsed={() => queryClient.invalidateQueries({ queryKey: ['consumable-stock-items'] })}
         />
       )}
     </div>

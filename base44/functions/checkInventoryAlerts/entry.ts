@@ -30,8 +30,16 @@ export default async function(req: Request): Promise<Response> {
       (a.stock_level === 'low_stock' || a.stock_level === 'out_of_stock' || a.stock_level === 'needs_service')
     );
 
-    if (flagged.length === 0) {
-      return Response.json({ sent: false, reason: 'No low-stock assets', checked: assets.length });
+    // Also check consumable stock items for low stock (current <= minimum)
+    const consumables = await base44.asServiceRole.entities.ConsumableStockItem.filter({ is_active: true });
+    const lowStockConsumables = consumables.filter((c: any) => {
+      const stock = Number(c.current_stock) || 0;
+      const min = Number(c.minimum_stock) || 0;
+      return min > 0 && stock <= min;
+    });
+
+    if (flagged.length === 0 && lowStockConsumables.length === 0) {
+      return Response.json({ sent: false, reason: 'No low-stock items', checked: assets.length });
     }
 
     // Build recipients
@@ -57,19 +65,32 @@ export default async function(req: Request): Promise<Response> {
     };
 
     // Group by status for the list
-    const lines = flagged.map((a: any) => {
+    const assetLines = flagged.map((a: any) => {
       const status = STATUS_LABEL[a.stock_level] || a.stock_level;
       const loc = a.storage_location ? ` (${a.storage_location})` : '';
       const serial = a.serial_number ? ` [${a.serial_number}]` : '';
       return `   • ${a.name}${serial} — ${status}${loc}`;
     }).join('\n');
 
+    const consumableLines = lowStockConsumables.map((c: any) => {
+      const stock = Number(c.current_stock) || 0;
+      const min = Number(c.minimum_stock) || 0;
+      const loc = c.storage_location ? ` (${c.storage_location})` : '';
+      return `   • ${c.name} — ${stock}/${min} ${c.unit || 'each'}${loc}`;
+    }).join('\n');
+
+    const lines = [
+      assetLines,
+      consumableLines ? `\nConsumables below minimum stock:\n${consumableLines}` : '',
+    ].filter(Boolean).join('\n');
+
+    const totalAlerts = flagged.length + lowStockConsumables.length;
     const subject = cfg.subject
-      ? cfg.subject.replace(/\{alert_count\}/g, String(flagged.length))
-      : `Inventory Alert — ${flagged.length} item(s) need attention`;
+      ? cfg.subject.replace(/\{alert_count\}/g, String(totalAlerts))
+      : `Inventory Alert — ${totalAlerts} item(s) need attention`;
 
     const text = cfg.template
-      .replace(/\{alert_count\}/g, String(flagged.length))
+      .replace(/\{alert_count\}/g, String(totalAlerts))
       .replace(/\{alert_list\}/g, lines)
       .replace(/\{date\}/g, today);
 
@@ -86,11 +107,13 @@ export default async function(req: Request): Promise<Response> {
     return Response.json({
       sent: true,
       assets_flagged: flagged.length,
+      consumables_flagged: lowStockConsumables.length,
       notified_recipients: recipients.length,
       breakdown: {
         low_stock: flagged.filter(a => a.stock_level === 'low_stock').length,
         out_of_stock: flagged.filter(a => a.stock_level === 'out_of_stock').length,
         needs_service: flagged.filter(a => a.stock_level === 'needs_service').length,
+        consumables_below_min: lowStockConsumables.length,
       },
     });
   } catch (error) {

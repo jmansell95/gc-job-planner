@@ -8,6 +8,7 @@ import {
   CheckSquare, Upload, Database, MapPin, QrCode, Trash2, CircleDot, Warehouse, AlertTriangle,
 } from 'lucide-react';
 import ConsumableInventoryManager from '@/components/settings/ConsumableInventoryManager';
+import ConsumablesView from '@/components/assethub/ConsumablesView';
 import { rollupCompliance, daysUntil } from '@/utils/rigRollup';
 import RigDetailDrawer from '@/components/righub/RigDetailDrawer';
 import EquipmentDetailDrawer from '@/components/righub/EquipmentDetailDrawer';
@@ -214,7 +215,7 @@ export default function AssetHub() {
           </button>
         </div>
       ) : view === 'consumables' ? (
-        <ErrorBoundary><ConsumableInventoryManager /></ErrorBoundary>
+        <ErrorBoundary><ConsumablesView /></ErrorBoundary>
       ) : (
         <>
           {/* Fleet health strip — slim, borderless, sits flush under the tab bar */}

@@ -62,6 +62,15 @@
       "type": "string",
       "description": "Findings, defects noted, parts replaced, observations."
     },
+    "consumables_cost": {
+      "type": "number",
+      "default": 0,
+      "description": "Total cost of consumables (grease, spray cans, parts from warehouse stock) used during this service/repair. Auto-calculated by the commitConsumableUsage function as each consumable is logged."
+    },
+    "consumables_summary": {
+      "type": "string",
+      "description": "Human-readable line-by-line summary of consumables used on this repair (e.g. '1\u00d7 Grease Spray @ \u00a34.50/each = \u00a34.50 \u2014 greased bearing'). Appended to by commitConsumableUsage each time a consumable is logged."
+    },
     "imported_from_gc": {
       "type": "boolean",
       "default": false,

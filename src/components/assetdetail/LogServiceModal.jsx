@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { X, Wrench, ShieldCheck, ClipboardCheck, Plug, Loader2, Save, FileText } from 'lucide-react';
+import { X, Wrench, ShieldCheck, ClipboardCheck, Plug, Loader2, Save, FileText, Package, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import ConsumableUsageModal from '@/components/assetcommand/ConsumableUsageModal';
 
 const RECORD_TYPES = [
   { value: 'loler_inspection', label: 'LOLER Inspection', icon: ShieldCheck },
@@ -40,6 +41,8 @@ export default function LogServiceModal({ asset, onClose }) {
     hours_reading: '',
   });
   const [saving, setSaving] = useState(false);
+  const [savedRecordId, setSavedRecordId] = useState(null);
+  const [showConsumable, setShowConsumable] = useState(false);
 
   const showHours = asset?.asset_type === 'rig' || asset?.asset_type === 'machinery';
 
@@ -59,7 +62,8 @@ export default function LogServiceModal({ asset, onClose }) {
         payload.hours_reading = Number(form.hours_reading);
       }
 
-      await base44.entities.ServiceRecord.create(payload);
+      const created = await base44.entities.ServiceRecord.create(payload);
+      setSavedRecordId(created.id);
 
       // Recalculate usage/maintenance if hours were logged
       if (form.hours_reading) {
@@ -73,7 +77,6 @@ export default function LogServiceModal({ asset, onClose }) {
       queryClient.invalidateQueries({ queryKey: ['site-assets'] });
 
       toast({ title: 'Service logged', description: `${RECORD_TYPES.find(t => t.value === form.record_type)?.label} recorded for ${asset.name}.` });
-      onClose();
     } catch (err) {
       console.error('Log service error:', err);
       toast({ title: 'Error', description: 'Could not log service. Please try again.', variant: 'destructive' });
@@ -182,19 +185,45 @@ export default function LogServiceModal({ asset, onClose }) {
 
         {/* Footer */}
         <div className="sticky bottom-0 bg-white border-t border-slate-100 px-5 py-3 flex gap-2">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={saving}
-            className="flex-1 py-2.5 rounded-xl bg-[#2E5A1A] text-white text-sm font-semibold hover:bg-[#244715] transition disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {saving ? 'Saving...' : 'Log Service'}
-          </button>
+          {savedRecordId ? (
+            <>
+              <button
+                onClick={() => setShowConsumable(true)}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-semibold hover:bg-emerald-100 transition flex items-center justify-center gap-2"
+              >
+                <Package className="w-4 h-4" /> Add Consumables
+              </button>
+              <button
+                onClick={onClose}
+                className="flex-1 py-2.5 rounded-xl bg-[#2E5A1A] text-white text-sm font-semibold hover:bg-[#244715] transition flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" /> Done
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={saving}
+                className="flex-1 py-2.5 rounded-xl bg-[#2E5A1A] text-white text-sm font-semibold hover:bg-[#244715] transition disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {saving ? 'Saving...' : 'Log Service'}
+              </button>
+            </>
+          )}
         </div>
       </div>
+      {showConsumable && savedRecordId && (
+        <ConsumableUsageModal
+          presetServiceRecordId={savedRecordId}
+          onClose={() => setShowConsumable(false)}
+          onUsed={() => queryClient.invalidateQueries({ queryKey: ['service-records', asset.id] })}
+        />
+      )}
     </div>
   );
 }

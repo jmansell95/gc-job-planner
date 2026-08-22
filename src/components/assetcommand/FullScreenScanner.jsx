@@ -3,7 +3,7 @@ import { X, Keyboard, AlertTriangle, ScanLine, Loader2, WifiOff, Zap } from 'luc
 import ScanResultPopup from './ScanResultPopup';
 
 /**
- * Full-screen camera viewfinder overlay — opens when the user taps the scan
+ * Full-screen camera scanner overlay — opens when the user taps the scan
  * button on the Asset Scanner. Continuous scanning with cooldown, a manual-entry
  * fallback for devices without a native BarcodeDetector, and a ScanResultPopup
  * bottom-sheet that overlays the live camera for every scan result.
@@ -90,24 +90,34 @@ export default function FullScreenScanner({
   const startCamera = useCallback(async () => {
     setCameraError('');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-      });
+      // Try exact high-res back camera first, fall back progressively so we
+      // get the sharpest possible feed on devices that support it.
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: 'environment' }, width: { exact: 1920 }, height: { exact: 1080 } },
+        });
+      } catch (_) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+          });
+        } catch (_) {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
+        }
+      }
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
-      // Let the browser handle autofocus natively — manual focusMode/zoom
-      // constraints are silently ignored on most mobile browsers and the
-      // zoom magnifies blur on devices that can't focus close-up.
       const track = stream.getVideoTracks()[0];
       const caps = track.getCapabilities ? track.getCapabilities() : {};
       if (caps.torch) setTorchSupported(true);
+      // Force continuous autofocus for sharp barcode reads where supported
+      if (caps.focusMode && caps.focusMode.includes('continuous')) {
+        try { await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (_) {}
+      }
       setCameraActive(true);
       if (hasNativeDetector) {
         try {
@@ -149,7 +159,7 @@ export default function FullScreenScanner({
     <div className="fixed inset-0 z-[70] bg-black flex flex-col">
       {/* Camera video — full bleed */}
       <div className="absolute inset-0">
-        <video ref={videoRef} playsInline muted className="w-full h-full object-cover" />
+        <video ref={videoRef} playsInline muted className="w-full h-full object-contain bg-black" />
       </div>
 
       {/* Dark scrim for contrast */}
@@ -163,7 +173,7 @@ export default function FullScreenScanner({
           </div>
           <div>
             <p className="text-white font-bold text-sm leading-tight">Scanning…</p>
-            <p className="text-white/60 text-[11px]">Point at a QR code or barcode</p>
+            <p className="text-white/60 text-[11px]">Point at any QR or barcode</p>
           </div>
         </div>
         <button
@@ -176,7 +186,7 @@ export default function FullScreenScanner({
 
       {/* Reticle — centered with corner brackets + glow ring + scan line */}
       <div className="relative z-10 flex-1 flex items-center justify-center">
-        <div className="relative w-64 h-64 max-w-[70vw] max-h-[40vh]">
+        <div className="relative w-[78vw] h-[52vh] max-w-[420px] max-h-[420px]">
           {/* Glow ring */}
           <div className="absolute -inset-4 rounded-[2rem] bg-emerald-400/20 blur-2xl animate-pulse" />
           {/* Frame */}
