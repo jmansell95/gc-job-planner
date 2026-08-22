@@ -90,53 +90,28 @@ export default function FullScreenScanner({
   const startCamera = useCallback(async () => {
     setCameraError('');
     try {
-      // Force HD resolution with a floor (min) so the browser can NEVER silently
-      // drop to a blurry 640×480 — every modern phone back camera supports
-      // 1280×720. ideal:1920×1080 negotiates the highest the sensor offers.
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { min: 1280, ideal: 1920 },
-            height: { min: 720, ideal: 1080 },
-            frameRate: { ideal: 30 },
-          },
-        });
-      } catch (overErr) {
-        // OverconstrainedError on an unusual device — retry with no resolution
-        // floor so we at least get the back camera at its native resolution.
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' } },
-        });
-      }
+      // Single clean request — ideal is a HINT so it never throws
+      // OverconstrainedError. 4K ideal makes the browser negotiate the absolute
+      // highest resolution the back-camera sensor offers (often 1920×1080 or
+      // 3840×2160). No min, no fallback — both can silently drop to 640×480.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 3840 },
+          height: { ideal: 2160 },
+        },
+      });
       streamRef.current = stream;
       const track = stream.getVideoTracks()[0];
       const caps = track.getCapabilities ? track.getCapabilities() : {};
       const settings = track.getSettings ? track.getSettings() : {};
-      const actualW = settings.width || 1280;
-      const actualH = settings.height || 720;
-      console.log('[Scanner] Camera resolution:', actualW, '×', actualH);
-
-      // If the negotiated resolution is still low (rare fallback path), try
-      // once more with an explicit advanced constraint to push the sensor up.
-      if (actualW < 1280) {
-        try {
-          await track.applyConstraints({ advanced: [{ width: 1920, height: 1080 }] });
-          const s2 = track.getSettings();
-          if (s2.width && s2.width > actualW) {
-            console.log('[Scanner] Upgraded to:', s2.width, '×', s2.height);
-          }
-        } catch (_) { /* best-effort */ }
-      }
+      console.log('[Scanner] Camera resolution:', settings.width, '×', settings.height);
 
       if (videoRef.current) {
-        // Set the video element's intrinsic dimensions to the ACTUAL stream
-        // resolution so the browser never upscales a low feed (the #1 cause
-        // of blur). With object-cover the high-res frame is then DOWNSCALED
-        // to the viewport — downscaling is always sharp.
-        videoRef.current.width = (track.getSettings().width || actualW);
-        videoRef.current.height = (track.getSettings().height || actualH);
+        // Do NOT set width/height attributes — that caps the render buffer
+        // below the stream's native resolution and forces an upscale. Let
+        // the browser use the stream's full native size as the intrinsic
+        // buffer; CSS object-cover then only DOWNSCALES to the viewport.
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
@@ -191,7 +166,9 @@ export default function FullScreenScanner({
     <div className="fixed inset-0 z-[70] bg-black flex flex-col">
       {/* Camera video — full bleed */}
       <div className="absolute inset-0">
-        <video ref={videoRef} playsInline muted className="w-full h-full object-cover bg-black" />
+        <video ref={videoRef} playsInline muted autoPlay
+          className="w-full h-full object-cover bg-black"
+          style={{ transform: 'translateZ(0)', willChange: 'transform', imageRendering: 'auto' }} />
       </div>
 
       {/* Dark scrim for contrast */}
