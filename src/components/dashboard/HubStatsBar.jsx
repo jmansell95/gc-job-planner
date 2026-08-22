@@ -43,7 +43,7 @@ export default function HubStatsBar({ tiles = [], columns }) {
           <Wrapper
             key={i}
             onClick={tile.onClick}
-            className={`insight-card rounded-xl p-3 text-left transition ${tile.onClick ? 'hover:shadow-md cursor-pointer' : ''}`}
+            className={`insight-card rounded-xl p-3 text-left transition ${tile.onClick ? 'hover:shadow-md hover:-translate-y-0.5 cursor-pointer' : ''}`}
           >
             <div className="flex items-center gap-2 mb-1">
               {Icon && (

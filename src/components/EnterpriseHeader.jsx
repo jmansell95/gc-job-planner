@@ -45,7 +45,7 @@ export default function EnterpriseHeader() {
 
   return (
     <header
-      className="xl:hidden sticky top-0 inset-x-0 z-40 border-b border-white/10"
+      className="lg:hidden sticky top-0 inset-x-0 z-40 border-b border-white/10"
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
       <div className="absolute inset-0 sidebar-modern" />

@@ -28,11 +28,22 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('gc-sidebar-collapsed') === 'true'; } catch { return false; }
   });
+  // Tablet breakpoint: lg (1024px) to xl (1280px). On tablet the sidebar is
+  // always an icon rail (effectiveCollapsed = true) regardless of user pref.
+  const [isTablet, setIsTablet] = useState(false);
   const notifications = useNotifications();
   const notifCount = notifications.count;
   const { openHub } = useAIHub();
   const { isComingSoon, isLocked } = useReadiness();
   const { isHubEnabled, activeDivision, isSuperAdmin, permittedDivisions } = useDivision();
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px) and (max-width: 1279px)');
+    const handler = () => setIsTablet(mq.matches);
+    handler();
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -94,6 +105,10 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
     try { localStorage.setItem('gc-sidebar-collapsed', String(next)); } catch {}
   };
 
+  // On tablet the sidebar is always collapsed (icon rail). On desktop the
+  // user's preference is respected.
+  const effectiveCollapsed = isTablet || collapsed;
+
   const navItems = allNavItems
     .filter(item => canAccessSection(profile, item.id, isPlatformAdmin))
     .filter(item => !isLocked(item.id))
@@ -109,10 +124,10 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
 
   const desktopNav = (
     <>
-      <div className={`${collapsed ? 'px-2 pt-3 pb-2' : 'px-4 pt-4 pb-3'} border-b border-white/10`}>
+      <div className={`${effectiveCollapsed ? 'px-2 pt-3 pb-2' : 'px-4 pt-4 pb-3'} border-b border-white/10`}>
         <div className="flex flex-col items-start gap-3">
           <div className="flex flex-col items-center w-full">
-            {collapsed ? (
+            {effectiveCollapsed ? (
               <img src="https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/993ce8312_GC_Logo-removebg-preview.png" alt="Ground Control" className="w-10 h-auto object-contain" />
             ) : (
               <>
@@ -124,14 +139,14 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
 
         </div>
       </div>
-      {!collapsed && <DivisionSwitcher variant="sidebar" />}
+      {!effectiveCollapsed && <DivisionSwitcher variant="sidebar" />}
       {/* Enterprise Command Centre link — prominent at top of nav (super admins + directors only) */}
       {(isSuperAdmin || permittedDivisions.length > 1) && (
         <div className="px-2 pb-1.5">
           <button type="button" onClick={() => navigate('/enterprise')}
-            className={`w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} ${collapsed ? 'px-0 py-2.5' : 'px-3.5 py-2'} rounded-xl text-sm font-bold transition cursor-pointer touch-manipulation select-none bg-gradient-to-r from-amber-500/20 to-amber-600/10 text-amber-200 hover:from-amber-500/30 hover:to-amber-600/20 ring-1 ring-amber-400/30`}>
+            className={`w-full flex items-center ${effectiveCollapsed ? 'justify-center' : 'gap-3'} ${effectiveCollapsed ? 'px-0 py-2.5' : 'px-3.5 py-2'} rounded-xl text-sm font-bold transition cursor-pointer touch-manipulation select-none bg-gradient-to-r from-amber-500/20 to-amber-600/10 text-amber-200 hover:from-amber-500/30 hover:to-amber-600/20 ring-1 ring-amber-400/30`}>
             <ArrowLeftRight className="w-[18px] h-[18px] flex-shrink-0 text-amber-300" />
-            {!collapsed && <span>Switch Division</span>}
+            {!effectiveCollapsed && <span>Switch Division</span>}
           </button>
         </div>
       )}
@@ -148,50 +163,53 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
                 key={item.id}
                 type="button"
                 onClick={() => setActiveSection(item.id)}
-                title={collapsed ? item.label : undefined}
+                title={effectiveCollapsed ? item.label : undefined}
                 className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium opacity-50 hover:opacity-70 transition cursor-pointer touch-manipulation select-none"
               >
                 <Icon className="w-[18px] h-[18px] flex-shrink-0 text-white/40" />
-                {!collapsed && <span className="text-white/40 flex-1">{item.label}</span>}
-                {!collapsed && <span className="text-[9px] font-bold text-amber-300/80 bg-amber-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Soon</span>}
+                {!effectiveCollapsed && <span className="text-white/40 flex-1">{item.label}</span>}
+                {!effectiveCollapsed && <span className="text-[9px] font-bold text-amber-300/80 bg-amber-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Soon</span>}
               </button>
             );
           }
           return (
             <div key={item.id}>
-              <button type="button" onClick={() => setActiveSection(item.id)} title={collapsed ? item.label : undefined}
-                className={`w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} ${collapsed ? 'px-0 py-2.5' : 'px-3.5 py-2'} rounded-xl text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
+              <button type="button" onClick={() => setActiveSection(item.id)} title={effectiveCollapsed ? item.label : undefined}
+                className={`w-full flex items-center ${effectiveCollapsed ? 'justify-center' : 'gap-3'} ${effectiveCollapsed ? 'px-0 py-2.5' : 'px-3.5 py-2'} rounded-xl text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
                   isActive
                     ? 'command-gradient text-white shadow-lg glow-brand ring-1 ring-[#8DC63F]/30'
                     : 'text-white/75 hover:bg-white/10 hover:text-white'
                 }`}>
                 <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? 'text-[#8DC63F]' : ''}`} />
-                {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
+                {!effectiveCollapsed && <span className="flex-1 text-left">{item.label}</span>}
               </button>
             </div>
           );
         })}
       </div>
       {/* Action cluster — bigger search, 2 assistant buttons, full-width collapse */}
-      <div className={`${collapsed ? 'px-1.5' : 'px-3'} pt-2 pb-2 border-t border-white/10 space-y-2`}>
-        {!collapsed && <GlobalSearch />}
+      <div className={`${effectiveCollapsed ? 'px-1.5' : 'px-3'} pt-2 pb-2 border-t border-white/10 space-y-2`}>
+        {!effectiveCollapsed && <GlobalSearch />}
         <button onClick={openHub} type="button" title="AI Hubs"
           className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] text-white hover:opacity-90 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none shadow-lg glow-brand">
           <Sparkles className="w-4 h-4 flex-shrink-0" />
-          {!collapsed && <span className="text-xs font-bold">AI Hubs</span>}
+          {!effectiveCollapsed && <span className="text-xs font-bold">AI Hubs</span>}
         </button>
-        <button onClick={toggleCollapsed} type="button" title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="w-full h-10 flex items-center justify-center gap-2 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
-          {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <><PanelLeftClose className="w-4 h-4" /><span className="text-xs font-semibold">Collapse</span></>}
-        </button>
+        {/* Collapse toggle — desktop only (hidden on tablet where icon-rail is always on) */}
+        {!isTablet && (
+          <button onClick={toggleCollapsed} type="button" title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="w-full h-10 flex items-center justify-center gap-2 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
+            {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <><PanelLeftClose className="w-4 h-4" /><span className="text-xs font-semibold">Collapse</span></>}
+          </button>
+        )}
       </div>
     </>
   );
 
   return (
     <>
-      {/* Mobile Top Header — hamburger + brand + actions */}
-      <header className="xl:hidden sticky top-0 inset-x-0 z-40 border-b border-white/10 shadow-sm" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      {/* Mobile Top Header — hamburger + brand + actions (mobile + tablet portrait) */}
+      <header className="lg:hidden sticky top-0 inset-x-0 z-40 border-b border-white/10 shadow-sm" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="absolute inset-0 sidebar-modern" />
         <div className="relative z-10 h-14 flex items-center justify-between gap-2 px-3">
           <div className="flex items-center gap-1 min-w-0">
@@ -258,8 +276,8 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
         </div>
       </header>
 
-      {/* Desktop Sidebar */}
-      <nav className={`hidden xl:flex sticky top-0 h-screen ${collapsed ? 'w-16' : 'w-64'} border-r border-black/10 flex-col relative transition-all duration-300`}>
+      {/* Desktop + Tablet Sidebar — persistent on lg+ (icon rail on tablet, full on desktop) */}
+      <nav className={`hidden lg:flex sticky top-0 h-screen ${effectiveCollapsed ? 'w-16' : 'w-64'} border-r border-black/10 flex-col relative transition-all duration-300`}>
         <div className="absolute inset-0 sidebar-modern" />
         <div className="relative z-10 flex flex-col h-full">
           {desktopNav}

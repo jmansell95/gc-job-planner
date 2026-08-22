@@ -145,10 +145,10 @@ export default function EnterpriseDashboard() {
 
       {/* ─── Ground Control Hero ─── */}
       <div className="relative">
-        <div className="absolute inset-0 bg-white" />
-        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 15% 20%, #2E5A1A 0%, transparent 45%), radial-gradient(circle at 85% 80%, #8DC63F 0%, transparent 50%)' }} />
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-200 to-transparent" />
-        <div className="relative px-4 xl:px-6 pt-2 xl:pt-8 pb-6">
+        <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-emerald-50/40" />
+        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 15% 20%, #2E5A1A 0%, transparent 45%), radial-gradient(circle at 85% 80%, #8DC63F 0%, transparent 50%)' }} />
+        <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-[#2E5A1A] to-transparent" />
+        <div className="relative px-4 lg:px-6 pt-2 lg:pt-8 pb-6">
           <div className="max-w-7xl mx-auto">
             {/* Title row */}
             <div className="flex items-center justify-between gap-3 mb-5">
@@ -177,7 +177,7 @@ export default function EnterpriseDashboard() {
                     <LayoutGrid className="w-4 h-4" /> <span className="hidden md:inline">Customise</span>
                   </button>
                 )}
-                <div className="hidden xl:block relative">
+                <div className="hidden lg:block relative">
                   <button onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }} type="button" aria-label="Profile menu" className="relative flex items-center justify-center active:scale-95 rounded-full transition ring-2 ring-transparent hover:ring-emerald-200">
                     <ProfileAvatar name={myProfileName} avatarUrl={myProfileAvatar} size={36} />
                   </button>
@@ -230,7 +230,7 @@ export default function EnterpriseDashboard() {
       </div>
 
       {/* ─── Body ─── */}
-      <div className="px-4 xl:px-6 pb-24 xl:pb-6 space-y-4 max-w-7xl mx-auto">
+      <div className="px-4 lg:px-6 pb-8 lg:pb-6 space-y-4 max-w-7xl mx-auto">
 
         {/* Quick Access */}
         <div className={'grid gap-2 sm:gap-3 mt-5 sm:mt-8 relative z-10 ' + (quickActions.length === 3 ? 'grid-cols-3' : 'grid-cols-4')}>

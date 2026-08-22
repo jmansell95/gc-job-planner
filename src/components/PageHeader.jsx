@@ -7,10 +7,10 @@ import React from 'react';
  */
 export default function PageHeader({ icon: Icon, title, subtitle, actions, stats }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm mb-4 overflow-hidden">
+    <div className="bg-gradient-to-br from-white to-slate-50/40 rounded-2xl border border-slate-200/80 shadow-sm mb-4 overflow-hidden">
       <div className="relative px-4 md:px-5 py-3.5">
-        {/* Subtle brand-green left accent line */}
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#2E5A1A] to-[#8DC63F]" />
+        {/* Brand-green left accent line — the signature Ground Control thread */}
+        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-[#2E5A1A] to-[#8DC63F]" />
         <div className="flex items-center justify-between gap-3 flex-wrap pl-2">
           <div className="flex items-center gap-3 min-w-0">
             {Icon && (
@@ -30,7 +30,7 @@ export default function PageHeader({ icon: Icon, title, subtitle, actions, stats
           )}
         </div>
         {stats && stats.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mt-3 pl-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 mt-3 pl-2">
             {stats.map((s, i) => {
               const SIcon = s.icon;
               const Wrapper = s.onClick ? 'button' : 'div';

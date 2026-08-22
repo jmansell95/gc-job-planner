@@ -5,7 +5,6 @@ import { base44 } from '@/api/base44Client';
 import { canAccessSection } from '@/utils/access';
 import { STANDALONE_ROUTES } from '@/utils/standaloneRoutes';
 import AdminNav from '@/components/AdminNav';
-import MobileBottomNav from '@/components/MobileBottomNav';
 import DashboardOverview from '@/components/DashboardOverview';
 import JobManager from '@/components/JobManager';
 import SettingsPage from '@/components/SettingsPage';
@@ -143,17 +142,17 @@ export default function AdminDashboard() {
   }, [profile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="flex flex-col xl:flex-row min-h-screen page-bg-vibrant">
+    <div className="flex flex-col lg:flex-row min-h-screen page-bg-vibrant">
       <PageLoadingOverlay isLoading={pageLoading} pageName={SECTION_LABELS[activeSection]} />
       <AdminNav activeSection={activeSection} setActiveSection={handleSetActiveSection} onSettingsTabClick={(tab) => { setSettingsTab(tab); setActiveSection('settings'); }} />
       <div className="flex-1 flex flex-col min-h-0">
-      <main className="flex-1 overflow-auto xl:pt-3">
+      <main className="flex-1 overflow-auto lg:pt-3">
         <RedAlertBanner />
         <DivisionIdentityBar />
-        <div className="px-3 sm:px-4 pb-24 md:px-6 xl:pb-4 xl:pt-6 w-full">
+        <div className="px-3 sm:px-4 pb-8 md:px-6 lg:pb-4 lg:pt-6 w-full">
           <div className="flex items-center justify-between gap-3">
             <Breadcrumbs sectionLabel={SECTION_LABELS[activeSection]} />
-            <div className="hidden xl:block">
+            <div className="hidden lg:block">
               <DashboardUserMenu />
             </div>
           </div>
@@ -202,7 +201,6 @@ export default function AdminDashboard() {
           </motion.div>
         </div>
       </main>
-      <MobileBottomNav />
       </div>
     </div>
   );

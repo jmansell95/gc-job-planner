@@ -6,6 +6,7 @@ import ReportFilterBar from '@/components/reports/ReportFilterBar';
 import PowerBIReportSection from '@/components/reports/PowerBIReportSection';
 import NativeReportSection from '@/components/reports/NativeReportSection';
 import { downloadCsv } from '@/utils/csvExport';
+import PageHeader from '@/components/PageHeader';
 
 const CATEGORIES = [
   { id: 'overview', label: 'Overview', icon: FileBarChart },
@@ -44,16 +45,7 @@ export default function ReportingHub() {
 
   return (
     <div className="space-y-4">
-        {/* Header */}
-        <div className="insight-card rounded-2xl p-5 flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-lg flex-shrink-0">
-            <FileBarChart className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Reporting Hub</h1>
-            <p className="text-sm text-slate-500">Run reports across every hub — financial, jobs, fleet, staff, compliance and assets — plus live Power BI data.</p>
-          </div>
-        </div>
+        <PageHeader icon={FileBarChart} title="Reporting Hub" subtitle="Run reports across every hub — financial, jobs, fleet, staff, compliance and assets — plus live Power BI data." />
 
         {/* Filter bar */}
         <ReportFilterBar filters={filters} setFilters={setFilters} onExport={handleExport} exporting={exporting} hubLabel={activeCat.label} />
