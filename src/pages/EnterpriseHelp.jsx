@@ -109,7 +109,7 @@ export default function EnterpriseHelp() {
       <div className="px-4 pb-24 xl:pt-6 xl:px-6 xl:pb-6 space-y-4">
         {/* Back link + title */}
         <div className="flex items-center gap-3 mb-2">
-          <button onClick={() => navigate('/enterprise')} type="button"
+          <button onClick={() => navigate(-1)} type="button"
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition shadow-sm active:scale-95 touch-manipulation">
             <ArrowLeft className="w-4 h-4" /> Back
           </button>

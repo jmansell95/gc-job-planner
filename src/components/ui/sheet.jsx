@@ -5,8 +5,12 @@ import { cva } from "class-variance-authority";
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import useBackIntercept from "@/hooks/useBackIntercept"
 
-const Sheet = SheetPrimitive.Root
+const Sheet = ({ open, onOpenChange, ...props }) => {
+  useBackIntercept(open, () => onOpenChange?.(false));
+  return <SheetPrimitive.Root open={open} onOpenChange={onOpenChange} {...props} />;
+}
 
 const SheetTrigger = SheetPrimitive.Trigger
 

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import useBackIntercept from '@/hooks/useBackIntercept';
 
 /**
  * Modal — shared full-screen modal shell used by custom popups across the site.
@@ -53,6 +54,8 @@ export default function Modal({
   className,
   children,
 }) {
+  useBackIntercept(open, onClose);
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;

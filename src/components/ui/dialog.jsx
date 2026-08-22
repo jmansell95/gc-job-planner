@@ -5,8 +5,12 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import useBackIntercept from "@/hooks/useBackIntercept"
 
-const Dialog = DialogPrimitive.Root
+const Dialog = ({ open, onOpenChange, ...props }) => {
+  useBackIntercept(open, () => onOpenChange?.(false));
+  return <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} {...props} />;
+}
 
 const DialogTrigger = DialogPrimitive.Trigger
 

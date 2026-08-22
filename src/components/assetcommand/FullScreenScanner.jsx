@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Keyboard, AlertTriangle, ScanLine, Loader2, WifiOff, Zap } from 'lucide-react';
 import ScanResultPopup from './ScanResultPopup';
+import useBackIntercept from '@/hooks/useBackIntercept';
 
 /**
  * Full-screen camera scanner overlay — opens when the user taps the scan
@@ -44,6 +45,8 @@ export default function FullScreenScanner({
   const cooldownTimerRef = useRef(null);
 
   const hasNativeDetector = typeof window !== 'undefined' && 'BarcodeDetector' in window;
+
+  useBackIntercept(true, onClose);
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {

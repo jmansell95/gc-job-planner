@@ -103,7 +103,7 @@ export default function EnterpriseStaffHub() {
             <div className="flex items-center justify-between gap-3 mb-5">
               <div className="flex items-center gap-3 min-w-0">
                 <button
-                  onClick={() => navigate('/enterprise')}
+                  onClick={() => navigate(-1)}
                   className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center flex-shrink-0 shadow-lg hover:bg-white/20 transition"
                 >
                   <ArrowLeft className="w-5 h-5 text-white" />

@@ -123,7 +123,7 @@ export default function AssetScannerPage() {
     const active = assets.filter(a => a.is_active !== false);
     const compliant = active.filter(a => a.compliance_status === 'compliant').length;
     const issues = active.filter(a => a.compliance_status === 'expired' || a.compliance_status === 'expiring').length;
-    const rigs = active.filter(a => a.asset_type === 'rig').length;
+    const rigs = active.filter(a => a.is_rig === true).length;
     return { total: active.length, compliant, issues, rigs };
   }, [assets]);
 
@@ -413,7 +413,7 @@ export default function AssetScannerPage() {
       <header className="bg-white/90 backdrop-blur-lg border-b border-slate-200 px-4 py-3 flex items-center justify-between flex-shrink-0 safe-area-top">
         <div className="flex items-center gap-2.5 min-w-0">
           {!kioskLocked && (
-            <button onClick={() => navigate(isHubAdmin ? '/admin' : '/staff-schedule')} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition flex-shrink-0 active:scale-95 touch-manipulation">
+            <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate(isHubAdmin ? '/admin' : '/staff-schedule'))} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition flex-shrink-0 active:scale-95 touch-manipulation">
               <ArrowLeft className="w-5 h-5 text-slate-600" />
             </button>
           )}

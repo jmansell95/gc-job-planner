@@ -12,6 +12,7 @@ import { safeFormat } from '@/utils/format';
 import { daysUntil } from '@/utils/rigRollup';
 import AssetMovementHistory from '@/components/assetcommand/AssetMovementHistory';
 import CertificateVault from '@/components/righub/CertificateVault';
+import useBackIntercept from '@/hooks/useBackIntercept';
 
 const TYPE_META = {
   rig: { label: 'Rig', icon: Cog, tint: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -64,6 +65,7 @@ export default function AssetCommandDrawer({ asset, allAssets = [], staffProfile
   const [tab, setTab] = useState('overview');
   const navigate = useNavigate();
   const today = format(new Date(), 'yyyy-MM-dd');
+  useBackIntercept(!!asset, onClose);
 
   // Fetch today's job assignment for the current staff member — shows
   // context about where they're supposed to be right in the passport.

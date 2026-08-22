@@ -101,7 +101,7 @@ export default function BusinessUnitPage() {
           <div className="max-w-7xl mx-auto">
             {/* Back button */}
             <button
-              onClick={() => navigate('/enterprise')}
+              onClick={() => navigate(-1)}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-bold hover:bg-white/20 transition mb-4"
             >
               <ArrowLeft className="w-4 h-4" /> Ground Control

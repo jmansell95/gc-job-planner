@@ -3,44 +3,59 @@ import { useEffect, useRef } from 'react';
 /**
  * useBackIntercept — pushes a history entry when an overlay (drawer/modal/popup)
  * mounts and intercepts the browser/phone back gesture so the FIRST back closes
- * the overlay and stays on the page underneath. A second back then navigates
- * normally.
+ * the topmost overlay and stays on the page underneath. A second back then
+ * navigates normally.
  *
- * Usage (inside an overlay component that is conditionally rendered when open):
+ * Uses a module-level stack + suppress flag so nested overlays behave correctly:
+ *  - Back gesture closes only the topmost overlay.
+ *  - Closing an overlay via its X/backdrop pops its own sentinel without
+ *    wrongly closing the overlay beneath it (suppress flag swallows the
+ *    resulting popstate).
+ *
+ * Usage (inside an overlay component):
  *   useBackIntercept(isOpen, onClose);
- *
- * - Only pushes one entry per open (guarded against double-push).
- * - On unmount/close, if our entry is still on the stack we leave it; the popstate
- *   handler already removed it. If the overlay closed via X/backdrop (not back),
- *   we pop our own entry so the history stack stays clean.
  */
+const stack = [];
+let suppressClose = false;
+
 export default function useBackIntercept(isOpen, onClose) {
-  const pushedRef = useRef(false);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const entryRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    // Push a sentinel history entry so the back gesture lands on it.
-    pushedRef.current = true;
+    const entry = { close: () => onCloseRef.current?.(), handled: false };
+    entryRef.current = entry;
+    stack.push(entry);
     window.history.pushState({ gc_overlay: true }, '');
 
-    const onPopState = (e) => {
-      // Back was pressed while our overlay entry was on top.
-      pushedRef.current = false;
-      if (onCloseRef.current) onCloseRef.current();
+    const onPopState = () => {
+      if (suppressClose) { suppressClose = false; return; }
+      const top = stack[stack.length - 1];
+      if (top && !top.handled) {
+        top.handled = true;
+        stack.pop();
+        top.close();
+      }
     };
 
     window.addEventListener('popstate', onPopState);
+
     return () => {
       window.removeEventListener('popstate', onPopState);
-      // If the overlay closed via its own X/backdrop (not via back), pop the
-      // sentinel we pushed so the history stack doesn't accumulate stale entries.
-      if (pushedRef.current) {
-        pushedRef.current = false;
+      const idx = stack.indexOf(entry);
+      if (idx !== -1) stack.splice(idx, 1);
+      // Closed via X/backdrop (not via back) — pop our sentinel so the history
+      // stack stays clean. Suppress the spurious popstate so an overlay beneath
+      // isn't wrongly closed.
+      if (entryRef.current && !entry.handled) {
+        entry.handled = true;
+        suppressClose = true;
         window.history.back();
       }
+      entryRef.current = null;
     };
   }, [isOpen]);
 }
