@@ -41,6 +41,13 @@ export default function EnterpriseDashboard() {
     refetchOnWindowFocus: true,
   });
 
+  // Enterprise-wide rig profitability (earned vs cost across all rigs)
+  const { data: rigData } = useQuery({
+    queryKey: ['ent-rig-profitability'],
+    queryFn: async () => { const res = await base44.functions.invoke('getRigProfitability', {}); return res.data; },
+    refetchOnMount: true,
+  });
+
   useEffect(() => { setActiveDivision(null); }, []);
   useEffect(() => {
     if (!profileMenuOpen) return;
@@ -316,6 +323,42 @@ export default function EnterpriseDashboard() {
           </section>
         )}
 
+        {/* Rig Performance — enterprise-wide earned vs cost */}
+        {widgets.rigPerformance && (
+          <section className="insight-card rounded-2xl p-4 sm:p-5">
+            <SectionTitle icon={TrendingUp} title="Rig Performance" subtitle="Earned vs cost across all rigs" gradient="from-emerald-500 to-green-600" />
+            <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+              <div className="stat-gradient-brand rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white relative overflow-hidden">
+                <div className="absolute right-1 top-1 opacity-20"><TrendingUp className="w-7 h-7 sm:w-9 sm:h-9" /></div>
+                <div className="relative">
+                  <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide">Total Earned</p>
+                  <p className="text-xl sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{gbp(rigData?.totals?.total_earned)}</p>
+                  <p className="text-[9px] sm:text-[10px] text-white/70">{rigData?.totals?.rigs_count || 0} rigs</p>
+                </div>
+              </div>
+              <div className="stat-gradient-emerald rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white relative overflow-hidden">
+                <div className="absolute right-1 top-1 opacity-20"><PoundSterling className="w-7 h-7 sm:w-9 sm:h-9" /></div>
+                <div className="relative">
+                  <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide">Margin</p>
+                  <p className="text-xl sm:text-2xl xl:text-3xl font-extrabold tabular-nums mt-1">{gbp(rigData?.totals?.total_margin)}</p>
+                  <p className="text-[9px] sm:text-[10px] text-white/70">net profit</p>
+                </div>
+              </div>
+              <div className="stat-gradient-amber rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white relative overflow-hidden">
+                <div className="absolute right-1 top-1 opacity-20"><Activity className="w-7 h-7 sm:w-9 sm:h-9" /></div>
+                <div className="relative">
+                  <p className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-wide">Top Earner</p>
+                  <p className="text-sm sm:text-base font-extrabold mt-1 truncate">{rigData?.rigs?.[0]?.rig_name || '—'}</p>
+                  <p className="text-[9px] sm:text-[10px] text-white/70">{gbp(rigData?.rigs?.[0]?.earned)}</p>
+                </div>
+              </div>
+            </div>
+            <button onClick={() => navigate('/performance')} className="w-full mt-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-sm font-semibold text-slate-600 transition">
+              View in Performance Hub <ArrowRight className="w-4 h-4" />
+            </button>
+          </section>
+        )}
+
         {/* Workforce Overview — aggregated per BU */}
         {widgets.workforceOverview && (
           <section className="insight-card rounded-2xl p-4 sm:p-5">
@@ -392,6 +435,7 @@ export default function EnterpriseDashboard() {
               {[
                 { key: 'divisionHealth', label: 'Business Units', desc: 'BU cards with division previews' },
                 { key: 'fleetAssets', label: 'Fleet & Assets', desc: 'Vehicles, equipment & compliance' },
+                { key: 'rigPerformance', label: 'Rig Performance', desc: 'Earned vs cost across all rigs' },
                 { key: 'workforceOverview', label: 'Workforce by BU', desc: 'Headcount aggregated per BU' },
               ].map(w => (
                 <label key={w.key} className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">

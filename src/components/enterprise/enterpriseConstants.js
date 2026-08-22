@@ -12,5 +12,6 @@ export const DEFAULT_WIDGETS = {
   financialRollup: true,
   pipelineOverview: true,
   fleetAssets: true,
+  rigPerformance: true,
   workforceOverview: true,
 };
