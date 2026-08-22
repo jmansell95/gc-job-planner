@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   HardHat, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock,
   Wrench, ShieldCheck, Users, UserCog, UserCircle, TrendingUp, Trophy, ClipboardList,
-  GraduationCap, Gift, Loader2,
+  Loader2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import TimesheetHistory from '@/components/staff/TimesheetHistory';
@@ -41,12 +41,9 @@ const ABSENCE_REASONS = [
 
 const TABS = [
   { key: 'performance', label: 'Performance', icon: TrendingUp },
-  { key: 'incentives', label: 'Incentives', icon: Trophy },
-  { key: 'rewards', label: 'Rewards', icon: Gift },
+  { key: 'earnings', label: 'Earnings', icon: Trophy },
   { key: 'timesheets', label: 'Timesheets', icon: ClipboardList },
-  { key: 'bookings', label: 'Bookings', icon: Wrench },
-  { key: 'training', label: 'Training', icon: GraduationCap },
-  { key: 'wallet', label: 'Wallet', icon: ShieldCheck },
+  { key: 'compliance', label: 'Compliance', icon: ShieldCheck },
   { key: 'crew', label: 'My Crew', icon: Users },
 ];
 
@@ -227,7 +224,7 @@ export default function StaffProfile() {
 
         {/* Tab Bar — in-flow, above the content */}
         <div className="mt-5 pt-3 pb-2">
-          <div className="flex md:grid md:grid-cols-4 gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 md:pb-0">
+          <div className="flex md:grid md:grid-cols-5 gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 md:pb-0">
             {TABS.map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.key;
@@ -255,17 +252,15 @@ export default function StaffProfile() {
                 <StaffPerformanceCharts staffId={staff.id} staffName={staff.name} />
               </div>
             : <NoCrewProfileState tab="performance" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
-          {activeTab === 'incentives' && (staff.id
-            ? <IncentiveDashboard staffId={staff.id} staffName={staff.name} teamId={staff.team_id} />
-            : <NoCrewProfileState tab="incentives" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
-          {activeTab === 'rewards' && (staff.id
-            ? <RewardsCatalogue staffId={staff.id} staffName={staff.name} />
-            : <NoCrewProfileState tab="rewards" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
-          {activeTab === 'timesheets' && (staff.id
-            ? <TimesheetHistory staffId={staff.id} />
-            : <NoCrewProfileState tab="timesheets" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
-          {activeTab === 'bookings' && (staff.id ? (
+          {activeTab === 'earnings' && (staff.id
+            ? <div className="space-y-5">
+                <IncentiveDashboard staffId={staff.id} staffName={staff.name} teamId={staff.team_id} />
+                <RewardsCatalogue staffId={staff.id} staffName={staff.name} />
+              </div>
+            : <NoCrewProfileState tab="earnings" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
+          {activeTab === 'timesheets' && (staff.id ? (
             <div className="space-y-5">
+              <TimesheetHistory staffId={staff.id} />
               {upcomingAbsences.length > 0 && (
                 <div className="insight-card rounded-2xl p-4 md:p-5">
                   <div className="flex items-center gap-2.5 mb-3">
@@ -301,13 +296,13 @@ export default function StaffProfile() {
                 <StaffBookings staffId={staff.id} />
               </div>
             </div>
-          ) : <NoCrewProfileState tab="bookings" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
-          {activeTab === 'training' && (staff.id
-            ? <TrainingTab staffId={staff.id} staffName={staff.name} teamId={staff.team_id} canManageTeam={canAccessAdmin} />
-            : <NoCrewProfileState tab="training" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
-          {activeTab === 'wallet' && (staff.id
-            ? <ComplianceWallet staffId={staff.id} staffName={staff.name} />
-            : <NoCrewProfileState tab="wallet" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
+          ) : <NoCrewProfileState tab="timesheets" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
+          {activeTab === 'compliance' && (staff.id
+            ? <div className="space-y-5">
+                <TrainingTab staffId={staff.id} staffName={staff.name} teamId={staff.team_id} canManageTeam={canAccessAdmin} />
+                <ComplianceWallet staffId={staff.id} staffName={staff.name} />
+              </div>
+            : <NoCrewProfileState tab="compliance" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
           {activeTab === 'crew' && (staff.team_id
             ? <TeamMiniFeed teamId={staff.team_id} currentStaffId={staff.id} />
             : <NoCrewProfileState tab="crew" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}

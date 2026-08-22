@@ -8,6 +8,8 @@ import { HardHat, TrendingUp, Trophy, ClipboardList, Wrench, GraduationCap, File
 // track their own performance, incentives and timesheets.
 const TAB_META = {
   performance: { icon: TrendingUp, title: 'No Performance Data', desc: 'Performance metrics are calculated from your crew logs and timesheets. Since you don\'t have a linked crew profile, there\'s nothing to display here.' },
+  earnings: { icon: Trophy, title: 'No Earnings Data', desc: 'Incentive scores, badges and rewards are calculated weekly from your drilling logs, on-time arrivals, and safety submissions. Admin accounts without a crew profile don\'t earn incentives.' },
+  compliance: { icon: GraduationCap, title: 'No Compliance Records', desc: 'Training courses and compliance wallets are linked to crew profiles. Admins manage training and compliance from the Admin Dashboard.' },
   incentives: { icon: Trophy, title: 'No Incentive Score', desc: 'Incentive scores and badges are calculated weekly from your drilling logs, on-time arrivals, and safety submissions. Admin accounts without a crew profile don\'t earn incentives.' },
   timesheets: { icon: ClipboardList, title: 'No Timesheet History', desc: 'Timesheets are submitted by crew members from the field. As an admin, you approve timesheets rather than submit them.' },
   bookings: { icon: Wrench, title: 'No Bookings', desc: 'Vehicle maintenance and equipment bookings are assigned to crew members. Admins manage bookings from the Admin Dashboard.' },

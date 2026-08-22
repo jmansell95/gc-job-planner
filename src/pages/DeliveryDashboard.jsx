@@ -362,8 +362,9 @@ export default function DeliveryDashboard() {
 
   return (
     <FieldPageShell
-      title="My Deliveries"
-      subtitle={`${new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}, ${staff?.name?.split(' ')[0] || 'Team'} · ${format(new Date(), 'EEE dd MMM · HH:mm')}`}
+      title="Driver Hub"
+      subtitle={`${new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}, ${staff?.name?.split(' ')[0] || 'Team'} · ${format(new Date(), 'EEE dd MMM')}`}
+      meta={format(new Date(), 'HH:mm')}
       icon={Truck}
       actions={<StaffHeaderActions staff={staff} />}
       contentClassName="pb-20"
@@ -378,7 +379,7 @@ export default function DeliveryDashboard() {
 
         {/* Page title + quick stats */}
         <div className="mb-1 md:mb-2">
-          <h1 className="text-xl md:text-2xl font-bold gradient-text-brand mb-3">My Deliveries</h1>
+          <h1 className="text-xl md:text-2xl font-extrabold gradient-text-brand mb-3">Driver Hub</h1>
           <div className="grid grid-cols-3 gap-2 md:gap-3">
             <StatCard icon={Clock} value={todays.length} label="Today" gradient="stat-gradient-amber" />
             <StatCard icon={Calendar} value={upcoming.length} label="Upcoming" gradient="stat-gradient-blue" />

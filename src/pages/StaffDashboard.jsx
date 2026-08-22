@@ -577,7 +577,8 @@ export default function StaffDashboard() {
   return (
     <FieldPageShell
       title="My Schedule"
-      subtitle={`${new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}, ${staff?.name?.split(' ')[0] || 'Team'} · ${format(new Date(), 'EEE dd MMM · HH:mm')}`}
+      subtitle={`${new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}, ${staff?.name?.split(' ')[0] || 'Team'} · ${format(new Date(), 'EEE dd MMM')}`}
+      meta={format(new Date(), 'HH:mm')}
       icon={Calendar}
       actions={<StaffHeaderActions staff={staff} />}
       contentClassName="pb-20"

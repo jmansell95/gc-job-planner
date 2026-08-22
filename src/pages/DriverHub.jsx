@@ -40,7 +40,7 @@ const dateFilters = [
 ];
 
 /**
- * Driver Hub — comprehensive office-staff operations hub covering the full
+ * Logistics Hub — comprehensive office-staff operations hub covering the full
  * lifecycle: today's runs, procurement, hire management, purchased-for-job
  * tracking, and reconciliation. Replaces the old AdminDeliveryHub.
  */
@@ -95,7 +95,7 @@ export default function DriverHub() {
   return (
     <HubShell
       icon={Truck}
-      title="Driver Hub"
+      title="Logistics Hub"
       subtitle="Full lifecycle: runs, procurement, hire management, purchased-for-job & reconciliation"
       tabs={[
         { id: 'runs', label: 'Today\u2019s Runs', icon: Truck },

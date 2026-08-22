@@ -23,6 +23,7 @@ export default function FieldPageShell({
   headerTone = 'light',
   accentColor,
   fixedHeader = false,
+  meta,
 }) {
   return (
     <div className="min-h-screen page-bg-vibrant">
@@ -45,8 +46,13 @@ export default function FieldPageShell({
               </div>
             )}
             <div className="min-w-0">
-              <h1 className="text-base font-bold text-slate-900 truncate leading-tight tracking-tight">{title}</h1>
-              {subtitle && <p className="text-[11px] text-slate-500 truncate leading-tight mt-0.5 font-medium">{subtitle}</p>}
+              <h1 className="text-base font-extrabold text-slate-900 truncate leading-tight tracking-tight">{title}</h1>
+              {subtitle && (
+                <div className="flex flex-col sm:flex-row sm:gap-1.5 leading-tight mt-0.5 min-w-0">
+                  <span className="text-[11px] text-slate-700 font-bold truncate">{subtitle}</span>
+                  {meta && <span className="text-[11px] text-slate-500 font-bold tabular-nums sm:flex-shrink-0">{meta}</span>}
+                </div>
+              )}
             </div>
           </div>
           {actions && <div className="flex items-center gap-1.5 flex-shrink-0">{actions}</div>}

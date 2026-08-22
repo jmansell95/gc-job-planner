@@ -17,7 +17,6 @@ import RecentScansStrip from '@/components/assetcommand/RecentScansStrip';
 import OfflineScanQueueBanner from '@/components/assetcommand/OfflineScanQueueBanner';
 import FieldHubTabs from '@/components/fieldhub/FieldHubTabs';
 import MyGearTab from '@/components/fieldhub/MyGearTab';
-import MyTodayTab from '@/components/fieldhub/MyTodayTab';
 import GoodsInDeliveryNote from '@/components/assetcommand/GoodsInDeliveryNote';
 import ConsumableUsageModal from '@/components/assetcommand/ConsumableUsageModal';
 import SiteCollectMode from '@/components/logistics/SiteCollectMode';
@@ -590,10 +589,6 @@ export default function AssetScannerPage() {
 
           {hubTab === 'mygear' && (
             <MyGearTab staffProfile={staffProfile} allAssets={assets} onOpenAsset={setCommandAsset} />
-          )}
-
-          {hubTab === 'mytoday' && (
-            <MyTodayTab staffProfile={staffProfile} allAssets={assets} />
           )}
         </div>
       </div>

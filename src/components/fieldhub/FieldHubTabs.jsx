@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScanLine, Wrench, CalendarDays, LayoutDashboard } from 'lucide-react';
+import { ScanLine, Wrench, LayoutDashboard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 /**
@@ -10,7 +10,6 @@ import { useNavigate } from 'react-router-dom';
 const TABS = [
   { key: 'scan', label: 'Scan', Icon: ScanLine },
   { key: 'mygear', label: 'My Gear', Icon: Wrench },
-  { key: 'mytoday', label: 'My Today', Icon: CalendarDays },
 ];
 
 export default function FieldHubTabs({ activeTab, onChange, isAdmin }) {
