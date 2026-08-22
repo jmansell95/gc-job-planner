@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { calculateDepreciation } from '../../shared/depreciation.ts';
 
 // Usage-based maintenance engine — Phase 1 of the operational roadmap.
 //
@@ -133,9 +134,34 @@ export default async function(req) {
       updates.push(update);
     }
 
-    // Bulk update all assets with new hours data
-    if (updates.length > 0) {
-      await e.SiteAsset.bulkUpdate(updates);
+    // For units-of-production assets, recalculate depreciation using the
+    // newly-computed operating_hours as units_produced_to_date.
+    const uopUpdates = [];
+    for (const u of updates) {
+      const original = hoursBasedAssets.find(a => a.id === u.id);
+      if (!original || (original.depreciation_method !== 'units_of_production')) continue;
+      const result = calculateDepreciation({
+        method: 'units_of_production',
+        acquisition_cost: original.acquisition_cost,
+        acquisition_date: original.acquisition_date,
+        salvage_value: original.salvage_value || 0,
+        useful_life_years: original.depreciation_years,
+        units_estimated_total: original.units_estimated_total,
+        units_produced_to_date: u.operating_hours,
+      });
+      if (result.configured) {
+        uopUpdates.push({
+          id: u.id,
+          units_produced_to_date: u.operating_hours,
+          annual_depreciation: result.annual_depreciation,
+          accumulated_depreciation: result.accumulated_depreciation,
+          current_book_value: result.current_book_value,
+          cost_per_unit: result.cost_per_unit,
+        });
+      }
+    }
+    if (uopUpdates.length > 0) {
+      await e.SiteAsset.bulkUpdate(uopUpdates);
     }
 
     // Create maintenance bookings for assets that crossed the threshold

@@ -256,7 +256,7 @@
     "operating_hours": {
       "type": "number",
       "default": 0,
-      "description": "Total accumulated engine operating hours for this asset (rigs and plant). Calculated by the recalculateUsageMaintenance function from drilling-duration minutes logged against jobs this asset is assigned to. Reset to 0 when a service is logged."
+      "description": "Total accumulated engine operating hours for this asset (rigs and plant). Calculated by the recalculateUsageMaintenance function from drilling-duration minutes logged against jobs this asset is assigned to. Reset to 0 when a service is logged. Also feeds units-of-production depreciation as the units_produced_to_date."
     },
     "hours_since_last_service": {
       "type": "number",
@@ -325,15 +325,53 @@
     },
     "acquisition_cost": {
       "type": "number",
-      "description": "Original purchase cost in GBP. Used as the baseline for straight-line depreciation calculations."
+      "description": "Original purchase cost in GBP. Used as the baseline for depreciation calculations across all three methods."
     },
     "depreciation_years": {
       "type": "number",
-      "description": "Useful life of the asset in years for depreciation purposes (e.g. 10 for a rig, 5 for a trailer, 3 for portable equipment). Used with acquisition_cost to calculate annual depreciation and current book value."
+      "description": "Useful life of the asset in years for depreciation purposes (e.g. 10 for a rig, 5 for a trailer, 3 for portable equipment). Used by straight-line and reducing-balance methods."
     },
     "current_book_value": {
       "type": "number",
-      "description": "Calculated current book value after straight-line depreciation from acquisition_date. Auto-calculated: acquisition_cost \u00d7 (remaining_years / depreciation_years). Updated by the Asset Lifecycle Manager."
+      "description": "Calculated current book value after depreciation from acquisition_date. Auto-calculated by the recalculateDepreciation function based on the selected depreciation_method. Updated whenever the method, rate, units, or acquisition details change."
+    },
+    "depreciation_method": {
+      "type": "string",
+      "enum": [
+        "straight_line",
+        "reducing_balance",
+        "units_of_production"
+      ],
+      "default": "straight_line",
+      "description": "Depreciation method for this asset. 'straight_line' = equal annual charge (cost - salvage) / useful_life_years; 'reducing_balance' = fixed depreciation_rate % applied to remaining book value each year; 'units_of_production' = charge per unit of usage (operating hours) against units_estimated_total. Auto-set from the matching DepreciationProfile on creation; overridable per-asset."
+    },
+    "depreciation_rate": {
+      "type": "number",
+      "description": "Annual depreciation rate % for the reducing-balance method (e.g. 25 = 25% of remaining book value per year). Ignored for straight-line and units-of-production."
+    },
+    "units_estimated_total": {
+      "type": "number",
+      "description": "Total estimated production units over the asset's life (units-of-production method only). E.g. 10000 hours for a rig. The per-unit depreciation = (acquisition_cost - salvage_value) / units_estimated_total."
+    },
+    "units_produced_to_date": {
+      "type": "number",
+      "description": "Production units consumed to date (units-of-production method only). Auto-synced from operating_hours by the recalculateUsageMaintenance function. Accumulated depreciation = units_produced_to_date \u00d7 cost_per_unit."
+    },
+    "cost_per_unit": {
+      "type": "number",
+      "description": "Depreciation charge per production unit (units-of-production method only). Auto-calculated as (acquisition_cost - salvage_value) / units_estimated_total."
+    },
+    "annual_depreciation": {
+      "type": "number",
+      "description": "Current annual depreciation charge for this asset. Auto-calculated by recalculateDepreciation. For straight-line = (cost - salvage) / years; for reducing-balance = book_value \u00d7 rate%; for units-of-production = cost_per_unit \u00d7 units produced this year."
+    },
+    "accumulated_depreciation": {
+      "type": "number",
+      "description": "Total depreciation accumulated to date. Auto-calculated by recalculateDepreciation. Equals acquisition_cost - current_book_value."
+    },
+    "depreciation_profile_id": {
+      "type": "string",
+      "description": "The DepreciationProfile that seeded this asset's depreciation settings. Set on creation; cleared if the admin manually overrides the method or parameters."
     },
     "salvage_value": {
       "type": "number",

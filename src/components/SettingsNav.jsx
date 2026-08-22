@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes,   Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Radio, ArrowUpDown, Satellite, QrCode, Link2, Cloud, MapPin, MessageCircle, CreditCard, GitBranch, FileText, FileBarChart, Star, CalendarDays, UserCheck, Warehouse, AlertOctagon, Coins, Bell, Webhook, Layers, Activity, Gift } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes,   Palette, Database, Receipt, TrendingUp, TrendingDown, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Radio, ArrowUpDown, Satellite, QrCode, Link2, Cloud, MapPin, MessageCircle, CreditCard, GitBranch, FileText, FileBarChart, Star, CalendarDays, UserCheck, Warehouse, AlertOctagon, Coins, Bell, Webhook, Layers, Activity, Gift } from 'lucide-react';
 import { normalizePermissions } from '@/utils/permissions';
 
 // Items that have migrated to operational hubs (Financial Control, Compliance,
@@ -14,7 +14,7 @@ export const HUB_MIGRATED_ITEMS = new Set([
   // → Compliance Hub
   'compliance-rules', 'system-audit-log',
   // → Assets Hub
-  'asset-manifests', 'equipment-library', 'asset-lifecycle',
+  'asset-manifests', 'equipment-library', 'asset-lifecycle', 'depreciation-profiles',
   // → Staff Hub
   'access-levels', 'absences', 'holiday-accrual', 'staff-reviews',
   'timesheet-delegation',
@@ -76,6 +76,7 @@ export const settingsGroups = [
       { id: 'asset-manifests', label: 'Van Manifest QRs', icon: QrCode, desc: 'Create QR print-outs for bulky items (casing, rig tooling) — crews scan one sheet to log returns', roles: ['admin'] },
       { id: 'equipment-library', label: 'Equipment Sets', icon: Package, desc: 'Pre-built equipment sets (presets) — individual items now sync from Asset Panda' },
       { id: 'asset-lifecycle', label: 'Asset Lifecycle', icon: Wrench, desc: 'Track assets from acquisition to disposal — depreciation, book value & replacement planning', roles: ['admin'] },
+      { id: 'depreciation-profiles', label: 'Depreciation Profiles', icon: TrendingDown, desc: 'Configure default depreciation methods & rules per asset type — straight-line, reducing balance, units of production', roles: ['admin'] },
       { id: 'access-levels', label: 'Permission Groups', icon: ShieldCheck, desc: 'Create permission groups and assign them to each crew member from Staff Command', roles: ['super_admin'] },
       { id: 'absences', label: 'Absences', icon: CalendarX, desc: 'Manage staff absences and leave' },
       { id: 'holiday-accrual', label: 'Holiday Accrual', icon: CalendarDays, desc: 'Track holiday pay accruals for staff' },

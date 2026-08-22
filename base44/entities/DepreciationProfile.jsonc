@@ -1,0 +1,105 @@
+{
+  "name": "DepreciationProfile",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Profile name (e.g. 'Rig Default', 'Trailer Default', 'PAT Equipment Default')."
+    },
+    "asset_type": {
+      "type": "string",
+      "enum": [
+        "rig",
+        "machinery",
+        "trailer",
+        "vehicle",
+        "lifting",
+        "portable_appliance"
+      ],
+      "description": "Asset type this profile applies to. When a new asset of this type is created, the matching default profile auto-applies its method, useful life, and salvage defaults."
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "straight_line",
+        "reducing_balance",
+        "units_of_production"
+      ],
+      "default": "straight_line",
+      "description": "Depreciation method. 'straight_line' = equal annual charge over useful life; 'reducing_balance' = fixed % applied to remaining book value each year (higher charges early); 'units_of_production' = charge per unit of usage (hours drilled, metres, cycles) against estimated total units."
+    },
+    "useful_life_years": {
+      "type": "number",
+      "description": "Useful life in years (straight-line and reducing-balance methods). E.g. 10 for rigs, 5 for trailers, 3 for PAT equipment."
+    },
+    "salvage_percentage": {
+      "type": "number",
+      "description": "Salvage value as a % of acquisition cost (0\u2013100). E.g. 10 means salvage = 10% of cost. The asset won't depreciate below this value. 0 = fully depreciated to zero."
+    },
+    "depreciation_rate": {
+      "type": "number",
+      "description": "Annual depreciation rate % for the reducing-balance method (e.g. 25 = 25% of remaining book value per year). Ignored for straight-line and units-of-production."
+    },
+    "units_label": {
+      "type": "string",
+      "description": "Label for the production unit when method is 'units_of_production' (e.g. 'hours', 'metres', 'cycles', 'loads')."
+    },
+    "is_default": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this is the default profile for its asset type. Only one profile per asset type (per division) should be default. When a new asset is created, the default profile for its type auto-applies."
+    },
+    "division_id": {
+      "type": "string",
+      "description": "The division this profile belongs to. Blank = company-wide default. Division-specific profiles take precedence over company-wide ones when both exist for the same asset type."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional notes about this profile (e.g. 'HMRC standard for plant', 'Internal policy')."
+    }
+  },
+  "required": [
+    "name",
+    "asset_type",
+    "method"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.division_id": "{{user.data.division_id}}"
+        },
+        {
+          "data.division_id": {
+            "$in": "{{user.data.managed_division_ids}}"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

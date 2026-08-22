@@ -64,6 +64,7 @@ import TimesheetDelegationManager from '@/components/settings/TimesheetDelegatio
 import BackupRestoreManager from '@/components/settings/BackupRestoreManager';
 import ClientProgressReport from '@/components/reports/ClientProgressReport';
 import AssetLifecycleManager from '@/components/settings/AssetLifecycleManager';
+import DepreciationProfileManager from '@/components/settings/DepreciationProfileManager';
 import ZapierWebhookSettings from '@/components/settings/ZapierWebhookSettings';
 import PushNotificationSettings from '@/components/settings/PushNotificationSettings';
 import Microsoft365Hub from '@/components/settings/Microsoft365Hub';
@@ -194,6 +195,7 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'backup-restore': return <BackupRestoreManager />;
       case 'client-progress-report': return <ClientProgressReport />;
       case 'asset-lifecycle': return <AssetLifecycleManager />;
+      case 'depreciation-profiles': return <DepreciationProfileManager />;
       case 'zapier-webhooks': return <ZapierWebhookSettings />;
       case 'push-notifications': return <PushNotificationSettings />;
       case 'incremental-import': return <IncrementalImportSettings />;

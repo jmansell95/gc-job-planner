@@ -3,6 +3,7 @@ import {
   Cog, Wrench, Package, Truck, Anchor, Plug, ShieldCheck, ShieldAlert, ShieldX,
   HelpCircle, ChevronRight, Link2, Lock, ScanLine, Check, CheckSquare, Database, CircleDot,
   Warehouse, MapPin, CalendarClock, AlertTriangle, Boxes, Hash, Ruler, Gauge, Clock,
+  TrendingDown, PoundSterling, Activity,
 } from 'lucide-react';
 import { rollupCompliance, derivedComplianceStatus, COMPLIANCE_META, ASSET_TYPE_META, findParentRig, daysUntil } from '@/utils/rigRollup';
 import RigUtilizationSparkline from '@/components/righub/RigUtilizationSparkline';
@@ -43,6 +44,85 @@ function isReady(asset) {
 function isCasingItem(asset) {
   const t = `${asset?.name || ''} ${asset?.equipment_type || ''} ${asset?.compliance_category || ''}`.toLowerCase();
   return t.includes('casing');
+}
+
+/** Lifecycle status meta — matches LIFECYCLE_META in AssetFinancialTab. */
+const LIFECYCLE_META = {
+  active: { label: 'Active', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+  aging: { label: 'Aging', cls: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
+  due_for_replacement: { label: 'Due for Replacement', cls: 'bg-orange-50 text-orange-700 border-orange-200', dot: 'bg-orange-500' },
+  disposed: { label: 'Disposed', cls: 'bg-slate-100 text-slate-500 border-slate-200', dot: 'bg-slate-400' },
+};
+
+/** Derive lifecycle status from asset fields (mirrors AssetLifecycleManager logic). */
+function deriveLifecycle(asset) {
+  if (asset.disposal_date) return 'disposed';
+  if (asset.lifecycle_status === 'disposed') return 'disposed';
+  if (asset.replacement_date) {
+    const days = Math.floor((new Date(asset.replacement_date) - new Date()) / 86400000);
+    if (days <= 90 && days >= -365) return 'due_for_replacement';
+  }
+  if (asset.depreciation_years && asset.acquisition_date) {
+    const yearsElapsed = (Date.now() - new Date(asset.acquisition_date).getTime()) / (365.25 * 86400000);
+    if (yearsElapsed >= asset.depreciation_years) return 'aging';
+  }
+  return asset.lifecycle_status || 'active';
+}
+
+/** Years in service from acquisition date. */
+function yearsInService(asset) {
+  if (!asset.acquisition_date) return null;
+  return Math.floor((Date.now() - new Date(asset.acquisition_date).getTime()) / (365.25 * 86400000));
+}
+
+/** Compact financial summary chip — book value + annual depreciation. */
+function FinancialChip({ asset }) {
+  if (!asset.acquisition_cost) return null;
+  const bookValue = asset.current_book_value || 0;
+  const annualDep = asset.annual_depreciation || 0;
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200" title={`Book value £${Math.round(bookValue).toLocaleString()} · £${Math.round(annualDep).toLocaleString()}/yr depreciation`}>
+      <PoundSterling className="w-2.5 h-2.5 text-slate-400" />
+      {bookValue > 0 ? `${(bookValue / 1000).toFixed(0)}k` : '—'}
+      <span className="text-slate-300">·</span>
+      <TrendingDown className="w-2.5 h-2.5 text-amber-400" />
+      {annualDep > 0 ? `${(annualDep / 1000).toFixed(1)}k/yr` : '—'}
+    </span>
+  );
+}
+
+/** Lifecycle badge with years-in-service. */
+function LifecycleBadge({ asset }) {
+  const status = deriveLifecycle(asset);
+  const meta = LIFECYCLE_META[status];
+  const years = yearsInService(asset);
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${meta.cls}`} title={`${meta.label}${years != null ? ` · ${years}y in service` : ''}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+      {meta.label.split(' ')[0]}
+      {years != null && <span className="opacity-60">· {years}y</span>}
+    </span>
+  );
+}
+
+/** Operating hours strip — hours used + % of service interval consumed. */
+function OperatingHoursStrip({ asset }) {
+  const hours = asset.operating_hours || asset.hours_used || 0;
+  if (!hours && !asset.service_interval_hours) return null;
+  const interval = asset.service_interval_hours || 250;
+  const pct = Math.min((hours / interval) * 100, 100);
+  const tone = pct >= 100 ? 'bg-rose-500' : pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500';
+  return (
+    <div className="flex items-center gap-1.5">
+      <Clock className="w-2.5 h-2.5 text-slate-400 flex-shrink-0" />
+      <span className="text-[10px] font-semibold text-slate-600 tabular-nums">{Math.round(hours)}h</span>
+      {asset.service_interval_hours && (
+        <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden min-w-[40px]">
+          <div className={`h-full rounded-full ${tone}`} style={{ width: `${pct}%` }} />
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** Colour-code the Asset Panda condition string. */
@@ -263,6 +343,14 @@ export default function AssetInventoryGrid({
                         </span>
                       ))}
                     </div>
+                    {/* Financial + lifecycle + utilization strip */}
+                    <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                      <FinancialChip asset={rig} />
+                      <LifecycleBadge asset={rig} />
+                    </div>
+                    <div className="mb-1.5">
+                      <OperatingHoursStrip asset={rig} />
+                    </div>
                     {(() => {
                       const totalUnits = (rig.linked_equipment_ids || []).length + 1;
                       const pct = totalUnits > 0 ? Math.round((rollup.counts.compliant / totalUnits) * 100) : 0;
@@ -364,6 +452,16 @@ export default function AssetInventoryGrid({
                       )}
                       <QuantityBadge available={equip.quantity_available} owned={equip.quantity_owned} />
                     </div>
+                    {/* Financial + lifecycle + utilization strip */}
+                    <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                      <FinancialChip asset={equip} />
+                      <LifecycleBadge asset={equip} />
+                    </div>
+                    {(equip.operating_hours || equip.service_interval_hours) && (
+                      <div className="mb-1.5">
+                        <OperatingHoursStrip asset={equip} />
+                      </div>
+                    )}
                     {/* Footer: condition + source + parent rig + expiry */}
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {equip.condition && (

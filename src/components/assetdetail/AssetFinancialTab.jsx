@@ -3,6 +3,9 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { PoundSterling, TrendingDown, Calendar, Activity, Replace } from 'lucide-react';
 import { safeFormat } from '@/utils/format';
 import AssetFinancialLifecycle from '@/components/assethub/AssetFinancialLifecycle';
+import DepreciationScheduleTable from '@/components/assetdetail/DepreciationScheduleTable';
+import TotalCostOfOwnership from '@/components/assetdetail/TotalCostOfOwnership';
+import CostPerHourProfitability from '@/components/assetdetail/CostPerHourProfitability';
 
 const LIFECYCLE_META = {
   active: { label: 'Active', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
@@ -108,6 +111,15 @@ export default function AssetFinancialTab({ asset }) {
           <p className="text-sm text-slate-400">No depreciation data — set acquisition cost and useful life to see the schedule.</p>
         </div>
       )}
+
+      {/* Year-by-year depreciation schedule with inline editor */}
+      <DepreciationScheduleTable asset={asset} />
+
+      {/* Total Cost of Ownership */}
+      <TotalCostOfOwnership asset={asset} />
+
+      {/* Cost-per-Hour Profitability */}
+      <CostPerHourProfitability asset={asset} />
 
       {/* Full financial lifecycle (revenue vs cost) */}
       <AssetFinancialLifecycle assetId={asset?.id} />
