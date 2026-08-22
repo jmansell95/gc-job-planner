@@ -9,6 +9,7 @@ import SettingsPage from '@/components/SettingsPage';
 import HubStatsBar from '@/components/dashboard/HubStatsBar';
 import MissingRatesBanner from '@/components/staff/MissingRatesBanner';
 import StaffDirectoryGrid from '@/components/staff/StaffDirectoryGrid';
+import CrewProfilesTab from '@/components/staff/CrewProfilesTab';
 import StaffCostAnalytics from '@/components/staff/StaffCostAnalytics';
 import StaffUtilizationWidget from '@/components/dashboard/StaffUtilizationWidget';
 import TrainingMatrixHub from '@/components/staff/TrainingMatrixHub';
@@ -37,6 +38,7 @@ const TAB_MAP = {
 const TABS = [
   {
     id: 'people', label: 'People', icon: Users, sub: [
+      { id: 'crew-profiles', label: 'Crew Profiles' },
       { id: 'staff', label: 'Crew Members' },
       { id: 'teams', label: 'Crew Types' },
       { id: 'staff-reviews', label: 'Reviews' },
@@ -116,6 +118,8 @@ export default function StaffPage() {
 
       {tab === 'training' ? (
         <TrainingMatrixHub />
+      ) : tab === 'people' && renderTab === 'crew-profiles' ? (
+        <CrewProfilesTab />
       ) : tab === 'people' && renderTab === 'directory' ? (
         <StaffDirectoryGrid onSelect={(s) => navigate('/admin', { state: { section: 'staff-detail', staff: s } })} />
       ) : tab === 'people' && renderTab === 'insights' ? (

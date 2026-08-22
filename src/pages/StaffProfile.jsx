@@ -96,14 +96,8 @@ export default function StaffProfile() {
   const handleCreateCrewProfile = async () => {
     setCreatingProfile(true);
     try {
-      const teams = await base44.entities.Team.list();
-      const firstTeam = teams[0];
-      await base44.entities.Staff.create({
-        name: user?.full_name || user?.email, email: user?.email, worker_type: 'direct_employee',
-        team_id: firstTeam?.id || '', user_id: user?.id, is_active: true, system_role: 'admin',
-      });
-      const res = await base44.functions.invoke('getMyStaffProfile');
-      if (res.data) setStaff(res.data);
+      const res = await base44.functions.invoke('ensureMyStaffProfile');
+      if (res.data?.id) setStaff(res.data);
       toast({ title: 'Crew profile created', description: 'You can now track your own performance, incentives and timesheets.' });
     } catch (e) {
       toast({ title: 'Error creating profile', description: e.message, variant: 'destructive' });
