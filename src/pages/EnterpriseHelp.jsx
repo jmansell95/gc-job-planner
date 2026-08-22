@@ -10,11 +10,12 @@ import { useDivision } from '@/contexts/DivisionContext';
 
 // Enterprise-only help categories — excludes division-specific topics
 // (delivery, compliance, safety, logistics) which belong to division contexts.
-const ENTERPRISE_CATEGORIES = ['general', 'app_usage'];
+const ENTERPRISE_CATEGORIES = ['general', 'app_usage', 'financial'];
 
 const CATEGORY_LABELS = {
   general: 'General',
   app_usage: 'Using the Platform',
+  financial: 'Financial',
 };
 
 export default function EnterpriseHelp() {

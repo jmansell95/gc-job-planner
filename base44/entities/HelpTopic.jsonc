@@ -14,10 +14,11 @@
         "safety",
         "general",
         "app_usage",
-        "logistics"
+        "logistics",
+        "financial"
       ],
       "default": "general",
-      "description": "Category for filtering and grouping topics"
+      "description": "Category for filtering and grouping topics. 'financial' covers AFP, CVR, subcontractor margin and other billing/financial workflows."
     },
     "content": {
       "type": "string",

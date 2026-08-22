@@ -51,7 +51,7 @@ export default function HelpGuide() {
 
     const categoryLabels = {
       delivery: 'Deliveries', logistics: 'Logistics & Equipment', compliance: 'Compliance',
-      safety: 'Safety', general: 'General', app_usage: 'Using the App',
+      safety: 'Safety', general: 'General', app_usage: 'Using the App', financial: 'Financial',
     };
 
     const html = `
