@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   ChevronDown, ChevronRight, Trash2, MessageSquare,
   FileText, Clock, Receipt, Plus,
+  CheckSquare, Square,
 } from 'lucide-react';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
@@ -27,9 +28,9 @@ const SOURCE_META = {
 /**
  * AFPDisputeRow — a single line item row in the AFP Builder table.
  * Supports inline editing (draft), dispute status changes (submitted),
- * and expandable dispute history.
+ * bulk selection checkboxes, and expandable dispute history.
  */
-export default function AFPDisputeRow({ item, canEdit, canDispute, expanded, onToggleDispute, onUpdate, onDelete, mobile }) {
+export default function AFPDisputeRow({ item, canEdit, canDispute, canSelect, selected, onSelect, expanded, onToggleDispute, onUpdate, onDelete, mobile }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ qty: item.qty, rate: item.rate });
   const [disputeNote, setDisputeNote] = useState(item.dispute_note || '');
@@ -84,24 +85,29 @@ export default function AFPDisputeRow({ item, canEdit, canDispute, expanded, onT
   // ── Mobile card layout ──
   if (mobile) {
     return (
-      <div className="px-3 py-2.5 space-y-2">
+      <div className={`px-3 py-3 space-y-2 transition ${selected ? 'bg-[#2E5A1A]/5' : ''}`}>
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {canSelect && (
+              <button onClick={onSelect} className="flex-shrink-0 active:scale-95 transition">
+                {selected ? <CheckSquare className="w-4 h-4 text-[#2E5A1A]" /> : <Square className="w-4 h-4 text-slate-300" />}
+              </button>
+            )}
             <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold ${srcMeta.color} bg-slate-100 flex-shrink-0`}>
               <SrcIcon className="w-2.5 h-2.5" /> {srcMeta.label}
             </span>
-            <p className="text-xs text-slate-700 font-medium truncate">{item.item}</p>
+            <p className="text-xs text-slate-700 font-medium break-words-mobile">{item.item}</p>
           </div>
           {canEdit && (item.is_manual || item.source === 'manual') && (
-            <button onClick={onDelete} className="text-slate-400 hover:text-rose-600 transition flex-shrink-0">
+            <button onClick={onDelete} className="text-slate-400 hover:text-rose-600 transition flex-shrink-0 p-1">
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
         {item.source_date && (
-          <p className="text-[10px] text-slate-400">{new Date(item.source_date).toLocaleDateString('en-GB')}</p>
+          <p className="text-[10px] text-slate-400 pl-6">{new Date(item.source_date).toLocaleDateString('en-GB')}</p>
         )}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 pl-6">
           <div className="flex items-center gap-3 text-xs">
             <div>
               <span className="text-slate-400">Qty: </span>
@@ -151,7 +157,7 @@ export default function AFPDisputeRow({ item, canEdit, canDispute, expanded, onT
         </div>
         {/* Dispute control */}
         {canDispute ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pl-6">
             <select
               value={item.dispute_status || 'none'}
               onChange={e => handleDisputeChange(e.target.value)}
@@ -170,13 +176,13 @@ export default function AFPDisputeRow({ item, canEdit, canDispute, expanded, onT
             )}
           </div>
         ) : item.dispute_status !== 'none' && (
-          <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${disputeMeta.bg} ${disputeMeta.color}`}>
+          <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${disputeMeta.bg} ${disputeMeta.color} ml-6`}>
             {disputeMeta.label}
           </span>
         )}
         {/* Expanded dispute history */}
         {expanded && item.dispute_status !== 'none' && (
-          <div className="pt-2 border-t border-slate-100 space-y-2">
+          <div className="pt-2 border-t border-slate-100 space-y-2 pl-6">
             <div className="flex items-start gap-2">
               <MessageSquare className="w-3.5 h-3.5 text-slate-400 mt-1 flex-shrink-0" />
               <input
@@ -216,7 +222,16 @@ export default function AFPDisputeRow({ item, canEdit, canDispute, expanded, onT
   // ── Desktop table row layout ──
   return (
     <>
-      <tr className="hover:bg-slate-50/50 group">
+      <tr className={`hover:bg-slate-50/50 group ${selected ? 'bg-[#2E5A1A]/5' : ''}`}>
+        {/* Selection checkbox */}
+        <td className="px-3 py-2">
+          {canSelect && (
+            <button onClick={onSelect} className="transition active:scale-95">
+              {selected ? <CheckSquare className="w-4 h-4 text-[#2E5A1A]" /> : <Square className="w-4 h-4 text-slate-300" />}
+            </button>
+          )}
+        </td>
+
         {/* Source */}
         <td className="px-3 py-2">
           <div className="flex items-center gap-1.5">
@@ -329,7 +344,7 @@ export default function AFPDisputeRow({ item, canEdit, canDispute, expanded, onT
       {/* Expanded dispute history */}
       {expanded && item.dispute_status !== 'none' && (
         <tr className="bg-slate-50/70">
-          <td colSpan={8} className="px-4 py-3">
+          <td colSpan={9} className="px-4 py-3">
             <div className="space-y-2">
               {/* Dispute note input */}
               <div className="flex items-start gap-2">

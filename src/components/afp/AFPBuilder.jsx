@@ -3,9 +3,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   FileText, Calendar, RefreshCw, Send, ArrowRight, CheckCircle2,
-  Plus, Download, Loader2, Clock, Receipt,
-  ChevronDown, ChevronRight, MessageSquare, X, FileBarChart,
-  TrendingUp, Zap,
+  Plus, Loader2, Clock, Receipt,
+  MessageSquare, X, FileBarChart,
+  TrendingUp, Zap, CheckSquare, Square, Trash2,
 } from 'lucide-react';
 import CreateFirstAFPModal from './CreateFirstAFPModal';
 import AFPDisputeRow from './AFPDisputeRow';
@@ -31,6 +31,18 @@ const SOURCE_META = {
   manual: { label: 'Manual', icon: Plus, color: 'text-[#2E5A1A]', bg: 'bg-green-50' },
 };
 
+const CATEGORIES = [
+  { id: 'all', label: 'All' },
+  { id: 'drilling', label: 'Drilling' },
+  { id: 'plant_hire', label: 'Plant Hire' },
+  { id: 'labour', label: 'Labour' },
+  { id: 'subcontractor', label: 'Subcontractor' },
+  { id: 'materials', label: 'Materials' },
+  { id: 'mobilisation', label: 'Mobilisation' },
+  { id: 'delivery', label: 'Delivery' },
+  { id: 'other', label: 'Other' },
+];
+
 function weekKey(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -47,7 +59,7 @@ function monthKey(dateStr) {
 export default function AFPBuilder({ job }) {
   const queryClient = useQueryClient();
   const [selectedAfpId, setSelectedAfpId] = useState(null);
-  const [granularity, setGranularity] = useState('week'); // day | week | month
+  const [granularity, setGranularity] = useState('week');
   const [showCreate, setShowCreate] = useState(false);
   const [populating, setPopulating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -56,6 +68,11 @@ export default function AFPBuilder({ job }) {
   const [expandedDisputes, setExpandedDisputes] = useState(new Set());
   const [showAddManual, setShowAddManual] = useState(false);
   const [manualItem, setManualItem] = useState({ item: '', unit: 'sum', qty: 1, rate: 0, category: 'other' });
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [selectedItems, setSelectedItems] = useState(new Set());
+  const [showPeriodEditor, setShowPeriodEditor] = useState(false);
+  const [periodEndDate, setPeriodEndDate] = useState('');
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   const { data: afps = [], isLoading: afpsLoading } = useQuery({
     queryKey: ['afp', job.id],
@@ -73,10 +90,16 @@ export default function AFPBuilder({ job }) {
     enabled: !!selectedAfp?.id,
   });
 
-  // Group line items by time bucket
+  // Filter by category (display only — totals always use all items)
+  const filteredItems = useMemo(() => {
+    if (categoryFilter === 'all') return lineItems;
+    return lineItems.filter(li => li.category === categoryFilter);
+  }, [lineItems, categoryFilter]);
+
+  // Group filtered items by time bucket
   const groupedItems = useMemo(() => {
     const groups = {};
-    for (const li of lineItems) {
+    for (const li of filteredItems) {
       let key;
       if (granularity === 'day') key = li.source_date || 'undated';
       else if (granularity === 'week') key = weekKey(li.source_date) || 'undated';
@@ -85,9 +108,9 @@ export default function AFPBuilder({ job }) {
       groups[key].push(li);
     }
     return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [lineItems, granularity]);
+  }, [filteredItems, granularity]);
 
-  // Totals
+  // Totals — always computed from ALL line items (not filtered)
   const totals = useMemo(() => {
     let original = 0, disputed = 0, agreed = 0;
     for (const li of lineItems) {
@@ -103,7 +126,6 @@ export default function AFPBuilder({ job }) {
     return { original, disputed, agreed };
   }, [lineItems]);
 
-  // Data freshness
   const freshness = useMemo(() => {
     const sources = {};
     for (const li of lineItems) {
@@ -111,6 +133,15 @@ export default function AFPBuilder({ job }) {
       sources[li.source]++;
     }
     return sources;
+  }, [lineItems]);
+
+  const categoryCounts = useMemo(() => {
+    const counts = {};
+    for (const li of lineItems) {
+      const cat = li.category || 'other';
+      counts[cat] = (counts[cat] || 0) + 1;
+    }
+    return counts;
   }, [lineItems]);
 
   const invalidate = () => {
@@ -128,9 +159,7 @@ export default function AFPBuilder({ job }) {
       const data = res.data || res;
       if (data.error) throw new Error(data.error);
       invalidate();
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
     setPopulating(false);
   };
 
@@ -141,7 +170,6 @@ export default function AFPBuilder({ job }) {
       const res = await base44.functions.invoke('submitAFPToClient', { afp_id: selectedAfp.id });
       const data = res.data || res;
       if (data.error) throw new Error(data.error);
-      // Generate Excel export and store URL on the AFP
       try {
         const exportRes = await base44.functions.invoke('exportAFPToExcel', { afp_id: selectedAfp.id });
         const exportData = exportRes.data || exportRes;
@@ -151,13 +179,9 @@ export default function AFPBuilder({ job }) {
             source_file_name: exportData.file_name,
           });
         }
-      } catch (exportErr) {
-        console.error('Excel export during submit failed:', exportErr);
-      }
+      } catch (exportErr) { console.error('Excel export during submit failed:', exportErr); }
       invalidate();
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
     setSubmitting(false);
   };
 
@@ -169,9 +193,7 @@ export default function AFPBuilder({ job }) {
       const data = res.data || res;
       if (data.error) throw new Error(data.error);
       invalidate();
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
     setPushing(false);
   };
 
@@ -183,9 +205,7 @@ export default function AFPBuilder({ job }) {
       const data = res.data || res;
       if (data.error) throw new Error(data.error);
       invalidate();
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
     setRepricing(false);
   };
 
@@ -193,9 +213,7 @@ export default function AFPBuilder({ job }) {
     try {
       await base44.entities.AFPLineItem.update(id, updates);
       queryClient.invalidateQueries({ queryKey: ['afp-line-items', selectedAfp?.id] });
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
   };
 
   const handleAddManual = async () => {
@@ -222,18 +240,14 @@ export default function AFPBuilder({ job }) {
       setManualItem({ item: '', unit: 'sum', qty: 1, rate: 0, category: 'other' });
       setShowAddManual(false);
       queryClient.invalidateQueries({ queryKey: ['afp-line-items', selectedAfp?.id] });
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
   };
 
   const handleDeleteItem = async (id) => {
     try {
       await base44.entities.AFPLineItem.delete(id);
       queryClient.invalidateQueries({ queryKey: ['afp-line-items', selectedAfp?.id] });
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
   };
 
   const toggleDispute = (id) => {
@@ -243,6 +257,67 @@ export default function AFPBuilder({ job }) {
       else next.add(id);
       return next;
     });
+  };
+
+  // ── Bulk selection + actions ──
+  const toggleItemSelection = (id) => {
+    setSelectedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleBucketSelection = (items) => {
+    const allSelected = items.every(li => selectedItems.has(li.id));
+    setSelectedItems(prev => {
+      const next = new Set(prev);
+      if (allSelected) {
+        items.forEach(li => next.delete(li.id));
+      } else {
+        items.forEach(li => next.add(li.id));
+      }
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedItems(new Set());
+
+  const handleBulkDisputeAction = async (action) => {
+    if (selectedItems.size === 0) return;
+    setBulkActionLoading(true);
+    try {
+      const updates = Array.from(selectedItems).map(id => ({
+        id,
+        dispute_status: action,
+      }));
+      await base44.entities.AFPLineItem.bulkUpdate(updates);
+      clearSelection();
+      invalidate();
+    } catch (e) { console.error(e); }
+    setBulkActionLoading(false);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedItems.size === 0) return;
+    setBulkActionLoading(true);
+    try {
+      await Promise.all(Array.from(selectedItems).map(id => base44.entities.AFPLineItem.delete(id)));
+      clearSelection();
+      invalidate();
+    } catch (e) { console.error(e); }
+    setBulkActionLoading(false);
+  };
+
+  // ── Period end date editor ──
+  const handlePeriodEndSave = async () => {
+    if (!selectedAfp || !periodEndDate) return;
+    try {
+      await base44.entities.AFP.update(selectedAfp.id, { period_end_date: periodEndDate });
+      invalidate();
+    } catch (e) { console.error(e); }
+    setShowPeriodEditor(false);
   };
 
   const exportCSV = () => {
@@ -308,6 +383,7 @@ export default function AFPBuilder({ job }) {
   }
 
   const statusMeta = selectedAfp ? STATUS_META[selectedAfp.status] : STATUS_META.draft;
+  const canSelect = selectedAfp?.status === 'submitted' || selectedAfp?.status === 'draft';
 
   return (
     <div className="space-y-3">
@@ -320,7 +396,7 @@ export default function AFPBuilder({ job }) {
             return (
               <button
                 key={afp.id}
-                onClick={() => setSelectedAfpId(afp.id)}
+                onClick={() => { setSelectedAfpId(afp.id); clearSelection(); }}
                 className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition active:scale-95 ${
                   isActive ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
@@ -352,17 +428,36 @@ export default function AFPBuilder({ job }) {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-900">AFP {selectedAfp.afp_number} — {job.name}</h3>
-                <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${statusMeta.bg} ${statusMeta.color}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} /> {statusMeta.label}
                   </span>
-                  <span className="text-[11px] text-slate-400">
-                    {fmtDate(selectedAfp.period_start_date)} → {selectedAfp.period_end_date ? fmtDate(selectedAfp.period_end_date) : 'Open'}
-                  </span>
+                  {/* Inline period-end-date editor */}
+                  {showPeriodEditor ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="date"
+                        value={periodEndDate}
+                        onChange={e => setPeriodEndDate(e.target.value)}
+                        autoFocus
+                        className="px-2 py-0.5 border border-slate-200 rounded-lg text-[11px] font-medium"
+                      />
+                      <button onClick={handlePeriodEndSave} className="px-2 py-0.5 bg-[#2E5A1A] text-white rounded-lg text-[10px] font-bold">Save</button>
+                      <button onClick={() => setShowPeriodEditor(false)} className="px-2 py-0.5 text-slate-500 text-[10px] font-bold">Cancel</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setPeriodEndDate(selectedAfp.period_end_date || ''); setShowPeriodEditor(true); }}
+                      className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-[#2E5A1A] transition font-medium"
+                    >
+                      <Calendar className="w-3 h-3" />
+                      {fmtDate(selectedAfp.period_start_date)} → {selectedAfp.period_end_date ? fmtDate(selectedAfp.period_end_date) : 'Set end date'}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {selectedAfp.status === 'draft' && (
                 <button
                   onClick={handlePopulate}
@@ -412,7 +507,6 @@ export default function AFPBuilder({ job }) {
 
           {/* Contract value summary with progress bar */}
           <div className="px-4 py-3.5 space-y-3">
-            {/* Progress against contract value */}
             {selectedAfp.contract_value > 0 && (() => {
               const pct = Math.min(100, Math.round((totals.agreed / selectedAfp.contract_value) * 100));
               return (
@@ -430,7 +524,6 @@ export default function AFPBuilder({ job }) {
                 </div>
               );
             })()}
-            {/* Three-column totals */}
             <div className="grid grid-cols-3 gap-2">
               <div className="text-center px-2 py-2 rounded-xl bg-slate-50">
                 <p className="text-[10px] text-slate-400 uppercase font-semibold tracking-wide">Claimed</p>
@@ -468,42 +561,173 @@ export default function AFPBuilder({ job }) {
         </div>
       )}
 
-      {/* ── Granularity Toggle ── */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
-          {['day', 'week', 'month'].map(g => (
-            <button
-              key={g}
-              onClick={() => setGranularity(g)}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition capitalize ${granularity === g ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}
-            >
-              {g}
-            </button>
-          ))}
+      {/* ── Category Filter Pills + Granularity Toggle ── */}
+      <div className="space-y-2">
+        {/* Category filters */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+          {CATEGORIES.map(cat => {
+            const count = cat.id === 'all' ? lineItems.length : (categoryCounts[cat.id] || 0);
+            if (cat.id !== 'all' && count === 0) return null;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setCategoryFilter(cat.id)}
+                className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition active:scale-95 ${
+                  categoryFilter === cat.id
+                    ? 'bg-[#2E5A1A] text-white shadow-sm'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                {cat.label}
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${categoryFilter === cat.id ? 'bg-white/20' : 'bg-slate-100'}`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
-        <button
-          onClick={() => setShowAddManual(!showAddManual)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-50 transition active:scale-95"
-        >
-          <Plus className="w-3.5 h-3.5" /> Add Line
-        </button>
+
+        {/* Granularity + Add Line */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
+            {['day', 'week', 'month'].map(g => (
+              <button
+                key={g}
+                onClick={() => setGranularity(g)}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition capitalize ${granularity === g ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setShowAddManual(!showAddManual)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-50 transition active:scale-95"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add Line
+          </button>
+        </div>
       </div>
+
+      {/* ── Bulk Action Toolbar ── */}
+      {selectedItems.size > 0 && (
+        <div className="insight-card rounded-2xl p-3 bg-[#2E5A1A]/5 border-[#2E5A1A]/20 flex items-center justify-between gap-2 flex-wrap animate-slide-up">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#2E5A1A] text-white text-xs font-bold">
+              {selectedItems.size} selected
+            </span>
+            <button onClick={clearSelection} className="text-xs font-semibold text-slate-500 hover:text-slate-700 transition">
+              Clear
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {selectedAfp?.status === 'submitted' && (
+              <>
+                <button
+                  onClick={() => handleBulkDisputeAction('agreed')}
+                  disabled={bulkActionLoading}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold transition active:scale-95 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Agree
+                </button>
+                <button
+                  onClick={() => handleBulkDisputeAction('disputed')}
+                  disabled={bulkActionLoading}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs font-bold transition active:scale-95 disabled:opacity-50"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" /> Dispute
+                </button>
+                <button
+                  onClick={() => handleBulkDisputeAction('rejected')}
+                  disabled={bulkActionLoading}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-500 text-white rounded-lg text-xs font-bold transition active:scale-95 disabled:opacity-50"
+                >
+                  <X className="w-3.5 h-3.5" /> Reject
+                </button>
+              </>
+            )}
+            {selectedAfp?.status === 'draft' && (
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkActionLoading}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-500 text-white rounded-lg text-xs font-bold transition active:scale-95 disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Delete
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Add Manual Line ── */}
       {showAddManual && (
-        <div className="insight-card rounded-2xl p-3 space-y-2">
-          <div className="grid grid-cols-12 gap-2">
+        <div className="insight-card rounded-2xl p-3 sm:p-4 space-y-3">
+          {/* Mobile: stacked layout */}
+          <div className="sm:hidden space-y-2">
             <input
               type="text"
               placeholder="Description"
               value={manualItem.item}
               onChange={e => setManualItem(p => ({ ...p, item: e.target.value }))}
-              className="col-span-12 sm:col-span-4 px-3 py-2 border border-slate-200 rounded-lg text-xs"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={manualItem.category}
+                onChange={e => setManualItem(p => ({ ...p, category: e.target.value }))}
+                className="px-3 py-2.5 border border-slate-200 rounded-lg text-sm"
+              >
+                <option value="drilling">Drilling</option>
+                <option value="plant_hire">Plant Hire</option>
+                <option value="labour">Labour</option>
+                <option value="subcontractor">Subcontractor</option>
+                <option value="materials">Materials</option>
+                <option value="mobilisation">Mobilisation</option>
+                <option value="delivery">Delivery</option>
+                <option value="other">Other</option>
+              </select>
+              <input
+                type="text"
+                placeholder="Unit (e.g. m, Day, Sum)"
+                value={manualItem.unit}
+                onChange={e => setManualItem(p => ({ ...p, unit: e.target.value }))}
+                className="px-3 py-2.5 border border-slate-200 rounded-lg text-sm"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="number"
+                placeholder="Qty"
+                value={manualItem.qty}
+                onChange={e => setManualItem(p => ({ ...p, qty: e.target.value }))}
+                className="px-3 py-2.5 border border-slate-200 rounded-lg text-sm"
+              />
+              <input
+                type="number"
+                placeholder="Rate (£)"
+                value={manualItem.rate}
+                onChange={e => setManualItem(p => ({ ...p, rate: e.target.value }))}
+                className="px-3 py-2.5 border border-slate-200 rounded-lg text-sm"
+              />
+            </div>
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs text-slate-400">Amount:</span>
+              <span className="text-sm font-bold text-slate-800 tabular-nums">{fmt((Number(manualItem.qty) || 0) * (Number(manualItem.rate) || 0))}</span>
+            </div>
+          </div>
+          {/* Desktop: grid layout */}
+          <div className="hidden sm:grid grid-cols-12 gap-2">
+            <input
+              type="text"
+              placeholder="Description"
+              value={manualItem.item}
+              onChange={e => setManualItem(p => ({ ...p, item: e.target.value }))}
+              className="col-span-4 px-3 py-2 border border-slate-200 rounded-lg text-xs"
             />
             <select
               value={manualItem.category}
               onChange={e => setManualItem(p => ({ ...p, category: e.target.value }))}
-              className="col-span-6 sm:col-span-2 px-2 py-2 border border-slate-200 rounded-lg text-xs"
+              className="col-span-2 px-2 py-2 border border-slate-200 rounded-lg text-xs"
             >
               <option value="drilling">Drilling</option>
               <option value="plant_hire">Plant Hire</option>
@@ -519,23 +743,23 @@ export default function AFPBuilder({ job }) {
               placeholder="Unit"
               value={manualItem.unit}
               onChange={e => setManualItem(p => ({ ...p, unit: e.target.value }))}
-              className="col-span-3 sm:col-span-1 px-2 py-2 border border-slate-200 rounded-lg text-xs"
+              className="col-span-1 px-2 py-2 border border-slate-200 rounded-lg text-xs"
             />
             <input
               type="number"
               placeholder="Qty"
               value={manualItem.qty}
               onChange={e => setManualItem(p => ({ ...p, qty: e.target.value }))}
-              className="col-span-3 sm:col-span-2 px-2 py-2 border border-slate-200 rounded-lg text-xs"
+              className="col-span-2 px-2 py-2 border border-slate-200 rounded-lg text-xs"
             />
             <input
               type="number"
               placeholder="Rate"
               value={manualItem.rate}
               onChange={e => setManualItem(p => ({ ...p, rate: e.target.value }))}
-              className="col-span-3 sm:col-span-2 px-2 py-2 border border-slate-200 rounded-lg text-xs"
+              className="col-span-2 px-2 py-2 border border-slate-200 rounded-lg text-xs"
             />
-            <div className="col-span-6 sm:col-span-1 flex items-center px-2 text-xs font-bold text-slate-700 tabular-nums">
+            <div className="col-span-1 flex items-center px-2 text-xs font-bold text-slate-700 tabular-nums">
               {fmt((Number(manualItem.qty) || 0) * (Number(manualItem.rate) || 0))}
             </div>
           </div>
@@ -548,36 +772,53 @@ export default function AFPBuilder({ job }) {
 
       {/* ── Line Items — Mobile card view ── */}
       <div className="sm:hidden space-y-3">
-        {groupedItems.map(([bucket, items]) => {
-          const bucketTotal = items.reduce((s, li) => s + (li.amount || 0), 0);
-          const bucketLabel = bucket === 'undated' ? 'Undated' :
-            granularity === 'day' ? fmtDate(bucket) :
-            granularity === 'week' ? `Week of ${fmtDate(bucket)}` :
-            new Date(bucket + '-01').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-          return (
-            <div key={bucket} className="insight-card rounded-2xl overflow-hidden">
-              <div className="px-3 py-2 bg-slate-100/80 flex items-center justify-between">
-                <span className="font-bold text-slate-700 text-[11px] uppercase tracking-wide">{bucketLabel}</span>
-                <span className="font-bold text-slate-700 text-xs tabular-nums">{fmt(bucketTotal)}</span>
+        {groupedItems.length === 0 ? (
+          <div className="insight-card rounded-2xl p-6 text-center">
+            <p className="text-sm text-slate-400">No items in this category</p>
+          </div>
+        ) : (
+          groupedItems.map(([bucket, items]) => {
+            const bucketTotal = items.reduce((s, li) => s + (li.amount || 0), 0);
+            const bucketLabel = bucket === 'undated' ? 'Undated' :
+              granularity === 'day' ? fmtDate(bucket) :
+              granularity === 'week' ? `Week of ${fmtDate(bucket)}` :
+              new Date(bucket + '-01').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+            const allBucketSelected = items.every(li => selectedItems.has(li.id));
+            return (
+              <div key={bucket} className="insight-card rounded-2xl overflow-hidden">
+                <div className="px-3 py-2 bg-slate-100/80 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {canSelect && (
+                      <button onClick={() => toggleBucketSelection(items)} className="flex-shrink-0 active:scale-95 transition">
+                        {allBucketSelected ? <CheckSquare className="w-4 h-4 text-[#2E5A1A]" /> : <Square className="w-4 h-4 text-slate-300" />}
+                      </button>
+                    )}
+                    <span className="font-bold text-slate-700 text-[11px] uppercase tracking-wide">{bucketLabel}</span>
+                  </div>
+                  <span className="font-bold text-slate-700 text-xs tabular-nums">{fmt(bucketTotal)}</span>
+                </div>
+                <div className="divide-y divide-slate-50">
+                  {items.map((li) => (
+                    <AFPDisputeRow
+                      key={li.id}
+                      item={li}
+                      mobile
+                      canEdit={selectedAfp.status === 'draft'}
+                      canDispute={selectedAfp.status === 'submitted'}
+                      canSelect={canSelect}
+                      selected={selectedItems.has(li.id)}
+                      onSelect={() => toggleItemSelection(li.id)}
+                      expanded={expandedDisputes.has(li.id)}
+                      onToggleDispute={() => toggleDispute(li.id)}
+                      onUpdate={(updates) => handleLineItemUpdate(li.id, updates)}
+                      onDelete={() => handleDeleteItem(li.id)}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="divide-y divide-slate-50">
-                {items.map((li) => (
-                  <AFPDisputeRow
-                    key={li.id}
-                    item={li}
-                    mobile
-                    canEdit={selectedAfp.status === 'draft'}
-                    canDispute={selectedAfp.status === 'submitted'}
-                    expanded={expandedDisputes.has(li.id)}
-                    onToggleDispute={() => toggleDispute(li.id)}
-                    onUpdate={(updates) => handleLineItemUpdate(li.id, updates)}
-                    onDelete={() => handleDeleteItem(li.id)}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       {/* ── Line Items Table (grouped by time bucket) — Desktop only ── */}
@@ -586,6 +827,7 @@ export default function AFPBuilder({ job }) {
           <table className="w-full text-xs">
             <thead className="bg-slate-50/80 sticky top-0">
               <tr className="text-slate-500 uppercase tracking-wide text-[10px]">
+                <th className="text-left px-3 py-2.5 font-semibold w-8"></th>
                 <th className="text-left px-3 py-2.5 font-semibold">Source</th>
                 <th className="text-left px-3 py-2.5 font-semibold">Description</th>
                 <th className="text-right px-3 py-2.5 font-semibold">Unit</th>
@@ -597,40 +839,57 @@ export default function AFPBuilder({ job }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {groupedItems.map(([bucket, items]) => {
-                const bucketTotal = items.reduce((s, li) => s + (li.amount || 0), 0);
-                const bucketLabel = bucket === 'undated' ? 'Undated' :
-                  granularity === 'day' ? fmtDate(bucket) :
-                  granularity === 'week' ? `Week of ${fmtDate(bucket)}` :
-                  new Date(bucket + '-01').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-                return (
-                  <React.Fragment key={bucket}>
-                    <tr className="bg-slate-100/60">
-                      <td colSpan={5} className="px-3 py-1.5 font-bold text-slate-700 text-[11px] uppercase tracking-wide">
-                        {bucketLabel} — {items.length} items
-                      </td>
-                      <td className="text-right px-3 py-1.5 font-bold text-slate-700 tabular-nums">{fmt(bucketTotal)}</td>
-                      <td colSpan={2}></td>
-                    </tr>
-                    {items.map((li) => (
-                      <AFPDisputeRow
-                        key={li.id}
-                        item={li}
-                        canEdit={selectedAfp.status === 'draft'}
-                        canDispute={selectedAfp.status === 'submitted'}
-                        expanded={expandedDisputes.has(li.id)}
-                        onToggleDispute={() => toggleDispute(li.id)}
-                        onUpdate={(updates) => handleLineItemUpdate(li.id, updates)}
-                        onDelete={() => handleDeleteItem(li.id)}
-                      />
-                    ))}
-                  </React.Fragment>
-                );
-              })}
+              {groupedItems.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-3 py-8 text-center text-slate-400">No items in this category</td>
+                </tr>
+              ) : (
+                groupedItems.map(([bucket, items]) => {
+                  const bucketTotal = items.reduce((s, li) => s + (li.amount || 0), 0);
+                  const bucketLabel = bucket === 'undated' ? 'Undated' :
+                    granularity === 'day' ? fmtDate(bucket) :
+                    granularity === 'week' ? `Week of ${fmtDate(bucket)}` :
+                    new Date(bucket + '-01').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+                  const allBucketSelected = items.every(li => selectedItems.has(li.id));
+                  return (
+                    <React.Fragment key={bucket}>
+                      <tr className="bg-slate-100/60">
+                        <td className="px-3 py-1.5">
+                          {canSelect && (
+                            <button onClick={() => toggleBucketSelection(items)} className="transition active:scale-95">
+                              {allBucketSelected ? <CheckSquare className="w-4 h-4 text-[#2E5A1A]" /> : <Square className="w-4 h-4 text-slate-300" />}
+                            </button>
+                          )}
+                        </td>
+                        <td colSpan={4} className="px-3 py-1.5 font-bold text-slate-700 text-[11px] uppercase tracking-wide">
+                          {bucketLabel} — {items.length} items
+                        </td>
+                        <td className="text-right px-3 py-1.5 font-bold text-slate-700 tabular-nums">{fmt(bucketTotal)}</td>
+                        <td colSpan={3}></td>
+                      </tr>
+                      {items.map((li) => (
+                        <AFPDisputeRow
+                          key={li.id}
+                          item={li}
+                          canEdit={selectedAfp.status === 'draft'}
+                          canDispute={selectedAfp.status === 'submitted'}
+                          canSelect={canSelect}
+                          selected={selectedItems.has(li.id)}
+                          onSelect={() => toggleItemSelection(li.id)}
+                          expanded={expandedDisputes.has(li.id)}
+                          onToggleDispute={() => toggleDispute(li.id)}
+                          onUpdate={(updates) => handleLineItemUpdate(li.id, updates)}
+                          onDelete={() => handleDeleteItem(li.id)}
+                        />
+                      ))}
+                    </React.Fragment>
+                  );
+                })
+              )}
             </tbody>
             <tfoot className="bg-slate-50/80 border-t-2 border-slate-200 sticky bottom-0">
               <tr className="font-bold text-slate-800">
-                <td colSpan={5} className="px-3 py-2.5">AFP Total</td>
+                <td colSpan={6} className="px-3 py-2.5">AFP Total</td>
                 <td className="text-right px-3 py-2.5 tabular-nums">{fmt(totals.agreed)}</td>
                 <td colSpan={2}></td>
               </tr>
@@ -639,8 +898,8 @@ export default function AFPBuilder({ job }) {
         </div>
       </div>
 
-      {/* Spacer for sticky bar */}
-      <div className="h-16" />
+      {/* Spacer for sticky bar — increased to clear sticky bar + safe area */}
+      <div className="h-28" />
 
       {/* ── Sticky Running Total Bar ── */}
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-lg border-t border-slate-200 px-4 py-2.5 flex items-center justify-between safe-area-bottom">

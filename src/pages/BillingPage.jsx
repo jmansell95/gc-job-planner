@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   PoundSterling, FileBarChart, Download, Tag, TrendingUp,
+  LayoutDashboard, Shield, ScrollText,
 } from 'lucide-react';
 import HubShell from '@/components/HubShell';
 import CVRExportTab from '@/components/billing/CVRExportTab';
@@ -10,22 +11,29 @@ import AFPTemplateUploader from '@/components/afp/AFPTemplateUploader';
 import RateCardManager from '@/components/RateCardManager';
 import KeywordMappingManager from '@/components/billing/KeywordMappingManager';
 import PricingReviewBanner from '@/components/billing/PricingReviewBanner';
+import BillingInsightsTab from '@/components/billing/BillingInsightsTab';
+import MarginGuardTab from '@/components/billing/MarginGuardTab';
+import AgedDebtorsDashboard from '@/components/billing/AgedDebtorsDashboard';
+import ContractsAndOrdersTab from '@/components/billing/ContractsAndOrdersTab';
 import RunReportButton from '@/components/reports/RunReportButton';
 import { base44 } from '@/api/base44Client';
 
 /**
  * BillingPage — AFP-centric billing hub.
- * Three views: AFP Portfolio (primary), Rate Card (Master Price List +
- * Keyword Mapping), and CVR Export (replaces invoicing — invoicing is
- * handled in an external system; CVRs are downloaded for higher management).
+ * Seven tabs: Insights (overview), AFP Portfolio (primary), Margin Guard,
+ * Aged Debtors, Contracts & Orders, Rate Card, CVR Export.
  */
 export default function BillingPage() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState('afp-portfolio');
+  const [tab, setTab] = useState('insights');
   const [showTemplateUploader, setShowTemplateUploader] = useState(false);
 
   const tabs = [
+    { id: 'insights', label: 'Insights', icon: LayoutDashboard },
     { id: 'afp-portfolio', label: 'AFP Portfolio', icon: FileBarChart },
+    { id: 'margin-guard', label: 'Margin Guard', icon: Shield },
+    { id: 'aged-debtors', label: 'Aged Debtors', icon: TrendingUp },
+    { id: 'contracts', label: 'Contracts', icon: ScrollText },
     { id: 'rate-card', label: 'Rate Card', icon: Tag },
     { id: 'cvr-export', label: 'CVR Export', icon: Download },
   ];
@@ -57,6 +65,9 @@ export default function BillingPage() {
       activeTab={tab}
       onTabChange={setTab}
     >
+      {/* ── Insights: portfolio-wide financial health dashboard ── */}
+      {tab === 'insights' && <BillingInsightsTab />}
+
       {/* ── AFP Portfolio: all jobs' AFPs in one place ── */}
       {tab === 'afp-portfolio' && (
         <>
@@ -68,6 +79,15 @@ export default function BillingPage() {
         </>
       )}
 
+      {/* ── Margin Guard: sub-con markup rules + budget alerts ── */}
+      {tab === 'margin-guard' && <MarginGuardTab />}
+
+      {/* ── Aged Debtors: outstanding invoices by age bucket ── */}
+      {tab === 'aged-debtors' && <AgedDebtorsDashboard />}
+
+      {/* ── Contracts & Orders: billing contracts + purchase orders ── */}
+      {tab === 'contracts' && <ContractsAndOrdersTab />}
+
       {/* ── Rate Card: per-division Master Price List + Keyword Mapping ── */}
       {tab === 'rate-card' && (
         <div className="space-y-4">
@@ -77,9 +97,7 @@ export default function BillingPage() {
       )}
 
       {/* ── CVR Export: download CVR packs for higher management ── */}
-      {tab === 'cvr-export' && (
-        <CVRExportTab />
-      )}
+      {tab === 'cvr-export' && <CVRExportTab />}
 
       {showTemplateUploader && (
         <AFPTemplateUploader onClose={() => setShowTemplateUploader(false)} />
