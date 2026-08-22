@@ -163,16 +163,13 @@ export default function FullScreenScanner({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black flex flex-col">
+    <div className="fixed inset-0 z-[70] flex flex-col" style={{ backgroundColor: '#000' }}>
       {/* Camera video — full bleed */}
       <div className="absolute inset-0">
         <video ref={videoRef} playsInline muted autoPlay
-          className="w-full h-full object-cover bg-black"
-          style={{ transform: 'translateZ(0)', willChange: 'transform', imageRendering: 'auto' }} />
+          className="w-full h-full object-cover"
+          style={{ transform: 'translateZ(0)', willChange: 'transform', imageRendering: 'auto', backgroundColor: '#000' }} />
       </div>
-
-      {/* Dark scrim for contrast */}
-      <div className="absolute inset-0 bg-black/40 pointer-events-none" />
 
       {/* Top bar */}
       <div className="relative z-10 flex items-center justify-between px-4 pt-4 pb-2 safe-area-top">
@@ -196,8 +193,8 @@ export default function FullScreenScanner({
       {/* Reticle — centered with corner brackets + glow ring + scan line */}
       <div className="relative z-10 flex-1 flex items-center justify-center">
         <div className="relative w-[78vw] h-[52vh] max-w-[420px] max-h-[420px]">
-          {/* Glow ring */}
-          <div className="absolute -inset-4 rounded-[2rem] bg-emerald-400/20 blur-2xl animate-pulse" />
+          {/* Subtle glow ring — kept faint so it doesn't haze the scan area */}
+          <div className="absolute -inset-4 rounded-[2rem] bg-emerald-400/10 blur-xl animate-pulse" />
           {/* Frame */}
           <div className="absolute inset-0 rounded-[1.75rem] border-2 border-white/30" />
           {/* Corner brackets */}
