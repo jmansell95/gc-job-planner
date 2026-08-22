@@ -441,6 +441,29 @@
     "custom_fee": {
       "type": "number",
       "description": "Manual fee override in GBP"
+    },
+    "pricing_review_status": {
+      "type": "string",
+      "enum": [
+        "auto_matched",
+        "pending_review",
+        "reviewed",
+        "rejected"
+      ],
+      "default": "auto_matched",
+      "description": "Hybrid keyword-matching review state. 'auto_matched' = high-confidence dictionary match, priced instantly, no review needed; 'pending_review' = low-confidence or unknown keyword, awaiting billing team confirmation; 'reviewed' = billing team confirmed/corrected the match (teaches the dictionary); 'rejected' = billing team rejected the charge (item not billable)."
+    },
+    "suggested_rate_card_item_id": {
+      "type": "string",
+      "description": "When pricing_review_status is 'pending_review', the rate card item the fuzzy matcher proposed. The billing team confirms or replaces this in the review queue."
+    },
+    "pricing_reviewed_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the billing team reviewed the pricing match."
+    },
+    "pricing_reviewed_by": {
+      "type": "string",
+      "description": "Name of the billing team member who reviewed the pricing match."
     }
   },
   "required": [

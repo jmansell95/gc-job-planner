@@ -1,0 +1,91 @@
+{
+  "name": "KeywordRateMapping",
+  "type": "object",
+  "properties": {
+    "keyword": {
+      "type": "string",
+      "description": "The free-text keyword or phrase a driller might type in a log (e.g. 'CP Rig', 'Coreliner', 'Mobilise', 'SPT'). Matched case-insensitively against InvestigationLog descriptions. Should be unique \u2014 the dictionary lookup returns the first exact match."
+    },
+    "rate_card_item_id": {
+      "type": "string",
+      "description": "The RateCardItem this keyword maps to. When a driller logs work matching this keyword, the rate card item's price is used to stamp the charge."
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "drilling",
+        "plant_hire",
+        "labour",
+        "subcontractor",
+        "materials",
+        "mobilisation",
+        "delivery",
+        "other"
+      ],
+      "default": "drilling",
+      "description": "Billing category for matches from this keyword. Used to group AFP line items."
+    },
+    "confidence_score": {
+      "type": "number",
+      "default": 1.0,
+      "description": "How confident this mapping is (0\u20131). High-confidence (\u22650.8) matches auto-price instantly. Low-confidence matches land in the Pricing Review queue for billing team confirmation. Set to 1.0 for admin-confirmed mappings, lower for fuzzy-proposed mappings."
+    },
+    "is_confirmed": {
+      "type": "boolean",
+      "default": true,
+      "description": "True when an admin has explicitly confirmed this mapping. Unconfirmed (fuzzy-proposed) mappings only apply when no confirmed match exists, and always land in the review queue."
+    },
+    "match_count": {
+      "type": "number",
+      "default": 0,
+      "description": "How many times this keyword has been matched against a driller log. Incremented each time resolveLogPricing uses this mapping. Helps identify the most-used keywords."
+    },
+    "division_id": {
+      "type": "string",
+      "description": "The division this mapping belongs to. Blank = company-wide (applies to all divisions). Division-specific mappings take precedence over company-wide ones."
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Name of the admin who created or confirmed this mapping."
+    },
+    "last_matched_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last time this mapping was used to price a log."
+    }
+  },
+  "required": [
+    "keyword",
+    "rate_card_item_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

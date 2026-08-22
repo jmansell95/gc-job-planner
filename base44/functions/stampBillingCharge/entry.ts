@@ -89,14 +89,63 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ ok: true, entity_id: entityId, stamped: true, client_charge: clientCharge });
     }
 
-    // ── InvestigationLog: unified rate resolver (contract → project → global) ──
+    // ── InvestigationLog: hybrid keyword dictionary → rate resolver ──
     if (entityName === 'InvestigationLog' && record.job_id) {
       try {
         const job = await base44.asServiceRole.entities.Job.get(record.job_id);
         if (job && record.description) {
-          const activeContract = await loadActiveContract(base44.asServiceRole, record.job_id);
           const qty = Number(record.units_completed) ||
             ((Number(record.depth_to) || 0) - (Number(record.depth_from) || 0)) || 1;
+
+          // 1. Try the keyword dictionary first (hybrid matching)
+          try {
+            const dictRes = await base44.asServiceRole.functions.invoke('resolveLogPricing', {
+              description: String(record.description),
+              division_id: job.division_id || undefined,
+            });
+            const dictData = dictRes.data || dictRes;
+            if (dictData?.matched && dictData?.auto_price) {
+              // High-confidence dictionary match — stamp instantly
+              const total = Math.round(Number(dictData.unit_price) * qty * 100) / 100;
+              const breakdown = {
+                source: 'keyword_dictionary',
+                rate_card_item_id: dictData.rate_card_item_id,
+                unit_price: dictData.unit_price,
+                quantity: qty,
+                total,
+                confidence: dictData.confidence,
+              };
+              try {
+                await base44.asServiceRole.entities.InvestigationLog.update(entityId, {
+                  chargeable: true,
+                  charge_amount: total,
+                  charge_breakdown: JSON.stringify(breakdown),
+                  billing_status: 'auto',
+                  pricing_review_status: 'auto_matched',
+                });
+              } catch (e) { /* non-fatal */ }
+              try {
+                await base44.asServiceRole.functions.invoke('checkBOQVariations', { job_id: record.job_id });
+              } catch (_) { /* non-fatal */ }
+              return Response.json({ ok: true, entity_id: entityId, stamped: true, source: 'keyword_dictionary', charge_amount: total });
+            }
+            if (dictData?.matched && !dictData?.auto_price) {
+              // Low-confidence fuzzy match — stamp £0 and queue for review
+              try {
+                await base44.asServiceRole.entities.InvestigationLog.update(entityId, {
+                  chargeable: false,
+                  charge_amount: 0,
+                  billing_status: 'no_charge',
+                  pricing_review_status: 'pending_review',
+                  suggested_rate_card_item_id: dictData.suggested_rate_card_item_id || dictData.rate_card_item_id,
+                });
+              } catch (e) { /* non-fatal */ }
+              return Response.json({ ok: true, entity_id: entityId, stamped: true, source: 'fuzzy_pending_review', suggested: dictData.rate_card_item_id });
+            }
+          } catch (_) { /* dictionary lookup failed — fall through to rate resolver */ }
+
+          // 2. Fall back to the unified rate resolver (contract → project → global)
+          const activeContract = await loadActiveContract(base44.asServiceRole, record.job_id);
           const resolved = await resolveRate(base44.asServiceRole, {
             job_id: record.job_id,
             project_id: job.project_id,
@@ -119,9 +168,9 @@ export default async function(req: Request): Promise<Response> {
                 charge_amount: resolved.total,
                 charge_breakdown: JSON.stringify(breakdown),
                 billing_status: 'auto',
+                pricing_review_status: 'auto_matched',
               });
             } catch (e) { /* non-fatal */ }
-            // Trigger BOQ variation check after pricing a new investigation log
             try {
               await base44.asServiceRole.functions.invoke('checkBOQVariations', { job_id: record.job_id });
             } catch (_) { /* non-fatal — BOQ check runs independently */ }

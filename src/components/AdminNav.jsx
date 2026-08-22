@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, Sparkles, Menu, HelpCircle, Receipt, User, Truck, Boxes, Car, Clock, ShieldCheck, PoundSterling, ShieldAlert, ChevronRight, ChevronDown, PanelLeftClose, PanelLeftOpen, Wrench, Warehouse, Users, Contact, Zap, FileBarChart, FileUp, ClipboardCheck, FlaskConical, Crown, ArrowLeftRight } from 'lucide-react';
+import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, Sparkles, Menu, HelpCircle, Receipt, User, Truck, Boxes, Car, Clock, ShieldCheck, PoundSterling, ShieldAlert, ChevronRight, ChevronDown, PanelLeftClose, PanelLeftOpen, Wrench, Warehouse, Users, Contact, Zap, FileBarChart, FileUp, ClipboardCheck, FlaskConical, Crown, ArrowLeftRight, TrendingUp } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -83,6 +83,7 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
     { id: 'investigation', label: 'Investigation Hub', icon: FlaskConical },
     { id: 'compliance', label: 'Compliance Hub', icon: ShieldCheck },
     { id: 'billing', label: 'Financial Hub', icon: PoundSterling },
+    { id: 'performance', label: 'Performance Hub', icon: TrendingUp },
     { id: 'reports', label: 'Reports Hub', icon: FileBarChart },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];

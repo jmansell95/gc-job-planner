@@ -17,7 +17,7 @@ import {
   FlaskConical, ShieldCheck, PoundSterling, Settings,
   Satellite, Radio, Database, ShieldAlert, FileUp, Cloud,
   MapPin, MessageCircle, FileSpreadsheet, CreditCard, Building2,
-  Webhook, Bell, Landmark, Link2, FileBarChart,
+  Webhook, Bell, Landmark, Link2, FileBarChart, TrendingUp,
 } from 'lucide-react';
 
 export const INTEGRATIONS = {
@@ -52,6 +52,7 @@ export const FEATURE_REGISTRY = {
   investigation:  { label: 'Investigation Hub',type: 'hub', icon: FlaskConical,dependsOn: null,           defaultState: 'active' },
   compliance:     { label: 'Compliance Hub',   type: 'hub', icon: ShieldCheck, dependsOn: null,           defaultState: 'active' },
   billing:        { label: 'Financial Hub',   type: 'hub', icon: PoundSterling,dependsOn: null,          defaultState: 'active' },
+  performance:    { label: 'Performance Hub',  type: 'hub', icon: TrendingUp,  dependsOn: null,           defaultState: 'active' },
   settings:       { label: 'Settings',         type: 'hub', icon: Settings,    dependsOn: null,           defaultState: 'active' },
   reports:        { label: 'Reports Hub',       type: 'hub', icon: FileBarChart, dependsOn: null,           defaultState: 'active' },
 
@@ -94,7 +95,7 @@ export const FEATURE_REGISTRY = {
 // Ordered list of hub IDs for display
 export const HUB_ORDER = [
   'dashboard', 'jobs', 'scheduling', 'staff', 'logistics',
-  'assets', 'fleet', 'investigation', 'compliance', 'billing', 'reports', 'settings',
+  'assets', 'fleet', 'investigation', 'compliance', 'billing', 'performance', 'reports', 'settings',
 ];
 
 // Get all features that belong to a given hub

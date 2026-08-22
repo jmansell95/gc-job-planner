@@ -39,6 +39,7 @@ const SECTION_LABELS = {
   'log-qc': 'Audit',
   investigation: 'Investigation Hub',
   billing: 'Financial Hub',
+  performance: 'Performance Hub',
   settings: 'Settings',
   assets: 'Assets Hub',
   fleet: 'Fleet Hub',

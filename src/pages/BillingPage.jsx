@@ -1,21 +1,23 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  PoundSterling, FileBarChart, Receipt, Tag,
+  PoundSterling, FileBarChart, Download, Tag,
 } from 'lucide-react';
 import HubShell from '@/components/HubShell';
-import AgedDebtorsDashboard from '@/components/billing/AgedDebtorsDashboard';
+import CVRExportTab from '@/components/billing/CVRExportTab';
 import AFPPortfolioOverview from '@/components/afp/AFPPortfolioOverview';
 import AFPTemplateUploader from '@/components/afp/AFPTemplateUploader';
 import RateCardManager from '@/components/RateCardManager';
+import KeywordMappingManager from '@/components/billing/KeywordMappingManager';
+import PricingReviewBanner from '@/components/billing/PricingReviewBanner';
 import RunReportButton from '@/components/reports/RunReportButton';
 import { base44 } from '@/api/base44Client';
 
 /**
  * BillingPage — AFP-centric billing hub.
- * Three views: AFP Portfolio (primary), Rate Card (per-division Master Price List),
- * and Invoicing / Aged Debtors (secondary). All per-job financial management
- * (AFP builder, rate cards, controls) lives inside each job's Financials tab.
+ * Three views: AFP Portfolio (primary), Rate Card (Master Price List +
+ * Keyword Mapping), and CVR Export (replaces invoicing — invoicing is
+ * handled in an external system; CVRs are downloaded for higher management).
  */
 export default function BillingPage() {
   const navigate = useNavigate();
@@ -25,7 +27,7 @@ export default function BillingPage() {
   const tabs = [
     { id: 'afp-portfolio', label: 'AFP Portfolio', icon: FileBarChart },
     { id: 'rate-card', label: 'Rate Card', icon: Tag },
-    { id: 'invoicing', label: 'Invoicing', icon: Receipt },
+    { id: 'cvr-export', label: 'CVR Export', icon: Download },
   ];
 
   const goToJobById = async (jobId) => {
@@ -39,7 +41,7 @@ export default function BillingPage() {
     <HubShell
       icon={PoundSterling}
       title="Financial Control"
-      subtitle="AFP portfolio, rate card & aged debtors"
+      subtitle="AFP portfolio, rate card & CVR export"
       actions={<RunReportButton hub="billing" />}
       tabs={tabs}
       activeTab={tab}
@@ -47,20 +49,26 @@ export default function BillingPage() {
     >
       {/* ── AFP Portfolio: all jobs' AFPs in one place ── */}
       {tab === 'afp-portfolio' && (
-        <AFPPortfolioOverview
-          onSelectJob={goToJobById}
-          onUploadTemplate={() => setShowTemplateUploader(true)}
-        />
+        <>
+          <PricingReviewBanner />
+          <AFPPortfolioOverview
+            onSelectJob={goToJobById}
+            onUploadTemplate={() => setShowTemplateUploader(true)}
+          />
+        </>
       )}
 
-      {/* ── Rate Card: per-division Master Price List ── */}
+      {/* ── Rate Card: per-division Master Price List + Keyword Mapping ── */}
       {tab === 'rate-card' && (
-        <RateCardManager />
+        <div className="space-y-4">
+          <RateCardManager />
+          <KeywordMappingManager />
+        </div>
       )}
 
-      {/* ── Invoicing: aged debtors & invoice tracking ── */}
-      {tab === 'invoicing' && (
-        <AgedDebtorsDashboard />
+      {/* ── CVR Export: download CVR packs for higher management ── */}
+      {tab === 'cvr-export' && (
+        <CVRExportTab />
       )}
 
       {showTemplateUploader && (
