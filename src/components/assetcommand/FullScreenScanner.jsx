@@ -90,15 +90,14 @@ export default function FullScreenScanner({
   const startCamera = useCallback(async () => {
     setCameraError('');
     try {
-      // Single clean request — ideal is a HINT so it never throws
-      // OverconstrainedError. 4K ideal makes the browser negotiate the absolute
-      // highest resolution the back-camera sensor offers (often 1920×1080 or
-      // 3840×2160). No min, no fallback — both can silently drop to 640×480.
+      // 1080p ideal — sharp enough for a phone screen (the blur was caused by
+      // the global backdrop-filter CSS rule, not low resolution, and that's now
+      // fixed). 4K decode was the main source of lag; 1080p is ~4× lighter.
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: 'environment' },
-          width: { ideal: 3840 },
-          height: { ideal: 2160 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
         },
       });
       streamRef.current = stream;
@@ -168,13 +167,13 @@ export default function FullScreenScanner({
       <div className="absolute inset-0">
         <video ref={videoRef} playsInline muted autoPlay
           className="w-full h-full object-cover"
-          style={{ transform: 'translateZ(0)', willChange: 'transform', imageRendering: 'auto', backgroundColor: '#000' }} />
+          style={{ transform: 'translateZ(0)', backgroundColor: '#000' }} />
       </div>
 
       {/* Top bar */}
       <div className="relative z-10 flex items-center justify-between px-4 pt-4 pb-2 safe-area-top">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
             <ScanLine className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -184,7 +183,7 @@ export default function FullScreenScanner({
         </div>
         <button
           onClick={() => { stopCamera(); onClose(); }}
-          className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center active:scale-95 transition"
+          className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center active:scale-95 transition"
         >
           <X className="w-5 h-5 text-white" />
         </button>
@@ -193,8 +192,8 @@ export default function FullScreenScanner({
       {/* Reticle — centered with corner brackets + glow ring + scan line */}
       <div className="relative z-10 flex-1 flex items-center justify-center">
         <div className="relative w-[78vw] h-[52vh] max-w-[420px] max-h-[420px]">
-          {/* Subtle glow ring — kept faint so it doesn't haze the scan area */}
-          <div className="absolute -inset-4 rounded-[2rem] bg-emerald-400/10 blur-xl animate-pulse" />
+          {/* Subtle static glow ring — no animation to avoid repaints over live video */}
+          <div className="absolute -inset-4 rounded-[2rem] bg-emerald-400/10 blur-xl" />
           {/* Frame */}
           <div className="absolute inset-0 rounded-[1.75rem] border-2 border-white/30" />
           {/* Corner brackets */}
@@ -202,9 +201,16 @@ export default function FullScreenScanner({
           <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-white rounded-tr-[1.75rem]" />
           <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-white rounded-bl-[1.75rem]" />
           <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-white rounded-br-[1.75rem]" />
-          {/* Scan line */}
+          {/* Laser scan beam — gradient core + glow trail + leading dot */}
           {!cooldown && cameraActive && (
-            <div className="absolute left-4 right-4 h-0.5 bg-emerald-400 shadow-[0_0_12px_2px_rgba(16,185,129,0.8)] animate-[scanline_2s_ease-in-out_infinite]" />
+            <div className="absolute left-3 right-3 animate-[scanbeam_2.4s_ease-in-out_infinite]">
+              {/* Glow trail above & below the core */}
+              <div className="h-7 -translate-y-3.5 bg-gradient-to-b from-transparent via-emerald-400/25 to-transparent blur-sm" />
+              {/* Core beam — bright gradient line */}
+              <div className="h-[2px] bg-gradient-to-r from-transparent via-emerald-300 to-transparent shadow-[0_0_8px_2px_rgba(16,185,129,0.7)]" />
+              {/* Leading dot — bright pulse riding the beam */}
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-emerald-200 shadow-[0_0_10px_3px_rgba(16,185,129,0.9)]" />
+            </div>
           )}
           {/* Cooldown overlay */}
           {cooldown && (
@@ -249,7 +255,7 @@ export default function FullScreenScanner({
                 onChange={e => setManualValue(e.target.value)}
                 placeholder="Type barcode…"
                 autoFocus
-                className="w-full pl-11 pr-4 py-3.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-base font-medium text-white placeholder-white/40 focus:outline-none focus:border-emerald-400"
+                className="w-full pl-11 pr-4 py-3.5 bg-white/10 border border-white/20 rounded-xl text-base font-medium text-white placeholder-white/40 focus:outline-none focus:border-emerald-400"
               />
             </div>
             <button type="submit" disabled={!manualValue.trim()} className="px-5 py-3.5 bg-emerald-500 text-white rounded-xl text-sm font-bold disabled:opacity-40 active:scale-95 transition">
@@ -261,14 +267,14 @@ export default function FullScreenScanner({
             {torchSupported && (
               <button
                 onClick={toggleTorch}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold active:scale-95 transition ${torchOn ? 'bg-amber-400 text-amber-950' : 'bg-white/10 backdrop-blur-md text-white'}`}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold active:scale-95 transition ${torchOn ? 'bg-amber-400 text-amber-950' : 'bg-white/10 text-white'}`}
               >
                 <Zap className="w-4 h-4" /> {torchOn ? 'Torch On' : 'Torch'}
               </button>
             )}
             <button
               onClick={() => setShowManual(true)}
-              className="flex items-center gap-2 px-4 py-3 bg-white/10 backdrop-blur-md text-white rounded-xl text-sm font-semibold active:scale-95 transition"
+              className="flex items-center gap-2 px-4 py-3 bg-white/10 text-white rounded-xl text-sm font-semibold active:scale-95 transition"
             >
               <Keyboard className="w-4 h-4" /> Manual
             </button>
@@ -281,7 +287,7 @@ export default function FullScreenScanner({
         )}
       </div>
 
-      <style>{`@keyframes scanline { 0%,100% { top: 12%; } 50% { top: 88%; } }`}</style>
+      <style>{`@keyframes scanbeam { 0%,100% { top: 10%; } 50% { top: 90%; } }`}</style>
     </div>
   );
 }
