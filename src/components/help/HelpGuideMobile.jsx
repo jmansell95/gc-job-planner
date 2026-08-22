@@ -11,6 +11,7 @@ const categoryConfig = {
   safety: { label: 'Safety', icon: '⚠️', color: 'text-amber-600', bg: 'bg-amber-50', dot: 'bg-amber-500' },
   general: { label: 'General', icon: 'ℹ️', color: 'text-slate-600', bg: 'bg-slate-50', dot: 'bg-slate-400' },
   app_usage: { label: 'Using the App', icon: '❓', color: 'text-purple-600', bg: 'bg-purple-50', dot: 'bg-purple-500' },
+  financial: { label: 'Financial', icon: '💷', color: 'text-emerald-700', bg: 'bg-emerald-50', dot: 'bg-emerald-600' },
 };
 
 export default function HelpGuideMobile({

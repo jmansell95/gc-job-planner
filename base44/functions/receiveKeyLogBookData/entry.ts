@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { parseRemarks, professionaliseActivities } from '../../shared/keylogbookRemarks.ts';
 import { loadJobRateCardItems, resolveJobCharge } from '../../shared/jobRateMatcher.ts';
+import { generateKeyLogBookTimesheet } from '../../shared/keylogbookTimesheet.ts';
 
 // ============================================================
 // KeyLogBook Webhook Receiver — Professionalised Site Logs Pipeline
@@ -317,10 +318,29 @@ Deno.serve(async (req) => {
       }
     }
 
-    // --- Update the config with the last webhook status ---
+    // --- Auto-approve site logs and generate the timesheet (fully automatic) ---
+    // KeyLogBook remarks are auto-approved and a submitted daily summary
+    // timesheet is generated immediately — no manual manager review step.
+    // The manager can still edit/reject in the Timesheets tab afterwards.
+    let timesheetResult: any = null;
     const remarksCount = logs.filter(l => l.source === 'keylogbook_remarks').length;
+    if (remarksCount > 0) {
+      try {
+        timesheetResult = await generateKeyLogBookTimesheet(base44, job.id, workDate, leadDrillerId || undefined);
+      } catch (e) {
+        // Timesheet generation failure is non-fatal — logs are still saved
+        timesheetResult = { status: 'error', message: String(e.message || e) };
+      }
+    }
+
+    // --- Update the config with the last webhook status ---
     const agsCount = logs.filter(l => l.source === 'ags_import').length;
-    const summary = `Processed ${insertedLogs} log entr${insertedLogs === 1 ? 'y' : 'ies'}${remarksCount > 0 ? ` · ${remarksCount} site log activit${remarksCount === 1 ? 'y' : 'ies'} (pending review)` : ''}${agsCount > 0 ? ` · ${agsCount} borehole record${agsCount === 1 ? '' : 's'}` : ''}`;
+    const tsMsg = timesheetResult?.status === 'success'
+      ? ` · timesheet auto-generated for ${timesheetResult.staff_name || 'driller'}`
+      : timesheetResult?.status === 'no_logs'
+        ? ''
+        : ' · timesheet generation failed';
+    const summary = `Processed ${insertedLogs} log entr${insertedLogs === 1 ? 'y' : 'ies'}${remarksCount > 0 ? ` · ${remarksCount} site log activit${remarksCount === 1 ? 'y' : 'ies'} (auto-approved)` : ''}${agsCount > 0 ? ` · ${agsCount} borehole record${agsCount === 1 ? '' : 's'}` : ''}${tsMsg}`;
     await updateWebhookStatus(base44, config, 'success', summary);
 
     return Response.json({
@@ -332,6 +352,7 @@ Deno.serve(async (req) => {
       remarks_activities: remarksCount,
       borehole_records: agsCount,
       lead_driller: leadDrillerName || '',
+      timesheet: timesheetResult,
       summary,
     });
   } catch (error) {

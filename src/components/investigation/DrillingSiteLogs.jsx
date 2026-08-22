@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Activity, AlertTriangle, UserX, Clock, CalendarDays, CheckCircle2, Hourglass } from 'lucide-react';
+import { Activity, AlertTriangle, UserX, Clock, CalendarDays, CheckCircle2 } from 'lucide-react';
 import SiteLogReviewManager from '@/components/investigation/SiteLogReviewManager';
 
 /**
@@ -21,8 +21,8 @@ export default function DrillingSiteLogs({ job, assignedStaff }) {
   const otherLogs = logs.filter(l => l.source !== 'keylogbook_remarks' && l.source !== 'ags_import');
   const loggedDays = new Set(remarksLogs.map(l => l.date).filter(Boolean)).size;
   const totalMinutes = remarksLogs.reduce((s, l) => s + (l.duration_minutes || 0), 0);
-  const pendingCount = remarksLogs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
   const approvedCount = remarksLogs.filter(l => l.manager_review_status === 'approved').length;
+  const pricedCount = remarksLogs.filter(l => l.chargeable).length;
   const noNameCount = logs.filter(l => !l.logged_by_role || l.logged_by_role === 'unspecified' || l.logged_by_role === 'ags_import').length;
   const hasNoName = noNameCount > 0 && logs.length > 0;
 
@@ -70,8 +70,8 @@ export default function DrillingSiteLogs({ job, assignedStaff }) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <HeroStat icon={CalendarDays} label="Days Logged" value={loggedDays} sub="unique dates" />
           <HeroStat icon={Clock} label="Total Time" value={fmtDur(totalMinutes)} sub="from remarks" />
-          <HeroStat icon={Activity} label="Activities" value={remarksLogs.length} sub={`${otherLogs.length} other`} />
-          <HeroStat icon={pendingCount > 0 ? Hourglass : CheckCircle2} label="Approved" value={approvedCount} sub={pendingCount > 0 ? `${pendingCount} pending` : 'all done'} />
+          <HeroStat icon={Activity} label="Activities" value={remarksLogs.length} sub={`${pricedCount} priced`} />
+          <HeroStat icon={CheckCircle2} label="Auto-Approved" value={approvedCount} sub="timesheets generated" />
         </div>
       </div>
 

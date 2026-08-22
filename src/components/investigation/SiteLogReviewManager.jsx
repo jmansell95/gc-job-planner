@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   Activity, Clock, CheckCircle2, AlertTriangle, Tablet, Edit2, X, Save,
-  Send, Loader2, Calendar, User, FileText, ChevronDown, ChevronRight, MapPin
+  Send, Loader2, Calendar, User, FileText, ChevronDown, ChevronRight, MapPin, RotateCcw
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
@@ -108,12 +108,13 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
       queryClient.invalidateQueries({ queryKey: ['investigation-logs', job.id] });
       queryClient.invalidateQueries({ queryKey: ['staff-timesheets'] });
       queryClient.invalidateQueries({ queryKey: ['all-timesheets-mgr'] });
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
       toast({
-        title: 'Site logs approved',
-        description: res?.data?.message || `Timesheet generated for ${format(new Date(date + 'T00:00:00'), 'dd MMM')}.`,
+        title: 'Timesheet re-generated',
+        description: res?.data?.message || `Timesheet re-generated for ${format(new Date(date + 'T00:00:00'), 'dd MMM')}.`,
       });
     } catch (e) {
-      toast({ title: 'Error', description: 'Could not approve logs. Please try again.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Could not re-generate timesheet. Please try again.', variant: 'destructive' });
     }
     setApproving(false);
   };
@@ -132,12 +133,12 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
   return (
     <div className="space-y-4">
       {/* Info banner */}
-      <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 flex items-start gap-2.5">
-        <Tablet className="w-4 h-4 text-indigo-600 flex-shrink-0 mt-0.5" />
+      <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-start gap-2.5">
+        <Tablet className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
         <div className="min-w-0">
-          <p className="text-sm font-bold text-indigo-900">Site Logs from KeyLogBook</p>
-          <p className="text-xs text-indigo-700 mt-0.5 leading-relaxed">
-            These activities were automatically parsed and professionalised from your driller's KeyLogBook remarks. Review and edit each entry, then approve to generate the timesheet automatically.
+          <p className="text-sm font-bold text-emerald-900">Site Logs from KeyLogBook — Auto-Approved</p>
+          <p className="text-xs text-emerald-700 mt-0.5 leading-relaxed">
+            These activities were automatically parsed, professionalised, and auto-priced from your driller's KeyLogBook remarks. A daily summary timesheet is generated automatically when the data arrives. You can still edit any entry and re-generate the timesheet if needed.
           </p>
         </div>
       </div>
@@ -155,8 +156,8 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
           {/* Summary mini-stats */}
           <div className="grid grid-cols-4 gap-2">
             <MiniStat label="Activities" value={remarksLogs.length} tone="slate" />
-            <MiniStat label="Pending" value={pendingCount} tone="amber" />
             <MiniStat label="Approved" value={approvedCount} tone="emerald" />
+            <MiniStat label="Auto-Priced" value={remarksLogs.filter(l => l.chargeable).length} tone="amber" />
             <MiniStat label="Total Time" value={fmtDur(totalMinutes)} tone="indigo" />
           </div>
 
@@ -201,15 +202,9 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
                           <User className="w-3 h-3" /> {drillerName}
                         </span>
                       )}
-                      {dayPending > 0 ? (
-                        <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" /> {dayPending} pending
-                        </span>
-                      ) : (
-                        <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" /> Approved
-                        </span>
-                      )}
+                      <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Auto-Approved
+                      </span>
                     </button>
 
                     {/* Activity timeline — inside the day */}
@@ -285,21 +280,18 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
                                       </span>
                                     )}
                                     <RoleBadge role={log.logged_by_role} />
-                                    {isPending ? (
-                                      <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
-                                        <AlertTriangle className="w-2.5 h-2.5" /> Pending
-                                      </span>
-                                    ) : (
-                                      <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
-                                        <CheckCircle2 className="w-2.5 h-2.5" /> Approved
+                                    <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
+                                      <CheckCircle2 className="w-2.5 h-2.5" /> Approved
+                                    </span>
+                                    {log.chargeable && log.charge_amount && (
+                                      <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
+                                        £{Number(log.charge_amount).toFixed(0)}
                                       </span>
                                     )}
-                                    {isPending && (
-                                      <button onClick={() => handleEdit(log)}
-                                        className="ml-auto text-xs text-slate-500 hover:text-emerald-700 flex items-center gap-1 font-medium">
-                                        <Edit2 className="w-3 h-3" /> Edit
-                                      </button>
-                                    )}
+                                    <button onClick={() => handleEdit(log)}
+                                      className="ml-auto text-xs text-slate-500 hover:text-emerald-700 flex items-center gap-1 font-medium">
+                                      <Edit2 className="w-3 h-3" /> Edit
+                                    </button>
                                   </div>
                                   {/* Description */}
                                   <p className="text-sm text-slate-700 leading-relaxed">{log.description}</p>
@@ -322,15 +314,15 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
                       </div>
                     )}
 
-                    {/* Approve button */}
-                    {dayPending > 0 && isExpanded && (
-                      <div className="px-4 py-3 bg-amber-50/40 border-t border-amber-100">
+                    {/* Re-generate timesheet button */}
+                    {isExpanded && (
+                      <div className="px-4 py-3 bg-slate-50/60 border-t border-slate-100">
                         <button onClick={() => handleApproveDate(date)} disabled={approving}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-[0.98] transition text-sm font-bold disabled:opacity-50 touch-manipulation">
-                          {approving ? <><Loader2 className="w-4 h-4 animate-spin" /> Approving…</> : <><Send className="w-4 h-4" /> Approve & Generate Timesheet</>}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-700 text-white rounded-xl hover:bg-slate-800 active:scale-[0.98] transition text-sm font-bold disabled:opacity-50 touch-manipulation">
+                          {approving ? <><Loader2 className="w-4 h-4 animate-spin" /> Re-generating…</> : <><RotateCcw className="w-4 h-4" /> Re-generate Timesheet</>}
                         </button>
                         <p className="text-[11px] text-slate-500 text-center mt-1.5">
-                          This will create draft timesheet entries for each approved activity.
+                          Re-creates the daily summary timesheet from these activities (use after editing).
                         </p>
                       </div>
                     )}
