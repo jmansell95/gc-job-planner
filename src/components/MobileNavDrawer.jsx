@@ -15,14 +15,14 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="lg:hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-md"
+            className="xl:hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-md"
           />
           <motion.aside
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'tween', duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-            className="lg:hidden fixed top-0 left-0 bottom-0 z-50 w-[82%] max-w-xs sidebar-modern border-r border-black/20 flex flex-col shadow-2xl"
+            className="xl:hidden fixed top-0 left-0 bottom-0 z-50 w-[82%] max-w-xs sidebar-modern border-r border-black/20 flex flex-col shadow-2xl"
             style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
             <div className="p-4 border-b border-white/10 flex items-center gap-3">
