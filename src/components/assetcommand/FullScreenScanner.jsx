@@ -90,22 +90,12 @@ export default function FullScreenScanner({
   const startCamera = useCallback(async () => {
     setCameraError('');
     try {
-      // Try exact high-res back camera first, fall back progressively so we
-      // get the sharpest possible feed on devices that support it.
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { exact: 'environment' }, width: { exact: 1920 }, height: { exact: 1080 } },
-        });
-      } catch (_) {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-          });
-        } catch (_) {
-          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
-        }
-      }
+      // Single call with very high ideal dimensions — the browser negotiates
+      // the highest native resolution the back camera actually supports.
+      // No OverconstrainedError, no 640×480 fallback.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 4096 }, height: { ideal: 3072 } },
+      });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -113,7 +103,14 @@ export default function FullScreenScanner({
       }
       const track = stream.getVideoTracks()[0];
       const caps = track.getCapabilities ? track.getCapabilities() : {};
+      const settings = track.getSettings ? track.getSettings() : {};
+      console.log('[Scanner] Camera resolution:', settings.width, '×', settings.height);
       if (caps.torch) setTorchSupported(true);
+      // Reset digital zoom to minimum (1×) — some phones apply default zoom
+      // that softens the image.
+      if (caps.zoom && caps.zoom.min != null) {
+        try { await track.applyConstraints({ advanced: [{ zoom: caps.zoom.min }] }); } catch (_) {}
+      }
       // Force continuous autofocus for sharp barcode reads where supported
       if (caps.focusMode && caps.focusMode.includes('continuous')) {
         try { await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (_) {}
@@ -159,7 +156,7 @@ export default function FullScreenScanner({
     <div className="fixed inset-0 z-[70] bg-black flex flex-col">
       {/* Camera video — full bleed */}
       <div className="absolute inset-0">
-        <video ref={videoRef} playsInline muted className="w-full h-full object-contain bg-black" />
+        <video ref={videoRef} playsInline muted className="w-full h-full object-cover bg-black" />
       </div>
 
       {/* Dark scrim for contrast */}
