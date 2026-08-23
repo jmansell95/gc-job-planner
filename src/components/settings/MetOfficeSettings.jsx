@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Cloud, Loader2, Check, AlertTriangle, RefreshCw, Link2, Download, Globe,
+  Key, Eye, EyeOff, Save, ExternalLink,
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import WeatherThresholdsSettings from '@/components/settings/WeatherThresholdsSettings';
@@ -22,15 +23,45 @@ export default function MetOfficeSettings() {
   const [syncResult, setSyncResult] = useState(null);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
+  const [apiKey, setApiKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
+  const [savingKey, setSavingKey] = useState(false);
 
   const { data: settingsRec } = useQuery({
     queryKey: ['met-office-config'],
     queryFn: () => base44.entities.AppSetting.filter({ key: 'met_office_config' }, '-created_date', 5),
   });
 
+  const { data: apiKeyRec } = useQuery({
+    queryKey: ['weather-api-config'],
+    queryFn: () => base44.entities.AppSetting.filter({ key: 'weather_api_config' }, '-created_date', 5),
+  });
+
   useEffect(() => {
     if (settingsRec?.[0]?.value) setConfig({ ...DEFAULT_CONFIG, ...settingsRec[0].value });
   }, [settingsRec]);
+
+  useEffect(() => {
+    if (apiKeyRec?.[0]?.value?.api_key) setApiKey(apiKeyRec[0].value.api_key);
+  }, [apiKeyRec]);
+
+  const handleSaveKey = async () => {
+    setSavingKey(true);
+    try {
+      const existing = apiKeyRec?.[0];
+      const value = { api_key: apiKey.trim() };
+      if (existing) {
+        await base44.entities.AppSetting.update(existing.id, { value });
+      } else {
+        await base44.entities.AppSetting.create({ key: 'weather_api_config', label: 'WeatherAPI.com Key', value });
+      }
+      queryClient.invalidateQueries({ queryKey: ['weather-api-config'] });
+      toast({ title: 'API key saved', description: 'Weather sync will now use WeatherAPI.com.' });
+    } catch (e) {
+      toast({ title: 'Save failed', description: e.message, variant: 'destructive' });
+    }
+    setSavingKey(false);
+  };
 
   const handleSync = async () => {
     setSyncing(true);
@@ -50,12 +81,18 @@ export default function MetOfficeSettings() {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=51.5&longitude=-0.1&daily=weather_code,temperature_2m_max&timezone=auto&forecast_days=1');
-      if (res.ok) {
-        const data = await res.json();
-        setTestResult({ ok: true, msg: `Connection successful — Open-Meteo is live. Current London forecast: ${data?.daily?.temperature_2m_max?.[0] ?? '—'}°C` });
+      const key = apiKey.trim();
+      if (!key) {
+        setTestResult({ ok: false, msg: 'Enter your WeatherAPI.com key first, then save.' });
+        setTesting(false);
+        return;
+      }
+      const res = await fetch(`https://api.weatherapi.com/v1/forecast.json?key=${key}&q=51.5,-0.1&days=1&aqi=no&alerts=no`);
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.current) {
+        setTestResult({ ok: true, msg: `Connection successful — WeatherAPI.com is live. Current London: ${data.current.temp_c}°C, ${data.current.condition?.text || '—'}` });
       } else {
-        setTestResult({ ok: false, msg: `API returned ${res.status}` });
+        setTestResult({ ok: false, msg: data?.error?.message || `API returned ${res.status}` });
       }
     } catch (e) {
       setTestResult({ ok: false, msg: e.message || 'Connection test failed' });
@@ -63,35 +100,67 @@ export default function MetOfficeSettings() {
     setTesting(false);
   };
 
+  const hasKey = !!apiKeyRec?.[0]?.value?.api_key;
+
   return (
     <div className="space-y-4">
       <SettingsSectionHeader
         icon={Cloud}
-        title="Open-Meteo Weather API"
-        description="Free, no-API-key weather data from Open-Meteo — pulls daily forecasts for all active job sites across every division. Data is sourced from multiple NWP models (ECMWF, GFS, ICON) for high accuracy."
+        title="Weather API"
+        description="WeatherAPI.com (recommended) provides reliable, API-key-based forecasts that aren't affected by shared-IP rate limiting. Falls back to free Open-Meteo when no key is set."
       />
 
       <WeatherThresholdsSettings />
 
-      {/* Connection status — always connected (free, no key) */}
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
-            <Link2 className="w-5 h-5 text-emerald-600" />
+      {/* API Key Configuration */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Key className="w-4 h-4 text-[#2E5A1A]" />
+          <h3 className="text-sm font-bold text-slate-800">WeatherAPI.com API Key</h3>
+          {hasKey && (
+            <span className="ml-auto flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+              <Check className="w-3 h-3" /> Connected
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-slate-500">
+          Sign up free at{' '}
+          <a href="https://www.weatherapi.com/signup.aspx" target="_blank" rel="noopener noreferrer" className="text-[#2E5A1A] font-semibold underline inline-flex items-center gap-0.5">
+            weatherapi.com <ExternalLink className="w-3 h-3" />
+          </a>
+          {' '}— the free tier allows 1 million calls/month. Paste your key below to enable reliable weather syncs.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <input
+              type={showKey ? 'text' : 'password'}
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Paste your WeatherAPI.com key"
+              className="w-full pr-10 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]"
+            />
+            <button
+              type="button"
+              onClick={() => setShowKey(!showKey)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-              Always Connected <Globe className="w-3.5 h-3.5 text-emerald-600" />
-            </p>
-            <p className="text-xs text-slate-500">Open-Meteo is free and requires no API key — weather data is available immediately for all divisions.</p>
-          </div>
-          <button onClick={handleTest} disabled={testing}
-            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition disabled:opacity-50">
-            {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Test Connection
+          <button
+            onClick={handleSaveKey}
+            disabled={savingKey || !apiKey.trim()}
+            className="flex items-center justify-center gap-1.5 px-4 py-2 bg-[#2E5A1A] text-white rounded-lg text-sm font-bold hover:bg-[#1c4a12] disabled:opacity-50 transition whitespace-nowrap"
+          >
+            {savingKey ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Key
           </button>
         </div>
+        <button onClick={handleTest} disabled={testing || !apiKey.trim()}
+          className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition disabled:opacity-50">
+          {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Test Connection
+        </button>
         {testResult && (
-          <div className={`mt-3 flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${testResult.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+          <div className={`flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${testResult.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
             <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
             <p>{testResult.msg}</p>
           </div>
@@ -102,21 +171,21 @@ export default function MetOfficeSettings() {
       <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
         <div className="flex items-center gap-2">
           <Globe className="w-4 h-4 text-[#2E5A1A]" />
-          <h3 className="text-sm font-bold text-slate-800">About Open-Meteo</h3>
+          <h3 className="text-sm font-bold text-slate-800">About the Weather API</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-600">
           <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-50">
             <Check className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-slate-700">No API Key Required</p>
-              <p className="text-slate-500 mt-0.5">Free for non-commercial use — no registration needed.</p>
+              <p className="font-semibold text-slate-700">No Shared-IP Throttling</p>
+              <p className="text-slate-500 mt-0.5">API-key auth means your traffic isn't blocked by other apps sharing the server IP.</p>
             </div>
           </div>
           <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-50">
             <Check className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-slate-700">Multi-Model Accuracy</p>
-              <p className="text-slate-500 mt-0.5">Aggregates ECMWF, GFS, ICON and 30+ other models.</p>
+              <p className="font-semibold text-slate-700">UK-Accurate Forecasts</p>
+              <p className="text-slate-500 mt-0.5">High-resolution UK model data with daily forecasts and current conditions.</p>
             </div>
           </div>
           <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-50">

@@ -27,7 +27,10 @@ export default async function (req: Request): Promise<Response> {
     const defaults = { ...DEFAULT_THRESHOLDS, ...defaultsRaw };
     const thresholds = resolveThresholds(job, defaults);
 
-    const weather = await fetchSiteWeather(job.site_lat, job.site_lng);
+    const weatherConfig = await getAppSettingValue(base44, 'weather_api_config', {});
+    const apiKey = weatherConfig.api_key || undefined;
+
+    const weather = await fetchSiteWeather(job.site_lat, job.site_lng, apiKey);
     if (!weather) return Response.json({ ok: false, error: 'Weather fetch failed' }, { status: 502 });
 
     const result = evaluateWeather(weather, thresholds);

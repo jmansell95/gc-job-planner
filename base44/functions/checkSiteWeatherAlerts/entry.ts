@@ -20,6 +20,9 @@ export default async function (req: Request): Promise<Response> {
     const defaultsRaw = await getAppSettingValue(base44, 'weather_thresholds', DEFAULT_THRESHOLDS);
     const defaults = { ...DEFAULT_THRESHOLDS, ...defaultsRaw };
 
+    const weatherConfig = await getAppSettingValue(base44, 'weather_api_config', {});
+    const apiKey = weatherConfig.api_key || undefined;
+
     const jobs = await base44.asServiceRole.entities.Job.list('-created_date', 500);
     const activeJobs = jobs.filter((j: any) =>
       (j.status === 'in_progress' || j.status === 'planning') &&
@@ -34,7 +37,7 @@ export default async function (req: Request): Promise<Response> {
     const cautionAlerts: any[] = [];
 
     for (const job of activeJobs) {
-      const weather = await fetchSiteWeather(job.site_lat, job.site_lng);
+      const weather = await fetchSiteWeather(job.site_lat, job.site_lng, apiKey);
       if (!weather) continue;
       const thresholds = resolveThresholds(job, defaults);
       const assessment = evaluateWeather(weather, thresholds);

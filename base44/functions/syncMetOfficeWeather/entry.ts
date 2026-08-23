@@ -1,16 +1,14 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { updateAppSettingValue } from '../../shared/appSettings.ts';
+import { updateAppSettingValue, getAppSettingValue } from '../../shared/appSettings.ts';
+import { fetchWeatherApi, fetchOpenMeteo } from '../../shared/weatherClient.ts';
 
 // ============================================================
-// syncMetOfficeWeather — pulls daily weather forecasts from the
-// free Open-Meteo API (no API key required) for ALL active job
-// sites across ALL divisions. Stores results as WeatherLog records.
+// syncMetOfficeWeather — pulls daily weather forecasts for ALL
+// active job sites across ALL divisions. Stores results as
+// WeatherLog records.
 //
-// Open-Meteo provides global weather data from multiple NWP models
-// (ECMWF, GFS, ICON, etc.) — more accurate than any single source.
-// It is free for non-commercial use with no API key and no rate
-// limits beyond fair-use (10,000 requests/day).
-//
+// Uses WeatherAPI.com when an API key is configured in Settings →
+// Weather. Falls back to Open-Meteo (free, no key) when no key.
 // Admin-only — invoked manually or via a scheduled automation.
 // Returns: { ok, message, synced, errors }
 // ============================================================
@@ -64,34 +62,6 @@ function assessVerdict(d: any): { level: string; reasons: string[] } {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function fetchWeather(lat: number, lng: number): Promise<{ data?: any; error?: string }> {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
-    `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max` +
-    `&timezone=auto&forecast_days=1`;
-  // Retry up to 3 times on 429 (rate limit) with escalating backoff —
-  // Open-Meteo's free tier throttles burst requests from the shared
-  // backend runtime IP. Backoff: 3s, then 8s, then 15s.
-  const backoffs = [3000, 8000, 15000];
-  for (let attempt = 0; attempt <= backoffs.length; attempt++) {
-    try {
-      const res = await fetch(url, {
-        headers: { 'User-Agent': 'GC-Mission-Control/1.0 (weather sync; contact@groundcontrol.co.uk)' },
-      });
-      if (res.status === 429) {
-        if (attempt < backoffs.length) { await sleep(backoffs[attempt]); continue; }
-        return { error: 'Open-Meteo rate limit (429) — shared IP throttled, try again in a few minutes' };
-      }
-      if (!res.ok) return { error: `Open-Meteo returned HTTP ${res.status}` };
-      const json = await res.json();
-      if (!json?.daily?.time?.length) return { error: `No daily.time in response (keys: ${Object.keys(json || {}).join(',')})` };
-      return { data: json };
-    } catch (e: any) {
-      return { error: e?.message || String(e) };
-    }
-  }
-  return { error: 'Open-Meteo rate limit (429) — shared IP throttled, try again in a few minutes' };
-}
-
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -99,7 +69,11 @@ export default async function(req: Request): Promise<Response> {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 });
 
-    // Fetch ALL active jobs across ALL divisions (asServiceRole bypasses RLS)
+    // Read the WeatherAPI.com key (if configured).
+    const weatherConfig = await getAppSettingValue(base44, 'weather_api_config', {});
+    const apiKey: string = weatherConfig.api_key || '';
+    const provider = apiKey ? 'WeatherAPI.com' : 'Open-Meteo';
+
     const jobs = await base44.asServiceRole.entities.Job.list('-created_date', 500);
     const activeJobs = jobs.filter((j: any) =>
       (j.status === 'in_progress' || j.status === 'planning') &&
@@ -107,7 +81,7 @@ export default async function(req: Request): Promise<Response> {
     );
 
     if (activeJobs.length === 0) {
-      await updateAppSettingValue(base44, 'met_office_config', 'Open-Meteo Weather API Configuration', {
+      await updateAppSettingValue(base44, 'met_office_config', 'Weather API Configuration', {
         last_sync_at: new Date().toISOString(),
         last_sync_status: 'ok',
         last_sync_summary: 'No active jobs with site coordinates.',
@@ -122,9 +96,12 @@ export default async function(req: Request): Promise<Response> {
 
     for (const job of activeJobs) {
       try {
-        // Pace requests so Open-Meteo doesn't rate-limit the backend IP.
-        if (synced + errors > 0) await sleep(1500);
-        const result = await fetchWeather(job.site_lat, job.site_lng);
+        // Pace Open-Meteo requests (shared-IP rate limit); WeatherAPI.com
+        // is key-based so no pacing needed.
+        if (!apiKey && synced + errors > 0) await sleep(1500);
+        const result = apiKey
+          ? await fetchWeatherApi(job.site_lat, job.site_lng, apiKey)
+          : await fetchOpenMeteo(job.site_lat, job.site_lng);
         if (result.error) { errors++; lastError = `${job.name}: ${result.error}`; continue; }
         const weather = result.data;
 
@@ -165,9 +142,9 @@ export default async function(req: Request): Promise<Response> {
       }
     }
 
-    const summary = `Synced weather for ${synced} of ${activeJobs.length} active site(s)${errors > 0 ? ` (${errors} error${errors > 1 ? 's' : ''})` : ''}` + (lastError ? ` — ${lastError}` : '');
+    const summary = `Synced weather for ${synced} of ${activeJobs.length} active site(s) via ${provider}${errors > 0 ? ` (${errors} error${errors > 1 ? 's' : ''})` : ''}` + (lastError ? ` — ${lastError}` : '');
 
-    await updateAppSettingValue(base44, 'met_office_config', 'Open-Meteo Weather API Configuration', {
+    await updateAppSettingValue(base44, 'met_office_config', 'Weather API Configuration', {
       last_sync_at: new Date().toISOString(),
       last_sync_status: errors === 0 ? 'ok' : 'partial',
       last_sync_summary: summary,

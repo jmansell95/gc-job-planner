@@ -3,6 +3,8 @@
 // checkSiteWeatherAlerts (scheduled automation) so the "okay to work"
 // indicator and the email alerts use identical rules.
 
+import { fetchWeatherApi, fetchOpenMeteo } from './weatherClient.ts';
+
 export const DEFAULT_THRESHOLDS = {
   temp_min: 2,
   temp_max: 30,
@@ -91,17 +93,11 @@ export function evaluateWeather(weather: any, t: any) {
   };
 }
 
-// Fetch current + today's weather from Open-Meteo for a lat/lng.
-export async function fetchSiteWeather(lat: number, lng: number): Promise<any | null> {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
-    `&current=temperature_2m,weather_code,wind_speed_10m,wind_gusts_10m,precipitation` +
-    `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max` +
-    `&timezone=auto&forecast_days=1`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
+// Fetch current + today's weather. Uses WeatherAPI.com when apiKey is provided,
+// otherwise falls back to Open-Meteo (free, no key).
+export async function fetchSiteWeather(lat: number, lng: number, apiKey?: string): Promise<any | null> {
+  const result = apiKey
+    ? await fetchWeatherApi(lat, lng, apiKey)
+    : await fetchOpenMeteo(lat, lng);
+  return result.data || null;
 }
