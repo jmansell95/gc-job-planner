@@ -43,6 +43,9 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   const { data: rigs = [] } = useQuery({ queryKey: ['rigs-active'], queryFn: () => base44.entities.SiteAsset.filter({ is_rig: true, is_active: true }) });
   const rateMap = buildRateMap(overtimeRates);
 
+  // Helper: find the staff member's division_id for the rota assignment
+  const getStaffDivisionId = (staffId) => staff.find(s => s.id === staffId)?.division_id || '';
+
   const computeWeekStart = (dateStr) => {
     const d = new Date(dateStr + 'T00:00:00');
     const day = d.getDay();
