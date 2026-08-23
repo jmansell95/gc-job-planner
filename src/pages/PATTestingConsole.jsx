@@ -5,11 +5,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   Plug, Search, ShieldCheck, ShieldAlert, ShieldX, HelpCircle,
   RefreshCw, CheckCircle2, XCircle, Clock, Printer, Zap, ChevronRight,
-  ScanLine, Camera, AlertTriangle,
+  ScanLine, Camera, AlertTriangle, Upload,
 } from 'lucide-react';
 import { daysUntil } from '@/utils/rigRollup';
 import { Skeleton } from '@/components/StateViews';
 import PATTestForm from '@/components/pat/PATTestForm';
+import KEWPATImportModal from '@/components/pat/KEWPATImportModal';
 import BarcodeScanner from '@/components/staff/BarcodeScanner';
 import PageHeader from '@/components/PageHeader';
 import { safeFormat } from '@/utils/format';
@@ -35,6 +36,7 @@ export default function PATTestingConsole() {
   const [sessionLog, setSessionLog] = useState([]);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanError, setScanError] = useState('');
+  const [importOpen, setImportOpen] = useState(false);
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['site-assets'],
@@ -128,9 +130,14 @@ export default function PATTestingConsole() {
           { key: 'ok', label: 'Compliant', value: counts.ok, icon: ShieldCheck, onClick: () => setBucket(bucket === 'ok' ? 'all' : 'ok'), active: bucket === 'ok' },
         ]}
         actions={
-          <button onClick={handleSync} disabled={syncing} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/15 hover:bg-white/25 rounded-lg text-sm font-medium transition flex-shrink-0 disabled:opacity-60">
-            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} /> {syncing ? 'Syncing…' : 'Sync Panda'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setImportOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/15 hover:bg-white/25 rounded-lg text-sm font-medium transition flex-shrink-0">
+              <Upload className="w-4 h-4" /> Import
+            </button>
+            <button onClick={handleSync} disabled={syncing} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/15 hover:bg-white/25 rounded-lg text-sm font-medium transition flex-shrink-0 disabled:opacity-60">
+              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} /> {syncing ? 'Syncing…' : 'Sync Panda'}
+            </button>
+          </div>
         }
       />
 
@@ -260,6 +267,13 @@ export default function PATTestingConsole() {
           asset={testAsset}
           onClose={() => setTestAsset(null)}
           onSaved={handleTestSaved}
+        />
+      )}
+
+      {importOpen && (
+        <KEWPATImportModal
+          assets={assets}
+          onClose={() => setImportOpen(false)}
         />
       )}
     </div>
