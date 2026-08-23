@@ -7,7 +7,7 @@ import {
   CalendarDays, ExternalLink, Lock,
   TrendingUp, FileX, Clock, Users,
 } from 'lucide-react';
-import TabBar from '@/components/TabBar';
+import HubShell from '@/components/HubShell';
 import SubPills from '@/components/SubPills';
 import SafetyCultureGate from '@/components/safety/SafetyCultureGate';
 import SafetyCultureCheckHub from '@/components/safety/SafetyCultureCheckHub';
@@ -115,53 +115,36 @@ export default function CompliancePage() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* ── Modern Hero Header ── */}
-      <div className="relative overflow-hidden rounded-3xl shadow-lg">
-        <div className="absolute inset-0 hero-vibrant" />
-        <div className="relative z-10 px-5 py-5 md:px-7 md:py-6">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center flex-shrink-0 ring-1 ring-white/20 shadow-xl">
-                <ShieldAlert className="w-7 h-7 text-white" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-xl md:text-2xl font-extrabold text-white tracking-tight">
-                  Safety & Compliance Hub
-                </h1>
-                <p className="text-white/80 text-sm font-medium mt-0.5">
-                  SafetyCulture integration pending — configure in Settings to sync audits & incidents
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <RunReportButton hub="compliance" />
-              <a
-                href={SC_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/15 backdrop-blur-md text-white text-sm font-semibold hover:bg-white/25 transition ring-1 ring-white/20"
-              >
-                <ExternalLink className="w-4 h-4" />
-                Open SafetyCulture
-              </a>
-            </div>
-          </div>
+    <HubShell
+      icon={ShieldAlert}
+      title="Safety & Compliance"
+      subtitle="SafetyCulture integration pending — configure in Settings to sync audits & incidents"
+      actions={
+        <div className="flex items-center gap-2">
+          <RunReportButton hub="compliance" />
+          <a
+            href={SC_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition active:scale-95"
+          >
+            <ExternalLink className="w-3.5 h-3.5" /> SafetyCulture
+          </a>
         </div>
-      </div>
-
-      {/* ── Compliance KPI Bar ── */}
-      <HubStatsBar tiles={[
-        { icon: AlertTriangle, label: 'Open Incidents', value: complianceKpis.openIncidents, sublabel: 'Needs attention', color: complianceKpis.openIncidents > 0 ? 'rose' : 'emerald' },
-        { icon: FileX, label: 'Expired Certs', value: complianceKpis.expired, sublabel: 'Overdue', color: complianceKpis.expired > 0 ? 'rose' : 'emerald' },
-        { icon: Clock, label: 'Expiring Soon', value: complianceKpis.expiringSoon, sublabel: 'Within 30 days', color: complianceKpis.expiringSoon > 0 ? 'amber' : 'slate' },
-        { icon: Users, label: 'Active Staff', value: complianceKpis.totalStaff, sublabel: 'In scope', color: 'blue' },
-        { icon: HardHat, label: 'Toolbox Talks', value: complianceKpis.recentTalks, sublabel: 'Last 30 days', color: 'brand' },
-      ]} />
-
-      {/* ── Consolidated Tab Bar (3 tabs) ── */}
-      <TabBar tabs={TABS.map(t => ({ id: t.id, label: t.label, icon: t.icon }))} activeTab={tab} onChange={handleTabChange} />
-
+      }
+      kpiStrip={
+        <HubStatsBar tiles={[
+          { icon: AlertTriangle, label: 'Open Incidents', value: complianceKpis.openIncidents, sublabel: 'Needs attention', color: complianceKpis.openIncidents > 0 ? 'rose' : 'emerald' },
+          { icon: FileX, label: 'Expired Certs', value: complianceKpis.expired, sublabel: 'Overdue', color: complianceKpis.expired > 0 ? 'rose' : 'emerald' },
+          { icon: Clock, label: 'Expiring Soon', value: complianceKpis.expiringSoon, sublabel: 'Within 30 days', color: complianceKpis.expiringSoon > 0 ? 'amber' : 'slate' },
+          { icon: Users, label: 'Active Staff', value: complianceKpis.totalStaff, sublabel: 'In scope', color: 'blue' },
+          { icon: HardHat, label: 'Toolbox Talks', value: complianceKpis.recentTalks, sublabel: 'Last 30 days', color: 'brand' },
+        ]} />
+      }
+      tabs={TABS.map(t => ({ id: t.id, label: t.label, icon: t.icon }))}
+      activeTab={tab}
+      onTabChange={handleTabChange}
+    >
       {/* ── Sub-pills for the active tab ── */}
       <SubPills active={subTab} onChange={setSubTab} pills={activeTab?.sub || []} />
 
@@ -218,6 +201,6 @@ export default function CompliancePage() {
           )}
         </>
       )}
-    </div>
+    </HubShell>
   );
 }
