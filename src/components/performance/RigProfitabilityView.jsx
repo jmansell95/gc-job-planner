@@ -2,9 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
-  TrendingUp, TrendingDown, Loader2, Search, Calendar,
-  Trophy, Wrench, Clock, PoundSterling, Filter,
-  ChevronDown, ChevronRight, Briefcase, ArrowRight,
+  TrendingUp, TrendingDown, Loader2, Search,
+  Trophy, Wrench, Clock, PoundSterling,
+  ChevronDown, ChevronRight, Briefcase, ArrowRight, AlertCircle,
 } from 'lucide-react';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
@@ -12,7 +12,9 @@ const fmtPct = (n) => (n > 0 ? '+' : '') + Number(n || 0).toFixed(1) + '%';
 
 /**
  * RigProfitabilityView — shows each rig's earned vs cost with margin %.
- * Expandable rows show per-job breakdown. Jobs are clickable → job detail.
+ * Expandable rows show per-job breakdown (including jobs with £0 earned so
+ * no rigged job goes missing). A "no cost data" flag warns when a rig's cost
+ * is £0 (margin may be overstated because no rate-card cost was recorded).
  */
 export default function RigProfitabilityView({ dateRange, onSelectJob }) {
   const [search, setSearch] = useState('');
@@ -33,7 +35,6 @@ export default function RigProfitabilityView({ dateRange, onSelectJob }) {
       const q = search.toLowerCase();
       result = result.filter(r => (r.rig_name || '').toLowerCase().includes(q));
     }
-    // Only show rigs with activity or all if no search
     return result;
   }, [data, search]);
 
@@ -60,14 +61,15 @@ export default function RigProfitabilityView({ dateRange, onSelectJob }) {
         <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
           <TrendingUp className="w-7 h-7 text-slate-300" />
         </div>
-        <p className="text-sm font-semibold text-slate-500">No rig data in this period</p>
-        <p className="text-xs text-slate-400 mt-1">Assign rigs to jobs and populate AFPs to see profitability.</p>
+        <p className="text-sm font-semibold text-slate-500">No rigs found</p>
+        <p className="text-xs text-slate-400 mt-1">Rigs are identified by the <span className="font-semibold">is_rig</span> flag (synced from Asset Panda). Assign rigs to jobs to see profitability.</p>
       </div>
     );
   }
 
   const totals = data.totals || {};
   const activeRigs = rigs.filter(r => r.earned > 0 || r.jobs_count > 0);
+  const rigsMissingCost = rigs.filter(r => r.earned > 0 && !r.has_cost_data);
 
   return (
     <div className="space-y-3">
@@ -78,6 +80,17 @@ export default function RigProfitabilityView({ dateRange, onSelectJob }) {
         <KPICard icon={TrendingUp} label="Total Margin" value={fmt(totals.total_margin)} gradient="stat-gradient-emerald" />
         <KPICard icon={Trophy} label="Active Rigs" value={activeRigs.length} gradient="stat-gradient-amber" />
       </div>
+
+      {/* Missing-cost warning */}
+      {rigsMissingCost.length > 0 && (
+        <div className="insight-card rounded-2xl p-3 flex items-start gap-2.5 bg-amber-50 border-amber-200">
+          <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-amber-800">{rigsMissingCost.length} rig{rigsMissingCost.length !== 1 ? 's' : ''} showing £0 cost</p>
+            <p className="text-[11px] text-amber-700">Margin is overstated — link a rate card with a cost price on these rigs so cost is captured: {rigsMissingCost.slice(0, 3).map(r => r.rig_name).join(', ')}{rigsMissingCost.length > 3 ? '…' : ''}</p>
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative max-w-sm">
@@ -113,7 +126,7 @@ export default function RigProfitabilityView({ dateRange, onSelectJob }) {
                     {hasJobs && (isOpen ? <ChevronDown className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />)}
                     <div className="min-w-0">
                       <p className="font-bold text-slate-800 text-sm truncate">{rig.rig_name}</p>
-                      <p className="text-[10px] text-slate-400 uppercase">{rig.rig_type} · {rig.jobs_count} jobs</p>
+                      <p className="text-[10px] text-slate-400 uppercase">{rig.rig_type} · {rig.jobs_count} job{rig.jobs_count !== 1 ? 's' : ''}</p>
                     </div>
                   </div>
                   <span className={`text-sm font-bold tabular-nums ${isProfit ? 'text-emerald-700' : 'text-rose-600'}`}>
@@ -127,7 +140,7 @@ export default function RigProfitabilityView({ dateRange, onSelectJob }) {
                   </div>
                   <div className="px-1.5 py-1.5 rounded-lg bg-rose-50">
                     <p className="text-[9px] text-rose-600 uppercase font-semibold">Cost</p>
-                    <p className="text-xs font-bold text-rose-600 tabular-nums">{fmt(rig.cost)}</p>
+                    <p className={`text-xs font-bold tabular-nums ${rig.has_cost_data ? 'text-rose-600' : 'text-slate-400'}`}>{rig.has_cost_data ? fmt(rig.cost) : '—'}</p>
                   </div>
                   <div className={`px-1.5 py-1.5 rounded-lg ${isProfit ? 'bg-slate-50' : 'bg-rose-50'}`}>
                     <p className="text-[9px] text-slate-400 uppercase font-semibold">Margin</p>
@@ -210,13 +223,16 @@ export default function RigProfitabilityView({ dateRange, onSelectJob }) {
                         <div className="flex items-center gap-1.5">
                           {hasJobs && (isOpen ? <ChevronDown className="w-3.5 h-3.5 text-slate-400" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-400" />)}
                           <span className="font-semibold text-slate-800">{rig.rig_name}</span>
+                          {!rig.has_cost_data && rig.earned > 0 && (
+                            <span className="text-[9px] font-bold text-amber-600 bg-amber-100 px-1 py-0.5 rounded-full" title="No rate-card cost recorded — margin overstated">no cost</span>
+                          )}
                         </div>
                       </td>
                       <td className="text-center px-3 py-2.5 text-slate-500 uppercase text-[10px]">{rig.rig_type}</td>
                       <td className="text-right px-3 py-2.5 text-slate-600 tabular-nums">{rig.jobs_count}</td>
                       <td className="text-right px-3 py-2.5 text-slate-600 tabular-nums">{rig.operating_hours}h</td>
                       <td className="text-right px-3 py-2.5 font-semibold text-emerald-700 tabular-nums">{fmt(rig.earned)}</td>
-                      <td className="text-right px-3 py-2.5 text-rose-600 tabular-nums">{fmt(rig.cost)}</td>
+                      <td className={`text-right px-3 py-2.5 tabular-nums ${rig.has_cost_data ? 'text-rose-600' : 'text-slate-300'}`}>{rig.has_cost_data ? fmt(rig.cost) : '—'}</td>
                       <td className={`text-right px-3 py-2.5 font-bold tabular-nums ${isProfit ? 'text-slate-800' : 'text-rose-600'}`}>{fmt(rig.margin)}</td>
                       <td className={`text-right px-3 py-2.5 font-bold tabular-nums ${isProfit ? 'text-emerald-700' : 'text-rose-600'}`}>{fmtPct(rig.margin_pct)}</td>
                       <td className="text-center px-3 py-2.5">

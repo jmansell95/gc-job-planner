@@ -10,17 +10,11 @@ import JobLogisticsHub from '@/components/logistics/JobLogisticsHub';
 import InvestigationLogManager from '@/components/InvestigationLogManager';
 import BoreholeDrillDown from '@/components/BoreholeDrillDown';
 import JobHotelBookings from '@/components/JobHotelBookings';
-import AutoFinancialsBreakdown from '@/components/financials/AutoFinancialsBreakdown';
-import SubcontractorLogManager from '@/components/financials/SubcontractorLogManager';
-import DailyCostViewer from '@/components/financials/DailyCostViewer';
-import JobFinancialFootprint from '@/components/financials/JobFinancialFootprint';
-import BOQManager from '@/components/billing/BOQManager';
 import JobPhotoGallery from '@/components/JobPhotoGallery';
 import DocumentManager from '@/components/DocumentManager';
 import JobCommentsViewer from '@/components/JobCommentsViewer';
 import JobWorkLog from '@/components/JobWorkLog';
 import MilestoneManager from '@/components/MilestoneManager';
-import PortalLinkManager from '@/components/PortalLinkManager';
 import JobScheduleOverview from '@/components/JobScheduleOverview';
 import PermanentCrewCard from '@/components/jobs/PermanentCrewCard';
 import DelayLogManager from '@/components/DelayLogManager';
@@ -35,39 +29,55 @@ import TabStatRibbon from '@/components/TabStatRibbon';
 import JobSiteManager from '@/components/jobs/JobSiteManager';
 import JobFinancialsTab from '@/components/afp/JobFinancialsTab';
 
+/**
+ * JobDetailTabs — consolidated, progressive-disclosure tab structure.
+ *
+ * Six top-level sections (down from eight), with related work grouped together:
+ *   1. Overview        — context, crew, financials snapshot, activity, sites, weather
+ *   2. Schedule & Crew — daily rota, permanent crew, delays, accommodation
+ *   3. Site Activity  — investigation logs, hazard map, boreholes, geotech (drilling)
+ *   4. Equipment      — rig & gear, hire items, deliveries
+ *   5. Financials      — AFP, CVR, costs, billing
+ *   6. Documents       — photos, files, comments, work log, milestones
+ *
+ * Drilling-only sections (Boreholes, Geotech) live as sub-tabs under Site
+ * Activity so non-drilling jobs get a cleaner, shorter tab bar.
+ */
 export default function JobDetailTabs({
   job, primaryType, assignedStaff, rotas, allStaff, vehicles, rotasByDate, sortedDates,
   client, contractor, suppliers, contractors, canSeeCosts, isDrillingJob, isGroundworksJob, totalCost,
   staffCosts, totalMeterage, hotelBookings, colors, statusBadge, statusLabels,
   startDate, endDate, jobTypes = []
 }) {
-  const [activeTab, setActiveTab] = useState('context');
+  const [activeTab, setActiveTab] = useState('overview');
   const [summarySub, setSummarySub] = useState('overview');
   const [scheduleSub, setScheduleSub] = useState('daily');
-  const [logsSub, setLogsSub] = useState('activity');
-  const [logisticsSub, setLogisticsSub] = useState('equipment');
+  const [activitySub, setActivitySub] = useState('logs');
   const [docsSub, setDocsSub] = useState('photos');
 
   const assignedVehicleIds = [...new Set(rotas.map(r => r.vehicle_id).filter(Boolean))];
   const assignedVehicles = assignedVehicleIds.map(id => vehicles.find(v => v.id === id)).filter(Boolean);
 
+  // Shared tab trigger class — clean, compact, brand-accented
+  const triggerClass =
+    'text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl flex-shrink-0 whitespace-nowrap data-[state=active]:bg-gradient-to-br data-[state=active]:from-[#2E5A1A] data-[state=active]:to-[#5A8C1E] data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition';
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/70 shadow-sm p-1.5 mb-4">
+      {/* Consolidated tab bar — 6 sections, scrollable on mobile */}
+      <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/70 shadow-sm p-1.5 mb-4 sticky top-14 z-30">
         <TabsList className="flex w-full flex-nowrap overflow-x-auto no-scrollbar h-auto p-0 gap-1 bg-transparent">
-          <TabsTrigger value="context" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl flex-shrink-0 whitespace-nowrap data-[state=active]:bg-gradient-to-br data-[state=active]:from-[#2E5A1A] data-[state=active]:to-[#5A8C1E] data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition"><LayoutGrid className="w-4 h-4 shrink-0" />Summary</TabsTrigger>
-          <TabsTrigger value="schedule" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl flex-shrink-0 whitespace-nowrap data-[state=active]:bg-gradient-to-br data-[state=active]:from-[#2E5A1A] data-[state=active]:to-[#5A8C1E] data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition"><CalendarDays className="w-4 h-4 shrink-0" />Schedule</TabsTrigger>
-          <TabsTrigger value="activity" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl flex-shrink-0 whitespace-nowrap data-[state=active]:bg-gradient-to-br data-[state=active]:from-[#2E5A1A] data-[state=active]:to-[#5A8C1E] data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition"><Activity className="w-4 h-4 shrink-0" />Site Logs</TabsTrigger>
-          {isDrillingJob && <TabsTrigger value="boreholes" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl flex-shrink-0 whitespace-nowrap data-[state=active]:bg-gradient-to-br data-[state=active]:from-[#2E5A1A] data-[state=active]:to-[#5A8C1E] data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition"><Mountain className="w-4 h-4 shrink-0" />Boreholes</TabsTrigger>}
-          {isDrillingJob && <TabsTrigger value="geotech" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl flex-shrink-0 whitespace-nowrap data-[state=active]:bg-gradient-to-br data-[state=active]:from-[#2E5A1A] data-[state=active]:to-[#5A8C1E] data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition"><FlaskConical className="w-4 h-4 shrink-0" />Geotech</TabsTrigger>}
-          <TabsTrigger value="logistics" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl flex-shrink-0 whitespace-nowrap data-[state=active]:bg-gradient-to-br data-[state=active]:from-[#2E5A1A] data-[state=active]:to-[#5A8C1E] data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition"><Boxes className="w-4 h-4 shrink-0" />Logistics</TabsTrigger>
-          {canSeeCosts && <TabsTrigger value="financials" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl flex-shrink-0 whitespace-nowrap data-[state=active]:bg-gradient-to-br data-[state=active]:from-[#2E5A1A] data-[state=active]:to-[#5A8C1E] data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition"><PoundSterling className="w-4 h-4 shrink-0" />Financials</TabsTrigger>}
-          <TabsTrigger value="documents" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl flex-shrink-0 whitespace-nowrap data-[state=active]:bg-gradient-to-br data-[state=active]:from-[#2E5A1A] data-[state=active]:to-[#5A8C1E] data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition"><FolderOpen className="w-4 h-4 shrink-0" />Documents</TabsTrigger>
+          <TabsTrigger value="overview" className={triggerClass}><LayoutGrid className="w-4 h-4 shrink-0" />Overview</TabsTrigger>
+          <TabsTrigger value="schedule" className={triggerClass}><CalendarDays className="w-4 h-4 shrink-0" />Schedule &amp; Crew</TabsTrigger>
+          <TabsTrigger value="activity" className={triggerClass}><Activity className="w-4 h-4 shrink-0" />Site Activity</TabsTrigger>
+          <TabsTrigger value="equipment" className={triggerClass}><Boxes className="w-4 h-4 shrink-0" />Equipment</TabsTrigger>
+          {canSeeCosts && <TabsTrigger value="financials" className={triggerClass}><PoundSterling className="w-4 h-4 shrink-0" />Financials</TabsTrigger>}
+          <TabsTrigger value="documents" className={triggerClass}><FolderOpen className="w-4 h-4 shrink-0" />Documents</TabsTrigger>
         </TabsList>
       </div>
 
-      {/* ── Summary Tab ── */}
-      <TabsContent value="context" className="mt-0 space-y-3">
+      {/* ── Overview ── */}
+      <TabsContent value="overview" className="mt-0 space-y-3">
         <SubTabNav
           tabs={[
             { id: 'overview', label: 'Overview', icon: LayoutGrid },
@@ -144,12 +154,13 @@ export default function JobDetailTabs({
         )}
       </TabsContent>
 
-      {/* ── Schedule Tab ── */}
+      {/* ── Schedule & Crew ── */}
       <TabsContent value="schedule" className="space-y-3 mt-0">
         <SubTabNav
           tabs={[
             { id: 'daily', label: 'Daily Schedule', icon: CalendarDays },
             { id: 'delays', label: 'Delays', icon: AlertTriangle },
+            { id: 'accommodation', label: 'Accommodation', icon: Hotel },
           ]}
           activeTab={scheduleSub}
           onChange={setScheduleSub}
@@ -169,61 +180,8 @@ export default function JobDetailTabs({
             <PermanentCrewCard job={job} />
             <JobScheduleOverview primaryType={primaryType} assignedStaff={assignedStaff} rotas={rotas} allStaff={allStaff} vehicles={vehicles} rotasByDate={rotasByDate} sortedDates={sortedDates} />
           </>
-        ) : (
+        ) : scheduleSub === 'delays' ? (
           <DelayLogManager job={job} />
-        )}
-      </TabsContent>
-
-      {/* ── Site Logs Tab ── */}
-      <TabsContent value="activity" className="space-y-3 mt-0">
-        <SubTabNav
-          tabs={[
-            { id: 'activity', label: 'Activity Logs', icon: Activity },
-            { id: 'hazards', label: 'Hazard Map', icon: ShieldCheck },
-          ]}
-          activeTab={logsSub}
-          onChange={setLogsSub}
-        />
-        {logsSub === 'activity' ? (
-          <>
-            <TabStatRibbon
-              icon={Activity}
-              title="Site Logs"
-              stats={[
-                { icon: Users, value: assignedStaff.length, label: 'Crew On Job', iconColor: 'text-emerald-600' },
-                { icon: CalendarDays, value: rotas.filter(r => r.status === 'started' || r.status === 'completed').length, label: 'Active Shifts', iconColor: 'text-blue-600' },
-                { icon: ShieldCheck, value: rotas.filter(r => r.briefing_signed).length, label: 'Briefings Signed', iconColor: 'text-amber-600' },
-              ]}
-            />
-            <InvestigationLogManager job={job} isDrillingJob={isDrillingJob} assignedStaff={assignedStaff} allStaff={allStaff} canSeeCosts={canSeeCosts} onViewBoreholes={() => setActiveTab('boreholes')} />
-          </>
-        ) : (
-          <JobHazardMap job={job} />
-        )}
-      </TabsContent>
-
-      {/* ── Logistics Tab ── */}
-      <TabsContent value="logistics" className="space-y-3 mt-0">
-        <SubTabNav
-          tabs={[
-            { id: 'equipment', label: 'Equipment', icon: Boxes },
-            { id: 'accommodation', label: 'Accommodation', icon: Hotel },
-          ]}
-          activeTab={logisticsSub}
-          onChange={setLogisticsSub}
-        />
-        {logisticsSub === 'equipment' ? (
-          <>
-            <TabStatRibbon
-              icon={Boxes}
-              title="Logistics"
-              stats={[
-                { icon: Truck, value: assignedVehicles.length, label: 'Vehicles', iconColor: 'text-violet-600' },
-                { icon: Users, value: assignedStaff.length, label: 'Crew', iconColor: 'text-emerald-600' },
-              ]}
-            />
-            <JobLogisticsHub jobId={job.id} job={job} suppliers={suppliers} contractors={contractors} canSeeCosts={canSeeCosts} isDrillingJob={isDrillingJob} />
-          </>
         ) : (
           <>
             <TabStatRibbon
@@ -239,37 +197,72 @@ export default function JobDetailTabs({
         )}
       </TabsContent>
 
-      {/* ── Boreholes Tab (drilling jobs only) ── */}
-      {isDrillingJob && (
-      <TabsContent value="boreholes" className="space-y-4 mt-0">
+      {/* ── Site Activity ── */}
+      <TabsContent value="activity" className="space-y-3 mt-0">
+        <SubTabNav
+          tabs={[
+            { id: 'logs', label: 'Activity Logs', icon: Activity },
+            { id: 'hazards', label: 'Hazard Map', icon: ShieldCheck },
+            ...(isDrillingJob ? [{ id: 'boreholes', label: 'Boreholes', icon: Mountain }] : []),
+            ...(isDrillingJob ? [{ id: 'geotech', label: 'Geotech', icon: FlaskConical }] : []),
+          ]}
+          activeTab={activitySub}
+          onChange={setActivitySub}
+        />
+        {activitySub === 'logs' ? (
+          <>
+            <TabStatRibbon
+              icon={Activity}
+              title="Site Logs"
+              stats={[
+                { icon: Users, value: assignedStaff.length, label: 'Crew On Job', iconColor: 'text-emerald-600' },
+                { icon: CalendarDays, value: rotas.filter(r => r.status === 'started' || r.status === 'completed').length, label: 'Active Shifts', iconColor: 'text-blue-600' },
+                { icon: ShieldCheck, value: rotas.filter(r => r.briefing_signed).length, label: 'Briefings Signed', iconColor: 'text-amber-600' },
+              ]}
+            />
+            <InvestigationLogManager job={job} isDrillingJob={isDrillingJob} assignedStaff={assignedStaff} allStaff={allStaff} canSeeCosts={canSeeCosts} onViewBoreholes={() => setActivitySub('boreholes')} />
+          </>
+        ) : activitySub === 'hazards' ? (
+          <JobHazardMap job={job} />
+        ) : activitySub === 'boreholes' && isDrillingJob ? (
+          <>
+            <TabStatRibbon
+              icon={Mountain}
+              title="Drilling Progress"
+              stats={[
+                { icon: Users, value: assignedStaff.length, label: 'Crew', iconColor: 'text-emerald-600' },
+                { icon: Mountain, value: `${(totalMeterage || 0).toFixed(1)}m`, label: 'Total Drilled', iconColor: 'text-blue-600' },
+                { icon: CalendarDays, value: rotas.length, label: 'Shifts Logged', iconColor: 'text-amber-600' },
+              ]}
+            />
+            <BoreholeDrillDown job={job} jobType={primaryType} />
+          </>
+        ) : activitySub === 'geotech' && isDrillingJob ? (
+          <GeotechDataTab job={job} allStaff={allStaff} suppliers={suppliers} assets={undefined} />
+        ) : null}
+      </TabsContent>
+
+      {/* ── Equipment ── */}
+      <TabsContent value="equipment" className="space-y-3 mt-0">
         <TabStatRibbon
-          icon={Mountain}
-          title="Drilling Progress"
+          icon={Boxes}
+          title="Equipment & Logistics"
           stats={[
+            { icon: Truck, value: assignedVehicles.length, label: 'Vehicles', iconColor: 'text-violet-600' },
             { icon: Users, value: assignedStaff.length, label: 'Crew', iconColor: 'text-emerald-600' },
-            { icon: Mountain, value: `${(totalMeterage || 0).toFixed(1)}m`, label: 'Total Drilled', iconColor: 'text-blue-600' },
-            { icon: CalendarDays, value: rotas.length, label: 'Shifts Logged', iconColor: 'text-amber-600' },
           ]}
         />
-        <BoreholeDrillDown job={job} jobType={primaryType} />
+        <JobLogisticsHub jobId={job.id} job={job} suppliers={suppliers} contractors={contractors} canSeeCosts={canSeeCosts} isDrillingJob={isDrillingJob} />
       </TabsContent>
-      )}
 
-      {/* ── Geotech Data Tab (drilling jobs only) ── */}
-      {isDrillingJob && (
-      <TabsContent value="geotech" className="space-y-4 mt-0">
-        <GeotechDataTab job={job} allStaff={allStaff} suppliers={suppliers} assets={undefined} />
-      </TabsContent>
-      )}
-
-      {/* ── Financials Tab ── */}
+      {/* ── Financials ── */}
       {canSeeCosts && (
         <TabsContent value="financials" className="space-y-3 mt-0">
           <JobFinancialsTab job={job} canSeeCosts={canSeeCosts} />
         </TabsContent>
       )}
 
-      {/* ── Documents Tab ── */}
+      {/* ── Documents ── */}
       <TabsContent value="documents" className="space-y-3 mt-0">
         <SubTabNav
           tabs={[

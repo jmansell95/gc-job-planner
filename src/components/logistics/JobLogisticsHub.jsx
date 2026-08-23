@@ -151,9 +151,10 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     return acc;
   }, {});
 
-  // Rigs sourced from SiteAsset (synced from Asset Panda) — excludes non-rig equipment.
-  // Accepts both the new is_rig flag and the legacy asset_type === 'rig' classification.
-  // Exclude rigs already assigned to OTHER active jobs so they can't be double-booked.
+  // Rigs sourced from SiteAsset (synced from Asset Panda). is_rig is the single
+  // source of truth for rig identity — the legacy asset_type === 'rig' fallback
+  // is dropped so equipment that merely has "Rig" in its name can't leak into the
+  // picker. Exclude rigs already assigned to OTHER active jobs (no double-booking).
   const rigsOnOtherJobs = new Set(
     (allRigAssignments || [])
       .filter(a => a.job_id !== jobId)
@@ -164,7 +165,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     (items || []).filter(c => c.site_asset_id).map(c => c.site_asset_id)
   );
   const allRigs = (siteAssets || []).filter(a =>
-    (a.is_rig === true || a.asset_type === 'rig') &&
+    a.is_rig === true &&
     a.is_active !== false &&
     !rigsOnOtherJobs.has(a.id) &&
     !rigsOnThisJob.has(a.id)

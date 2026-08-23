@@ -94,10 +94,20 @@ Deno.serve(async (req) => {
       return String(v).trim();
     };
 
-    const detectAssetType = (rawType: string, name: string, hint?: string) => {
+    const detectAssetType = (rawType: string, name: string, hint?: string, groupLabel: string = '') => {
       if (hint && hint !== 'auto') return hint;
-      const raw = `${rawType} ${name}`.toLowerCase();
-      if (raw.includes('rig') || raw.includes('drill') || raw.includes('percuss') || raw.includes('rotary')) return 'rig';
+      const typeLower = String(rawType || '').toLowerCase();
+      const groupLower = String(groupLabel || '').toLowerCase();
+      // Rigs: require the type/category field OR the Asset Panda group label to
+      // indicate a drilling rig. The asset NAME alone is NOT enough — many
+      // non-rig items (rig mats, drill bits, rig transport boards) contain
+      // "rig"/"drill" in their name and would otherwise be misclassified as rigs.
+      if (
+        typeLower.includes('rig') || typeLower.includes('drill') ||
+        typeLower.includes('percuss') || typeLower.includes('rotary') ||
+        groupLower.includes('rig') || groupLower.includes('drill')
+      ) return 'rig';
+      const raw = `${typeLower} ${String(name || '').toLowerCase()}`;
       if (raw.includes('trailer')) return 'trailer';
       if (raw.includes('lift') || raw.includes('shackle') || raw.includes('sling') || raw.includes('chain') || raw.includes('hook') || raw.includes('hoist') || raw.includes('rigging')) return 'lifting';
       if (raw.includes('pat') || raw.includes('appliance') || raw.includes('110v') || raw.includes('transformer') || raw.includes('power tool') || raw.includes('lead') || raw.includes('ext lead') || raw.includes('extension') || raw.includes('rcd') || raw.includes('charger') || raw.includes('kettle') || raw.includes('microwave') || raw.includes('porter')) return 'portable_appliance';
@@ -403,7 +413,7 @@ Deno.serve(async (req) => {
           const rate = parseRate(fieldValue(obj, fieldMap.daily_rate));
           const costPrice = parseRate(fieldValue(obj, fieldMap.cost_price));
           const chargeOut = parseRate(fieldValue(obj, fieldMap.charge_out_price));
-          const assetType = detectAssetType(rawType, name, typeHint);
+          const assetType = detectAssetType(rawType, name, typeHint, groupLabel);
           const isRig = assetType === 'rig';
           const rigType = isRig ? detectRigType(rawType, name) : 'n/a';
           const stockLevel = detectStockLevel(rawStock);
@@ -598,7 +608,7 @@ Deno.serve(async (req) => {
         for (const obj of objs) {
           const rawType = fieldValue(obj, groupFieldMap.asset_type || '') || '';
           const name = fieldValue(obj, groupFieldMap.name || '') || '';
-          const detectedType = detectAssetType(rawType, name, gr.asset_type_hint || 'auto');
+          const detectedType = detectAssetType(rawType, name, gr.asset_type_hint || 'auto', gr.label);
           if (detectedType !== 'vehicle') continue;
           const heightRaw = fieldValue(obj, heightKey);
           if (!heightRaw) continue;
