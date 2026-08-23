@@ -157,7 +157,7 @@ export default function ScanResultCard({ asset, onBookToVehicle, onDriveAway, on
         {onReportFault && (
           <button
             onClick={() => onReportFault?.(asset)}
-            className="px-3 py-3 bg-amber-100 text-amber-700 rounded-xl text-sm font-bold hover:bg-amber-200 transition active:scale-95"
+            className="px-4 py-3 bg-amber-100 text-amber-700 rounded-xl text-sm font-bold hover:bg-amber-200 transition active:scale-95"
             title="Report Fault"
           >
             <AlertTriangle className="w-4 h-4" />
@@ -165,7 +165,7 @@ export default function ScanResultCard({ asset, onBookToVehicle, onDriveAway, on
         )}
         <button
           onClick={() => onOpenCommand?.(asset)}
-          className="px-3 py-3 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition active:scale-95"
+          className="px-4 py-3 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition active:scale-95"
           title="Full Details"
         >
           <ArrowRight className="w-4 h-4" />

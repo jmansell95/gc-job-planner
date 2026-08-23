@@ -16,21 +16,60 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
 const HIGH_CONFIDENCE_THRESHOLD = 0.8;
 
+// Common drilling/site terms that appear in many rate card descriptions.
+// These are weighted lower so rare, specific tokens (e.g. "coreliner",
+// "borehole", "SPT") dominate the match score instead of generic words.
+const STOP_WORDS = new Set([
+  'rig', 'crew', 'site', 'to', 'and', 'the', 'a', 'of', 'for', 'on',
+  'with', 'cp', 'rotary', 'mobilise', 'mobilisation', 'mobilized',
+  'per', 'nr', 'no', 'unit', 'item', 'day', 'hour', 'sum', 'm',
+  'work', 'works', 'equipment', 'plant', 'hire',
+]);
+
 function normalize(s: string): string {
   return String(s || '').toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
-// Simple token-overlap fuzzy score (0–1)
+// Word-boundary check: does `desc` contain `keyword` as a whole word/phrase?
+// Prevents "core" matching "coreliner" or "hardcore".
+function containsWordBoundary(desc: string, keyword: string): boolean {
+  if (!desc || !keyword) return false;
+  // Escape regex special chars
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`(?:^|\\b)${escaped}(?:\\b|$)`, 'i');
+  return re.test(desc);
+}
+
+// Weighted Jaccard-style fuzzy score (0–1).
+// Rare tokens (not in STOP_WORDS) carry more weight than common ones,
+// so a match on "coreliner" beats a match on "rig" + "site".
+// Requires a minimum token length of 3 to avoid tiny fragments.
 function fuzzyScore(keyword: string, description: string): number {
   const k = normalize(keyword);
   const d = normalize(description);
   if (!k || !d) return 0;
-  if (d.includes(k)) return 0.9;
-  const kTokens = k.split(' ').filter(Boolean);
-  const dTokens = new Set(d.split(' ').filter(Boolean));
-  if (kTokens.length === 0) return 0;
-  const hits = kTokens.filter(t => dTokens.has(t)).length;
-  return Math.min(0.85, hits / kTokens.length);
+
+  // Exact phrase match with word boundaries — high confidence
+  if (containsWordBoundary(d, k) && k.length >= 4) return 0.92;
+
+  const kTokens = k.split(' ').filter(t => t.length >= 3);
+  const dTokens = d.split(' ').filter(t => t.length >= 3);
+  if (kTokens.length === 0 || dTokens.length === 0) return 0;
+
+  const dSet = new Set(dTokens);
+  let weightedHits = 0;
+  let weightedTotal = 0;
+  for (const t of kTokens) {
+    const weight = STOP_WORDS.has(t) ? 0.3 : 1.0;
+    weightedTotal += weight;
+    if (dSet.has(t)) weightedHits += weight;
+  }
+  if (weightedTotal === 0) return 0;
+
+  // Jaccard denominator: penalise vague descriptions that match everything
+  const unionSize = new Set([...kTokens, ...dTokens]).size;
+  const jaccard = weightedHits / Math.max(weightedTotal, unionSize * 0.5);
+  return Math.min(0.85, Math.round(jaccard * 100) / 100);
 }
 
 export default async function(req: Request): Promise<Response> {
@@ -127,7 +166,12 @@ export default async function(req: Request): Promise<Response> {
     }
 
     // 2. Fuzzy fallback — match against RateCardItem descriptions
-    const rateCardItems = await base44.asServiceRole.entities.RateCardItem.filter({ is_active: true });
+    // Filter by division when possible so a Geotechnical log doesn't match
+    // a Land & Water rate card item. Division-blank items are always included.
+    const allRateCardItems = await base44.asServiceRole.entities.RateCardItem.filter({ is_active: true });
+    const rateCardItems = division_id
+      ? allRateCardItems.filter(r => !r.division_id || r.division_id === division_id)
+      : allRateCardItems;
     let bestFuzzy = null;
     let bestScore = 0;
     for (const rci of rateCardItems) {

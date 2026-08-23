@@ -187,7 +187,7 @@ export default function DeliveryCard({ delivery, job, vehicle, vehicleTotalWeigh
             {isPending && (
               <button
                 onClick={() => onStart(delivery.id)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition text-sm font-semibold touch-manipulation"
+                className="flex-1 flex items-center justify-center gap-1.5 py-3.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition text-sm font-semibold touch-manipulation"
               >
                 <PlayCircle className="w-4 h-4" /> Start
               </button>
@@ -195,7 +195,7 @@ export default function DeliveryCard({ delivery, job, vehicle, vehicleTotalWeigh
             {isInProgress && (
               <button
                 onClick={() => onComplete(delivery)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 active:scale-95 transition text-sm font-bold touch-manipulation"
+                className="flex-1 flex items-center justify-center gap-1.5 py-3.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 active:scale-95 transition text-sm font-bold touch-manipulation"
               >
                 <CheckCircle2 className="w-4 h-4" /> Sign Off
               </button>
