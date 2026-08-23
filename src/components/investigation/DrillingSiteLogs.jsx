@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Activity, AlertTriangle, UserX, Clock, CalendarDays, CheckCircle2 } from 'lucide-react';
+import { Activity, Clock, CalendarDays, CheckCircle2 } from 'lucide-react';
 import SiteLogReviewManager from '@/components/investigation/SiteLogReviewManager';
 
 /**
@@ -23,8 +23,6 @@ export default function DrillingSiteLogs({ job, assignedStaff }) {
   const totalMinutes = remarksLogs.reduce((s, l) => s + (l.duration_minutes || 0), 0);
   const approvedCount = remarksLogs.filter(l => l.manager_review_status === 'approved').length;
   const pricedCount = remarksLogs.filter(l => l.chargeable).length;
-  const noNameCount = logs.filter(l => l.source === 'keylogbook_remarks' && !l.staff_name && !l.completed_by_name).length;
-  const hasNoName = noNameCount > 0;
 
   const fmtDur = (mins) => {
     const m = Math.round(mins || 0);
@@ -47,19 +45,6 @@ export default function DrillingSiteLogs({ job, assignedStaff }) {
 
   return (
     <div className="space-y-4">
-      {/* No name entered alert */}
-      {hasNoName && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-start gap-2.5">
-          <UserX className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-red-800">No name entered for {noNameCount} log {noNameCount === 1 ? 'entry' : 'entries'}</p>
-            <p className="text-xs text-red-600 mt-0.5 leading-relaxed">
-              These activities were imported without a driller or engineer name. The AGS file did not contain a name field, so attribution is missing. Add the name in the AGS file or assign the log manually to track who did the work.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Modern dashboard ribbon */}
       <div className="hero-gradient rounded-2xl p-5 text-white shadow-lg">
         <div className="flex items-center gap-2 mb-4 flex-wrap">
