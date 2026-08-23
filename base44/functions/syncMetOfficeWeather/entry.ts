@@ -68,14 +68,18 @@ async function fetchWeather(lat: number, lng: number): Promise<{ data?: any; err
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
     `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max` +
     `&timezone=auto&forecast_days=1`;
-  // Retry once on 429 (rate limit) with a backoff — Open-Meteo's free tier
-  // throttles burst requests from the backend runtime IP.
-  for (let attempt = 0; attempt < 2; attempt++) {
+  // Retry up to 3 times on 429 (rate limit) with escalating backoff —
+  // Open-Meteo's free tier throttles burst requests from the shared
+  // backend runtime IP. Backoff: 3s, then 8s, then 15s.
+  const backoffs = [3000, 8000, 15000];
+  for (let attempt = 0; attempt <= backoffs.length; attempt++) {
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'GC-Mission-Control/1.0 (weather sync; contact@groundcontrol.co.uk)' },
+      });
       if (res.status === 429) {
-        if (attempt === 0) { await sleep(2500); continue; }
-        return { error: 'Open-Meteo rate limit (429) — try again in a minute' };
+        if (attempt < backoffs.length) { await sleep(backoffs[attempt]); continue; }
+        return { error: 'Open-Meteo rate limit (429) — shared IP throttled, try again in a few minutes' };
       }
       if (!res.ok) return { error: `Open-Meteo returned HTTP ${res.status}` };
       const json = await res.json();
@@ -85,7 +89,7 @@ async function fetchWeather(lat: number, lng: number): Promise<{ data?: any; err
       return { error: e?.message || String(e) };
     }
   }
-  return { error: 'Open-Meteo rate limit (429) — try again in a minute' };
+  return { error: 'Open-Meteo rate limit (429) — shared IP throttled, try again in a few minutes' };
 }
 
 export default async function(req: Request): Promise<Response> {
@@ -119,7 +123,7 @@ export default async function(req: Request): Promise<Response> {
     for (const job of activeJobs) {
       try {
         // Pace requests so Open-Meteo doesn't rate-limit the backend IP.
-        if (synced + errors > 0) await sleep(800);
+        if (synced + errors > 0) await sleep(1500);
         const result = await fetchWeather(job.site_lat, job.site_lng);
         if (result.error) { errors++; lastError = `${job.name}: ${result.error}`; continue; }
         const weather = result.data;

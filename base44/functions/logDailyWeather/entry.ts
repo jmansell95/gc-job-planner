@@ -77,7 +77,9 @@ async function fetchWeather(lat: number, lng: number): Promise<{ data?: WeatherR
   // throttles burst requests from the backend runtime IP.
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'GC-Mission-Control/1.0 (weather sync; contact@groundcontrol.co.uk)' },
+      });
       if (res.status === 429) {
         if (attempt === 0) { await sleep(2500); continue; }
         return { error: 'Open-Meteo rate limit (429) — try again in a minute' };
