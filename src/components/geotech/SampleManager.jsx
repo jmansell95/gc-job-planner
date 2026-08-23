@@ -57,12 +57,29 @@ export default function SampleManager({ job, allStaff, suppliers }) {
     queryKey: ['sample-deliveries-for-job', job.id],
     queryFn: () => base44.entities.DeliveryLog.filter({ job_id: job.id }, '-scheduled_date'),
   });
+  // Build a map of sample_id → delivery progress so the SampleManager can show
+  // not just "Scheduled" but the live status of each leg (collection + delivery).
+  const sampleDeliveryStatus = new Map(); // sample_id → { collection: status, delivery: status }
   const scheduledSampleIds = new Set();
   sampleDeliveries.forEach((d) => {
     if ((d.delivery_type === 'sample_collection' || d.delivery_type === 'sample_delivery') && d.sample_ids) {
-      d.sample_ids.split(',').map((id) => id.trim()).filter(Boolean).forEach((id) => scheduledSampleIds.add(id));
+      d.sample_ids.split(',').map((id) => id.trim()).filter(Boolean).forEach((id) => {
+        scheduledSampleIds.add(id);
+        const entry = sampleDeliveryStatus.get(id) || {};
+        if (d.delivery_type === 'sample_collection') entry.collection = d.status;
+        if (d.delivery_type === 'sample_delivery') entry.delivery = d.status;
+        sampleDeliveryStatus.set(id, entry);
+      });
     }
   });
+
+  const deliveryStatusLabel = (entry) => {
+    if (!entry) return null;
+    const parts = [];
+    if (entry.collection) parts.push(`Collect ${entry.collection}`);
+    if (entry.delivery) parts.push(`Lab ${entry.delivery}`);
+    return parts.join(' · ');
+  };
 
   const labs = suppliers?.filter(s => s.name?.match(/lab|geol|soil|test|analy/i)) || [];
 
@@ -177,11 +194,23 @@ export default function SampleManager({ job, allStaff, suppliers }) {
                           <Clock className="w-2.5 h-2.5" /> Needs Collection
                         </span>
                       )}
-                      {scheduledSampleIds.has(s.sample_id) && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-teal-100 text-teal-700">
-                          <ClipboardCheck className="w-2.5 h-2.5" /> Scheduled
-                        </span>
-                      )}
+                      {scheduledSampleIds.has(s.sample_id) && (() => {
+                        const dStatus = sampleDeliveryStatus.get(s.sample_id);
+                        const label = deliveryStatusLabel(dStatus);
+                        const collectionDone = dStatus?.collection === 'completed';
+                        const deliveryDone = dStatus?.delivery === 'completed';
+                        const inTransit = dStatus?.collection === 'in_progress' || dStatus?.delivery === 'in_progress';
+                        const cls = deliveryDone ? 'bg-indigo-100 text-indigo-700'
+                          : collectionDone ? 'bg-cyan-100 text-cyan-700'
+                          : inTransit ? 'bg-blue-100 text-blue-700'
+                          : 'bg-teal-100 text-teal-700';
+                        const Icon = deliveryDone ? CheckCircle2 : collectionDone ? CheckCircle2 : inTransit ? Clock : ClipboardCheck;
+                        return (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${cls}`} title={label}>
+                            <Icon className="w-2.5 h-2.5" /> {label || 'Scheduled'}
+                          </span>
+                        );
+                      })()}
                       {s.lab_receipt_condition && ['compromised', 'leaked', 'broken'].includes(s.lab_receipt_condition) && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-100 text-rose-700">
                           <AlertTriangle className="w-2.5 h-2.5" /> {s.lab_receipt_condition}

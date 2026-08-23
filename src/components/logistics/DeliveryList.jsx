@@ -28,11 +28,30 @@ export default function DeliveryList({ deliveries = [], jobId, canSeeCosts }) {
   const queryClient = useQueryClient();
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this delivery task?')) return;
+    // Find the linked leg of a sample run (parent or child) so we can offer
+    // to delete both together — otherwise the orphaned leg lingers on the
+    // driver's day plan with no context.
+    const current = deliveries.find(d => d.id === id);
+    const linkedLeg = current?.parent_delivery_id
+      ? deliveries.find(d => d.id === current.parent_delivery_id)
+      : deliveries.find(d => d.parent_delivery_id === id);
+
+    const isLinked = !!linkedLeg && (current?.delivery_type === 'sample_collection' || current?.delivery_type === 'sample_delivery' || linkedLeg.delivery_type === 'sample_collection' || linkedLeg.delivery_type === 'sample_delivery');
+
+    const msg = isLinked
+      ? 'Delete this delivery task AND its linked sample run leg? Both legs will be removed.'
+      : 'Delete this delivery task?';
+    if (!confirm(msg)) return;
+
     try {
       await base44.entities.DeliveryLog.delete(id);
+      if (isLinked && linkedLeg) {
+        try { await base44.entities.DeliveryLog.delete(linkedLeg.id); } catch (e) { /* linked leg may already be gone */ }
+      }
       queryClient.invalidateQueries({ queryKey: ['job-deliveries', jobId] });
-      toast({ title: 'Delivery deleted' });
+      queryClient.invalidateQueries({ queryKey: ['sample-deliveries-for-job', jobId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-deliveries'] });
+      toast({ title: isLinked ? 'Sample run deleted' : 'Delivery deleted' });
     } catch (e) { toast({ title: 'Error', description: 'Could not delete.' }); }
   };
 
