@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Package, Plus, X, Trash2, Edit2, Truck, ShoppingCart, Wrench, HardHat, Search, ShieldCheck, Download, Link2, ChevronDown, ChevronUp, User, Lock, Power, PowerOff } from 'lucide-react';
+import { Package, Plus, X, Trash2, Edit2, Truck, ShoppingCart, Wrench, HardHat, Search, ShieldCheck, Download, Link2, ChevronDown, ChevronUp, User, Lock, Power, PowerOff, Factory, PackageCheck, PackageX } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -26,6 +26,14 @@ const complianceBadge = {
   expiring: { label: 'Expiring', cls: 'bg-amber-50 text-amber-700' },
   expired: { label: 'Expired', cls: 'bg-red-50 text-red-700' },
   unknown: { label: 'Unknown', cls: 'bg-slate-100 text-slate-500' }
+};
+
+const stockBadge = {
+  in_stock: { label: 'In Stock', icon: PackageCheck, cls: 'bg-emerald-50 text-emerald-700' },
+  low_stock: { label: 'Low Stock', icon: Package, cls: 'bg-amber-50 text-amber-700' },
+  out_of_stock: { label: 'Out of Stock', icon: PackageX, cls: 'bg-red-50 text-red-700' },
+  needs_service: { label: 'Needs Service', icon: Package, cls: 'bg-amber-50 text-amber-700' },
+  unknown: null,
 };
 
 export default function EquipmentItemsTab() {
@@ -398,7 +406,14 @@ export default function EquipmentItemsTab() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <p className="text-sm font-medium text-slate-900 truncate">{item.description}</p>
+                              {asset && <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-indigo-50 text-indigo-600"><Factory className="w-2.5 h-2.5" /> Asset Panda</span>}
                               {cb && <span className={`inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${cb.cls}`}><ShieldCheck className="w-2.5 h-2.5" /> {cb.label}</span>}
+                              {asset && asset.stock_level && stockBadge[asset.stock_level] && (() => {
+                                const sb = stockBadge[asset.stock_level];
+                                const SIcon = sb.icon;
+                                const qtyText = (asset.quantity_available != null || asset.quantity_owned != null) ? ` · ${asset.quantity_available != null ? asset.quantity_available : '?'}${asset.quantity_owned != null ? `/${asset.quantity_owned}` : ''}` : '';
+                                return <span className={`inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${sb.cls}`}><SIcon className="w-2.5 h-2.5" /> {sb.label}{qtyText}</span>;
+                              })()}
                               {hasLinked && <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-50 text-blue-600"><Link2 className="w-2.5 h-2.5" /> {linked.length} linked</span>}
                             </div>
                             <p className="text-xs text-slate-400">

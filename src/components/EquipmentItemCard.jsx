@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2, Trash2, FileCheck, Package, Users, Receipt, AlertCircle, FileText } from 'lucide-react';
+import { Edit2, Trash2, FileCheck, Package, Users, Receipt, AlertCircle, FileText, Factory, PackageCheck, PackageX } from 'lucide-react';
 import { format } from 'date-fns';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -39,6 +39,13 @@ export default function EquipmentItemCard({ item: c, linkedItems = [], assetMap 
             {c.reference_number && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium font-mono">Ref: {c.reference_number}</span>}
             {menCount > 0 && <span className="text-[10px] bg-[#2E5A1A]/10 text-[#2E5A1A] px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5 border border-[#2E5A1A]/20"><Users className="w-2.5 h-2.5" />{menCount} man{menCount > 1 ? 's' : ''}</span>}
             {c.rate_card_item_id && <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5 border border-amber-100"><Receipt className="w-2.5 h-2.5" />Rate card</span>}
+            {c.site_asset_id && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5 border border-indigo-100"><Factory className="w-2.5 h-2.5" />Asset Panda</span>}
+            {asset && asset.stock_level && asset.stock_level !== 'unknown' && (() => {
+              const stockCls = { in_stock: 'bg-emerald-50 text-emerald-700', low_stock: 'bg-amber-50 text-amber-700', out_of_stock: 'bg-red-50 text-red-700', needs_service: 'bg-amber-50 text-amber-700' }[asset.stock_level];
+              const StockIcon = asset.stock_level === 'in_stock' ? PackageCheck : PackageX;
+              const stockLabel = { in_stock: 'In Stock', low_stock: 'Low Stock', out_of_stock: 'Out of Stock', needs_service: 'Needs Service' }[asset.stock_level];
+              return <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5 ${stockCls}`}><StockIcon className="w-2.5 h-2.5" />{stockLabel}</span>;
+            })()}
             {isPOA && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full font-bold inline-flex items-center gap-0.5 border border-amber-300"><AlertCircle className="w-2.5 h-2.5" />POA</span>}
             {isConfirmed && <span className="text-[10px] bg-[#2E5A1A]/20 text-[#2E5A1A] px-1.5 py-0.5 rounded-full font-bold inline-flex items-center gap-0.5 border border-[#2E5A1A]/30"><FileCheck className="w-2.5 h-2.5" />Confirmed {fmt(Number(c.negotiated_unit_cost))}</span>}
             {c.vat_exempt && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">VAT exempt</span>}

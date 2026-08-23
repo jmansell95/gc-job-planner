@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronDown, Search, Check, Receipt, Factory, ShieldCheck, ShieldAlert, ShieldX, Tag } from 'lucide-react';
+import { ChevronDown, Search, Check, Receipt, Factory, ShieldCheck, ShieldAlert, ShieldX, Tag, PackageCheck, PackageX, AlertTriangle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { fmt } from './shared';
 import { resolveAssetPrice } from '@/components/logistics/rigRateMatcher';
@@ -8,6 +8,14 @@ const complianceMeta = {
   compliant: { icon: ShieldCheck, cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   expiring: { icon: ShieldAlert, cls: 'bg-amber-50 text-amber-700 border-amber-200' },
   expired: { icon: ShieldX, cls: 'bg-red-50 text-red-700 border-red-200' },
+  unknown: null,
+};
+
+const stockMeta = {
+  in_stock: { label: 'In Stock', icon: PackageCheck, cls: 'text-emerald-600' },
+  low_stock: { label: 'Low Stock', icon: AlertTriangle, cls: 'text-amber-600' },
+  out_of_stock: { label: 'Out of Stock', icon: PackageX, cls: 'text-red-600' },
+  needs_service: { label: 'Needs Service', icon: AlertTriangle, cls: 'text-amber-600' },
   unknown: null,
 };
 
@@ -95,6 +103,7 @@ export default function OwnedItemPicker({ value, onChange, rateCardGroups = [], 
               <div className="px-3 py-1.5 bg-slate-50/80 flex items-center gap-1.5 sticky top-0">
                 <Receipt className="w-3 h-3 text-blue-500" />
                 <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">{g.label}</p>
+                <span className="text-[10px] text-slate-400 font-normal">({g.items.length})</span>
               </div>
               <div className="divide-y divide-slate-50">
                 {g.items.map((r) => {
@@ -122,11 +131,13 @@ export default function OwnedItemPicker({ value, onChange, rateCardGroups = [], 
               <div className="px-3 py-1.5 bg-slate-50/80 flex items-center gap-1.5 sticky top-0">
                 <Factory className="w-3 h-3 text-indigo-500" />
                 <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">{g.label}</p>
+                <span className="text-[10px] text-slate-400 font-normal">({g.items.length})</span>
               </div>
               <div className="divide-y divide-slate-50">
                 {g.items.map((a) => {
                   const sel = value === `ap-${a.id}`;
                   const price = resolveAssetPrice(a, rateCardItems);
+                  const noRate = price.source === 'none';
                   const priceText = price.source === 'rate-card'
                     ? `${fmt(price.chargeOut)}${price.unit ? `/${price.unit}` : '/day'}`
                     : price.source === 'asset-panda'
@@ -135,14 +146,27 @@ export default function OwnedItemPicker({ value, onChange, rateCardGroups = [], 
                   const isAP = price.source === 'asset-panda';
                   const comp = complianceMeta[a.compliance_status];
                   const CompIcon = comp?.icon;
+                  const stock = stockMeta[a.stock_level];
+                  const StockIcon = stock?.icon;
+                  const qtyAvail = a.quantity_available;
+                  const qtyOwned = a.quantity_owned;
+                  const showQty = qtyAvail != null || qtyOwned != null;
                   return (
                     <button key={a.id} type="button" onClick={() => pick(`ap-${a.id}`)}
                       className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition hover:bg-indigo-50 ${sel ? 'bg-indigo-50' : ''}`}>
                       <Factory className="w-4 h-4 text-indigo-500 flex-shrink-0" />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-slate-800 truncate">{a.name}</p>
-                        <p className="text-[11px] text-slate-400 truncate">{a.serial_number ? `${a.serial_number} · ` : ''}{priceText}</p>
+                        <p className={`text-[11px] truncate ${noRate ? 'text-amber-600 font-medium' : 'text-slate-400'}`}>
+                          {a.serial_number ? `${a.serial_number} · ` : ''}{priceText}
+                          {showQty && ` · ${qtyAvail != null ? qtyAvail : '?'}${qtyOwned != null ? `/${qtyOwned}` : ''} avail`}
+                        </p>
                       </div>
+                      {stock && StockIcon && (
+                        <span className={`inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${stock.cls}`} title={stock.label}>
+                          <StockIcon className="w-2.5 h-2.5" />
+                        </span>
+                      )}
                       {isAP && (
                         <span className="text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full flex-shrink-0">AP</span>
                       )}
