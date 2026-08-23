@@ -349,9 +349,11 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
       const fullJobEnd = assignmentMode === 'full_job' && selectedJob?.end_date && selectedJob.end_date > effectiveStart ? selectedJob.end_date : '';
       const rangeEnd = customEndValid ? customEndDate : fullJobEnd;
       const isMultiDay = !isEditing && !!rangeEnd;
+      const staffDivisionId = getStaffDivisionId(formData.staff_id);
       if (isEditing) {
         const payload = {
           ...formData,
+          division_id: staffDivisionId,
           rig_asset_id: formData.rig_asset_id || '',
           rate_multiplier: rateMultiplier,
           actual_start_date: formData.start_delayed ? (formData.actual_start_date || null) : null
@@ -363,6 +365,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
         const assignments = days.map((dateStr, idx) => ({
           job_id: formData.job_id,
           staff_id: formData.staff_id,
+          division_id: staffDivisionId,
           assigned_date: dateStr,
           vehicle_id: formData.vehicle_id || '',
           rig_asset_id: formData.rig_asset_id || '',
@@ -381,6 +384,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
         await base44.entities.RotaAssignment.create({
           job_id: formData.job_id,
           staff_id: formData.staff_id,
+          division_id: staffDivisionId,
           assigned_date: effectiveStart,
           vehicle_id: formData.vehicle_id || '',
           rig_asset_id: formData.rig_asset_id || '',
