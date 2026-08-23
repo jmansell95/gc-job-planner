@@ -40,7 +40,7 @@ import PATTestingConsole from './pages/PATTestingConsole';
 import ReportingHub from './pages/ReportingHub';
 import CompliancePage from './pages/CompliancePage';
 import BillingPage from './pages/BillingPage';
-import PerformanceHub from './pages/PerformanceHub';
+
 import StaffPage from './pages/StaffPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -121,7 +121,7 @@ const AuthenticatedApp = () => {
             <Route path="/pat-testing" element={<RouteGuard><PATTestingConsole /></RouteGuard>} />
             <Route path="/compliance" element={<RouteGuard><HubReadinessGate featureId="compliance"><CompliancePage /></HubReadinessGate></RouteGuard>} />
             <Route path="/billing" element={<RouteGuard><HubReadinessGate featureId="billing"><BillingPage /></HubReadinessGate></RouteGuard>} />
-            <Route path="/performance" element={<RouteGuard><HubReadinessGate featureId="performance"><PerformanceHub /></HubReadinessGate></RouteGuard>} />
+
             <Route path="/reports" element={<RouteGuard><HubReadinessGate featureId="reports"><ReportingHub /></HubReadinessGate></RouteGuard>} />
             <Route path="/staff" element={<RouteGuard><HubReadinessGate featureId="staff"><StaffPage /></HubReadinessGate></RouteGuard>} />
             <Route path="/safety" element={<Navigate to="/compliance" replace />} />

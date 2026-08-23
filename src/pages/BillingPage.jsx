@@ -16,17 +16,23 @@ import MarginGuardTab from '@/components/billing/MarginGuardTab';
 import AgedDebtorsDashboard from '@/components/billing/AgedDebtorsDashboard';
 import ContractsAndOrdersTab from '@/components/billing/ContractsAndOrdersTab';
 import RunReportButton from '@/components/reports/RunReportButton';
+import PerformanceTab from '@/components/billing/PerformanceTab';
 import { base44 } from '@/api/base44Client';
+import { useDivision } from '@/contexts/DivisionContext';
 
 /**
  * BillingPage — AFP-centric billing hub.
- * Seven tabs: Insights (overview), AFP Portfolio (primary), Margin Guard,
+ * Tabs: Insights (overview), AFP Portfolio (primary), Margin Guard,
  * Aged Debtors, Contracts & Orders, Rate Card, CVR Export.
+ * Geotechnical business streams also get a Performance tab (rig & crew
+ * financial intelligence), relocated from the former standalone Performance Hub.
  */
 export default function BillingPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('insights');
   const [showTemplateUploader, setShowTemplateUploader] = useState(false);
+  const { activeDivision } = useDivision();
+  const isGeotechnical = activeDivision?.division_type === 'geotechnical';
 
   const tabs = [
     { id: 'insights', label: 'Insights', icon: LayoutDashboard },
@@ -36,6 +42,7 @@ export default function BillingPage() {
     { id: 'contracts', label: 'Contracts', icon: ScrollText },
     { id: 'rate-card', label: 'Rate Card', icon: Tag },
     { id: 'cvr-export', label: 'CVR Export', icon: Download },
+    ...(isGeotechnical ? [{ id: 'performance', label: 'Performance', icon: TrendingUp }] : []),
   ];
 
   const goToJobById = async (jobId) => {
@@ -52,12 +59,6 @@ export default function BillingPage() {
       subtitle="AFP portfolio, rate card & CVR export"
       actions={
         <div className="flex items-center gap-2">
-          <a
-            href="/performance"
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition active:scale-95"
-          >
-            <TrendingUp className="w-3.5 h-3.5" /> Performance Hub
-          </a>
           <RunReportButton hub="billing" />
         </div>
       }
@@ -98,6 +99,9 @@ export default function BillingPage() {
 
       {/* ── CVR Export: download CVR packs for higher management ── */}
       {tab === 'cvr-export' && <CVRExportTab />}
+
+      {/* ── Performance: rig & crew financial intelligence (geotechnical only) ── */}
+      {tab === 'performance' && isGeotechnical && <PerformanceTab />}
 
       {showTemplateUploader && (
         <AFPTemplateUploader onClose={() => setShowTemplateUploader(false)} />

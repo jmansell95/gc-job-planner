@@ -1,25 +1,20 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  TrendingUp, Users, Calendar, Loader2, Download, LayoutDashboard,
-  PoundSterling,
-} from 'lucide-react';
-import HubShell from '@/components/HubShell';
+import { Calendar, LayoutDashboard, TrendingUp, Users } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+import PerformanceOverviewTab from '@/components/performance/PerformanceOverviewTab';
 import RigProfitabilityView from '@/components/performance/RigProfitabilityView';
 import CrewEarningsView from '@/components/performance/CrewEarningsView';
-import PerformanceOverviewTab from '@/components/performance/PerformanceOverviewTab';
-import RunReportButton from '@/components/reports/RunReportButton';
-import { base44 } from '@/api/base44Client';
 
 /**
- * PerformanceHub — dedicated rig & crew financial intelligence page.
- * Three views: Overview (combined), Rig Profitability, Crew Earnings.
- * Everything links: rig/crew rows drill into job detail, quick links
- * jump to the Billing hub.
+ * PerformanceTab — embedded inside the Financial Hub for geotechnical
+ * business streams. Replaces the standalone Performance Hub page.
+ * Holds the date-range picker and a sub-tab pill nav (Overview, Rig
+ * Profitability, Crew Earnings), preserving the original PerformanceHub UX.
  */
-export default function PerformanceHub() {
+export default function PerformanceTab() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState('overview');
+  const [subTab, setSubTab] = useState('overview');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -31,7 +26,7 @@ export default function PerformanceHub() {
     return { date_from: from, date_to: to };
   }, [dateFrom, dateTo]);
 
-  const tabs = [
+  const subTabs = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'rig-profitability', label: 'Rig Profitability', icon: TrendingUp },
     { id: 'crew-earnings', label: 'Crew Earnings', icon: Users },
@@ -46,27 +41,9 @@ export default function PerformanceHub() {
   };
 
   return (
-    <HubShell
-      icon={TrendingUp}
-      title="Performance Hub"
-      subtitle="Rig & crew financial intelligence"
-      actions={
-        <div className="flex items-center gap-2">
-          <a
-            href="/billing"
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition active:scale-95"
-          >
-            <PoundSterling className="w-3.5 h-3.5" /> Billing Hub
-          </a>
-          <RunReportButton hub="billing" />
-        </div>
-      }
-      tabs={tabs}
-      activeTab={tab}
-      onTabChange={setTab}
-    >
+    <div className="space-y-3">
       {/* Date range picker */}
-      <div className="insight-card rounded-2xl p-3 mb-3 flex items-center gap-3 flex-wrap">
+      <div className="insight-card rounded-2xl p-3 flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
           <Calendar className="w-4 h-4" /> Period:
         </div>
@@ -106,19 +83,41 @@ export default function PerformanceHub() {
         </div>
       </div>
 
-      {tab === 'overview' && (
+      {/* Sub-tab pill nav */}
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+        {subTabs.map(t => {
+          const Icon = t.icon;
+          const active = subTab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setSubTab(t.id)}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+                active
+                  ? 'command-gradient text-white shadow-md'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" /> {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Sub-view body */}
+      {subTab === 'overview' && (
         <PerformanceOverviewTab
           dateRange={dateRange}
           onSelectJob={handleSelectJob}
-          onGoToTab={setTab}
+          onGoToTab={setSubTab}
         />
       )}
-      {tab === 'rig-profitability' && (
+      {subTab === 'rig-profitability' && (
         <RigProfitabilityView dateRange={dateRange} onSelectJob={handleSelectJob} />
       )}
-      {tab === 'crew-earnings' && (
+      {subTab === 'crew-earnings' && (
         <CrewEarningsView dateRange={dateRange} onSelectJob={handleSelectJob} />
       )}
-    </HubShell>
+    </div>
   );
 }

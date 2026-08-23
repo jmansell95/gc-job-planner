@@ -10,7 +10,6 @@ export const STANDALONE_ROUTES = {
   staff: '/staff',
   compliance: '/compliance',
   billing: '/billing',
-  performance: '/performance',
   assets: '/assets',
   fleet: '/fleet',
   reports: '/reports',

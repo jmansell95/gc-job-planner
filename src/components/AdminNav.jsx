@@ -94,7 +94,6 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
     { id: 'investigation', label: 'Investigation Hub', icon: FlaskConical },
     { id: 'compliance', label: 'Compliance Hub', icon: ShieldCheck },
     { id: 'billing', label: 'Financial Hub', icon: PoundSterling },
-    { id: 'performance', label: 'Performance Hub', icon: TrendingUp },
     { id: 'reports', label: 'Reports Hub', icon: FileBarChart },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
