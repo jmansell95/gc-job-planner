@@ -91,6 +91,10 @@
       "default": "staff",
       "description": "How this timesheet entry was created. 'staff' = manually entered by the crew member; 'geotab_auto' = auto-generated from Geotab GPS vehicle location data (arrival/departure detection via geofencing); 'keylogbook' = parsed from the driller's KeyLogBook daily remarks."
     },
+    "linked_delivery_id": {
+      "type": "string",
+      "description": "ID of the DeliveryLog task this entry was auto-created from. Set when a driver completes a delivery/collection \u2014 the system auto-creates a draft Timesheet entry from the delivery's actual start\u2192complete duration. Used for idempotency (prevents duplicate creation on retry) and to render a 'Delivery' badge in the End of Shift wizard. Blank for manually-entered entries."
+    },
     "is_summary": {
       "type": "boolean",
       "default": false,

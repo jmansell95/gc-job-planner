@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { X, CheckCircle2, Car, Ruler, FileText, ClipboardCheck, Send, ChevronRight, AlertTriangle, Coffee, Briefcase, Info, ShieldCheck, Clock, Receipt, Boxes, DoorOpen } from 'lucide-react';
+import { X, CheckCircle2, Car, Ruler, FileText, ClipboardCheck, Send, ChevronRight, AlertTriangle, Coffee, Briefcase, Info, ShieldCheck, Clock, Receipt, Boxes, DoorOpen, Truck } from 'lucide-react';
 import { format } from 'date-fns';
 import DailyExpenseStep from './DailyExpenseStep';
 import AssetRecoveryStep from './AssetRecoveryStep';
@@ -18,6 +18,7 @@ const fmtDur = (mins) => {
 
 const entryMeta = (t) => {
   if (t.is_break) return { Icon: Coffee, bg: 'bg-amber-50/50', iconBg: 'bg-amber-100', label: 'Lunch Break' };
+  if (t.linked_delivery_id) return { Icon: Truck, bg: 'bg-cyan-50/50', iconBg: 'bg-cyan-100', label: t.task_description };
   if (t.task_type === 'travel_to') return { Icon: Car, bg: 'bg-blue-50/50', iconBg: 'bg-blue-100', label: 'Travel to Site' };
   if (t.task_type === 'travel_from') return { Icon: Car, bg: 'bg-blue-50/50', iconBg: 'bg-blue-100', label: 'Travel Home' };
   if (/briefing|induction/i.test(t.task_description || '')) return { Icon: ShieldCheck, bg: 'bg-purple-50/50', iconBg: 'bg-purple-100', label: t.task_description };
@@ -262,6 +263,7 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
                           const meta = entryMeta(t);
                           const mins = Number(t.task_duration_minutes) || 0;
                           const travelBadge = isTravel(t);
+                          const deliveryBadge = !!t.linked_delivery_id;
                           return (
                             <div key={t.id} className={`px-3.5 py-3 flex items-center gap-3 ${meta.bg}`}>
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.iconBg}`}>
@@ -271,6 +273,7 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
                                 <p className="font-medium text-sm text-slate-900 truncate flex items-center gap-1.5">
                                   {meta.label}
                                   {travelBadge && <span className="text-[9px] px-1 py-0.5 rounded-full bg-blue-100 text-blue-600 font-bold uppercase">Travel</span>}
+                                  {deliveryBadge && <span className="text-[9px] px-1 py-0.5 rounded-full bg-cyan-100 text-cyan-700 font-bold uppercase">Delivery</span>}
                                 </p>
                                 <p className="text-xs text-slate-400">{t.start_time}–{t.end_time}{t.meterage ? ` · ${t.meterage}m` : ''}</p>
                               </div>

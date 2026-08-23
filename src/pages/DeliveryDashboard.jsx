@@ -274,6 +274,13 @@ export default function DeliveryDashboard() {
         }
       }
 
+      // Auto-create a draft timesheet entry for the driver from the delivery's
+      // actual start→complete duration, so driving time flows into the same
+      // End of Shift review and weekly approval pipeline as yard work.
+      try {
+        await base44.functions.invoke('createDeliveryTimesheetEntry', { delivery_id: deliveryId });
+      } catch (e) { console.error('Delivery timesheet creation error:', e); }
+
       queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
 
       // Surface the next stop so the driver knows where to go next.
