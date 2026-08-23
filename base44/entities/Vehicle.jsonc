@@ -74,6 +74,10 @@
       "type": "number",
       "description": "Maximum cargo volume in cubic metres this vehicle can hold"
     },
+    "height_m": {
+      "type": "number",
+      "description": "Vehicle height in metres \u2014 used for low-bridge clearance warnings on load manifests and displayed on vehicle cards. Preferred source is Asset Panda (mapped 'Height' field); falls back to manual entry when no Panda height is available."
+    },
     "vin": {
       "type": "string",
       "description": "Vehicle Identification Number (chassis number). Used to match vehicles when syncing from Holman or Geotab."

@@ -28,6 +28,8 @@ const SYSTEM_FIELDS = [
   { value: 'make', label: 'Make / Manufacturer' },
   { value: 'model', label: 'Model' },
   { value: 'length', label: 'Length (m)' },
+  { value: 'weight_kg', label: 'Weight (kg)' },
+  { value: 'height_m', label: 'Height (m) — vehicles' },
   { value: 'fuel_type', label: 'Fuel Type' },
   { value: 'condition', label: 'Condition' },
   { value: 'hours_used', label: 'Hours Used' },

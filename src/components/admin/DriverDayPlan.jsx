@@ -1,6 +1,11 @@
 import React, { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import { isToday, format } from 'date-fns';
 import { Clock, PlayCircle, CheckCircle2, AlertTriangle, MapPin, Package, ShieldCheck, Navigation, Truck, ArrowRightLeft } from 'lucide-react';
+import SafeToDrivePanel from '@/components/logistics/SafeToDrivePanel';
+import PrintLoadManifest from '@/components/logistics/PrintLoadManifest';
+import { totalWeight } from '@/utils/loadWeight';
 
 const typeConfig = {
   site_delivery: { label: 'Delivery', icon: Truck, color: 'emerald' },
@@ -20,6 +25,11 @@ const statusDot = {
 
 export default function DriverDayPlan({ deliveries, jobs, drivers, onSelectDelivery }) {
   const [selectedDriver, setSelectedDriver] = useState('all');
+
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['driver-day-vehicles'],
+    queryFn: () => base44.entities.Vehicle.list('-created_date', 500),
+  });
 
   const todayDeliveries = useMemo(
     () => deliveries.filter(d => isToday(new Date(d.scheduled_date + 'T00:00:00'))),
@@ -91,6 +101,12 @@ export default function DriverDayPlan({ deliveries, jobs, drivers, onSelectDeliv
       {runs.map(run => {
         const completed = run.stops.filter(s => s.status === 'completed').length;
         const overdue = run.stops.filter(s => s.status === 'pending' && s.scheduled_date && new Date(s.scheduled_date + 'T23:59:59') < new Date()).length;
+        // Find the vehicle for this run (first delivery with a vehicle_id)
+        const vehicleId = run.stops.find(s => s.vehicle_id)?.vehicle_id;
+        const runVehicle = vehicles.find(v => v.id === vehicleId) || null;
+        // Sum loaded weight — prefer denormalised total_loaded_weight_kg, fall back to weight_kg
+        const runLoadedKg = run.stops.reduce((s, d) => s + (Number(d.total_loaded_weight_kg) || Number(d.weight_kg) || 0), 0);
+        const runAxleNote = run.stops.find(s => s.axle_guidance_note)?.axle_guidance_note || '';
         return (
           <div key={run.driverId} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2.5 bg-slate-50">
@@ -101,8 +117,29 @@ export default function DriverDayPlan({ deliveries, jobs, drivers, onSelectDeliv
                 <p className="text-sm font-bold text-slate-900 truncate">{run.driverName}</p>
                 <p className="text-[11px] text-slate-500">{completed}/{run.stops.length} completed{overdue > 0 && <span className="text-rose-600 font-medium"> · {overdue} overdue</span>}</p>
               </div>
+              {runVehicle && (
+                <PrintLoadManifest
+                  delivery={run.stops[0]}
+                  vehicle={runVehicle}
+                  driverName={run.driverName}
+                  items={run.stops.flatMap(s => (s.items || '').split(/\n|,(?=\s)/).map(x => x.trim()).filter(Boolean).map(x => ({ name: x, weight_kg: 0 })))}
+                  axleGuidanceNote={runAxleNote}
+                />
+              )}
               <Navigation className="w-4 h-4 text-slate-400" />
             </div>
+
+            {/* Safe-to-drive payload panel — first thing the driver sees */}
+            {runVehicle && (
+              <div className="px-4 pt-3">
+                <SafeToDrivePanel
+                  vehicle={runVehicle}
+                  totalLoadedKg={runLoadedKg}
+                  axleGuidanceNote={runAxleNote}
+                  stopsCount={run.stops.length}
+                />
+              </div>
+            )}
 
             {/* Vertical timeline */}
             <div className="relative px-4 py-4 pl-10">

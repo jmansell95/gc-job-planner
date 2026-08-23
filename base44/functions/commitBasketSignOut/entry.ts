@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { totalWeight, calculateAxleGuidance } from '../../shared/loadWeight.ts';
 
 /**
  * Batch sign-out — creates JobAssetAssignment records for all scanned assets
@@ -22,9 +23,43 @@ Deno.serve(async (req) => {
     const staffName = body?.staff_name || user.full_name || '';
     const vehicleId = body?.vehicle_id || '';
     const vehicleName = body?.vehicle_name || '';
+    const overrideWeight = body?.override_weight === true;
 
     if (!jobId) return Response.json({ error: 'job_id is required' }, { status: 400 });
     if (assetIds.length === 0) return Response.json({ error: 'No assets to sign out' }, { status: 400 });
+
+    // --- Weight & axle guidance ---
+    // Sum loaded weight from the asset records and check against the vehicle's
+    // max_weight_kg. When overweight, require an explicit override flag — the
+    // UI shows a warning and an 'Override & Proceed' button that re-calls with
+    // override_weight=true (logged to SystemAuditLog).
+    const loadedWeight = totalWeight(assets);
+    const axle = calculateAxleGuidance(assets, null);
+    let vehicleRecord: any = null;
+    if (vehicleId) {
+      try {
+        vehicleRecord = await base44.entities.Vehicle.get(vehicleId);
+      } catch (_) {}
+    }
+    const maxWeight = vehicleRecord?.max_weight_kg || null;
+    if (maxWeight && loadedWeight > maxWeight && !overrideWeight) {
+      return Response.json({
+        error: 'Vehicle payload exceeded',
+        overweight: true,
+        loaded_weight_kg: Math.round(loadedWeight),
+        max_weight_kg: Math.round(maxWeight),
+        message: `Loaded weight (${Math.round(loadedWeight)} kg) exceeds the vehicle's payload limit (${Math.round(maxWeight)} kg). Confirm override to proceed.`,
+      }, { status: 409 });
+    }
+    if (overrideWeight && maxWeight && loadedWeight > maxWeight) {
+      try {
+        await base44.functions.invoke('logSystemAudit', {
+          action: 'weight_override',
+          entity_type: 'DeliveryLog',
+          details: `Overweight override: ${Math.round(loadedWeight)} kg loaded on vehicle ${vehicleRecord?.registration_number || vehicleId} (limit ${Math.round(maxWeight)} kg). Job: ${jobName}.`,
+        });
+      } catch (_) {}
+    }
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -53,6 +88,28 @@ Deno.serve(async (req) => {
         notes: `Signed out via scanner by ${staffName}${vehicleName ? ` onto ${vehicleName}` : ''}`,
       };
     });
+
+    // Denormalise loaded weight + axle guidance onto the active DeliveryLog
+    // (if one exists for this vehicle/job today) so the driver hub can show
+    // the safe-to-drive panel without re-summing.
+    if (vehicleId) {
+      try {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const activeDeliveries = await base44.entities.DeliveryLog.filter({
+          vehicle_id: vehicleId,
+          job_id: jobId,
+          scheduled_date: todayStr,
+        });
+        if (activeDeliveries.length > 0) {
+          const dl = activeDeliveries[0];
+          await base44.entities.DeliveryLog.update(dl.id, {
+            total_loaded_weight_kg: Math.round(loadedWeight),
+            axle_guidance_note: axle.note,
+            weight_override: overrideWeight && maxWeight && loadedWeight > maxWeight,
+          });
+        }
+      } catch (_) {}
+    }
 
     await base44.entities.JobAssetAssignment.bulkCreate(records);
 

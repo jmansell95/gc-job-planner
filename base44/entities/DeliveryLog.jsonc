@@ -144,6 +144,19 @@
       "type": "number",
       "description": "Volume of this delivery's items in cubic metres \u2014 used for vehicle capacity checks. Manager-only field."
     },
+    "total_loaded_weight_kg": {
+      "type": "number",
+      "description": "Total loaded weight (kg) of all items on this delivery run, summed from asset weight_kg values at sign-out. Denormalised so the driver hub can display the safe-to-drive payload status without re-summing."
+    },
+    "axle_guidance_note": {
+      "type": "string",
+      "description": "Human-readable axle load distribution recommendation for this delivery's loaded items (front/rear split + heaviest item placement). Denormalised at sign-out so the driver hub and load manifest can display it without recalculating."
+    },
+    "weight_override": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the dispatcher/driver explicitly overrode the overweight block (loaded weight exceeded the vehicle's max_weight_kg). Logged to SystemAuditLog for audit traceability."
+    },
     "chargeable": {
       "type": "boolean",
       "default": true,

@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
       'storage_location', 'responsible_person', 'compliance_expiry_date', 'next_service_date',
       'last_service_date', 'service_notes', 'repair_notes', 'colour', 'equipment_type',
       'tooling_notes', 'notes',
-      'fleet_number', 'make', 'model', 'length', 'fuel_type', 'condition', 'hours_used',
+      'fleet_number', 'make', 'model', 'length', 'weight_kg', 'fuel_type', 'condition', 'hours_used',
       'quantity_owned', 'quantity_available', 'barcode',
     ]);
 
@@ -244,6 +244,8 @@ Deno.serve(async (req) => {
         if (!autoExtraMap.condition) autoExtraMap.condition = findByLabel(['condition']);
         if (!autoExtraMap.hours_used) autoExtraMap.hours_used = findByLabel(['hours used', 'hour meter', 'hourmeter', 'hours']);
         if (!autoExtraMap.length) autoExtraMap.length = findByLabel(['length']);
+        if (!autoExtraMap.weight_kg) autoExtraMap.weight_kg = findByLabel(['weight', 'mass', 'kg', 'weight (kg)']);
+        if (!autoExtraMap.height_m) autoExtraMap.height_m = findByLabel(['height', 'vehicle height', 'height (m)']);
         if (!autoExtraMap.quantity_owned) autoExtraMap.quantity_owned = findByLabel(['quantity owned', 'qty owned', 'owned']);
         if (!autoExtraMap.quantity_available) autoExtraMap.quantity_available = findByLabel(['quantity available', 'qty available', 'quantity avail', 'available']);
         if (!autoExtraMap.barcode) autoExtraMap.barcode = findByLabel(['barcode', 'asset tag', 'tag id']);
@@ -433,7 +435,7 @@ Deno.serve(async (req) => {
           for (const [sysField, pandaKey] of Object.entries(extraMap)) {
             const val = fieldValue(obj, pandaKey);
             if (!val) continue;
-            if (sysField === 'length' || sysField === 'hours_used' || sysField === 'quantity_owned' || sysField === 'quantity_available') {
+            if (sysField === 'length' || sysField === 'weight_kg' || sysField === 'hours_used' || sysField === 'quantity_owned' || sysField === 'quantity_available') {
               const num = parseRate(val);
               if (num != null) payload[sysField] = num;
             } else if (DATE_SYS_FIELDS.has(sysField)) {
@@ -574,6 +576,55 @@ Deno.serve(async (req) => {
         fields_detected: groupFields.length,
         field_map: { ...fieldMap, ...extraMap },
       });
+    }
+
+    // --- Stamp vehicle height_m from Panda vehicle groups ---
+    // For groups whose objects were detected as 'vehicle', match by
+    // registration_number to Vehicle records and stamp height_m so vehicle
+    // cards show clearance and load manifests warn about low bridges.
+    try {
+      const vehicleUpdates: any[] = [];
+      for (const gr of groupResults) {
+        const groupFieldMap = gr.field_map || {};
+        const heightKey = groupFieldMap.height_m || '';
+        if (!heightKey) continue;
+        // Re-fetch objects for this group to get height values
+        const objRes = await fetch(`${baseUrl}/v3/groups/${gr.group_id}/search/objects?limit=100&offset=0`, {
+          method: 'POST', headers: authHeaders, body: JSON.stringify({ view_archived: 'all' }),
+        });
+        if (!objRes.ok) continue;
+        const objJson: any = await objRes.json();
+        const objs = Array.isArray(objJson) ? objJson : (objJson.objects || objJson.data || []);
+        for (const obj of objs) {
+          const rawType = fieldValue(obj, groupFieldMap.asset_type || '') || '';
+          const name = fieldValue(obj, groupFieldMap.name || '') || '';
+          const detectedType = detectAssetType(rawType, name, gr.asset_type_hint || 'auto');
+          if (detectedType !== 'vehicle') continue;
+          const heightRaw = fieldValue(obj, heightKey);
+          if (!heightRaw) continue;
+          const heightNum = parseRate(heightRaw);
+          if (heightNum == null || heightNum <= 0) continue;
+          // Match by registration (serial field often holds the reg for vehicles)
+          const reg = fieldValue(obj, groupFieldMap.serial || '') || name || '';
+          if (!reg) continue;
+          const regClean = reg.replace(/\s/g, '').toUpperCase();
+          const vehicles = await base44.asServiceRole.entities.Vehicle.list('-created_date', 500);
+          const match = vehicles.find((v: any) => {
+            const vr = String(v.registration_number || '').replace(/\s/g, '').toUpperCase();
+            return vr && vr === regClean;
+          });
+          if (match && match.height_m !== heightNum) {
+            vehicleUpdates.push({ id: match.id, height_m: heightNum });
+          }
+        }
+      }
+      if (vehicleUpdates.length > 0) {
+        for (let i = 0; i < vehicleUpdates.length; i += 100) {
+          try { await base44.asServiceRole.entities.Vehicle.bulkUpdate(vehicleUpdates.slice(i, i + 100)); } catch (_) {}
+        }
+      }
+    } catch (vhErr) {
+      console.error('Vehicle height stamp failed:', (vhErr as Error).message);
     }
 
     // --- Propose rate-card links for unmatched/proposed assets ---

@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Cog, Wrench, Package, Truck, Anchor, Plug,
   ShieldCheck, ShieldAlert, ShieldX, HelpCircle,
-  ArrowLeft, Pencil, RefreshCw, QrCode, Hash,
+  ArrowLeft, Pencil, RefreshCw, QrCode, Hash, Weight,
 } from 'lucide-react';
 import { COMPLIANCE_META, ASSET_TYPE_META } from '@/utils/rigRollup';
 
@@ -100,6 +100,11 @@ export default function AssetDetailHero({ asset, onBack, onEdit, onRecert, onQR,
         {asset.maintenance_status && asset.maintenance_status !== 'unknown' && (
           <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-white/90">
             <Wrench className="w-3.5 h-3.5" /> {asset.maintenance_status === 'ok' ? 'Serviced' : asset.maintenance_status === 'due_soon' ? 'Service Due' : asset.maintenance_status === 'overdue' ? 'Overdue' : ''}
+          </span>
+        )}
+        {asset.weight_kg != null && (
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-white/90">
+            <Weight className="w-3.5 h-3.5" /> {Math.round(asset.weight_kg)} kg
           </span>
         )}
       </div>

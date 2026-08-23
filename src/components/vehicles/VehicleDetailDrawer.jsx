@@ -4,6 +4,7 @@ import {
   X, Truck, Gauge, CalendarClock, Wrench, Link2, Satellite,
   ShieldCheck, ShieldAlert, ShieldX, Hash, Fuel, Palette, Car, User, Users,
   MapPin, Navigation, Clock, Activity, Zap, Radio, Database, FileText, Loader2, Route, CloudOff,
+  Weight, Ruler, Box,
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { differenceInDays } from 'date-fns';
@@ -390,6 +391,9 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
                 <SpecTile icon={Hash} label="VIN" value={vehicle.vin || '—'} source={specSource(vehicle.vin)} color="bg-slate-50 border-slate-200" />
                 <SpecTile icon={User} label="Driver" value={assignedStaff?.name || 'Unassigned'} color="bg-slate-50 border-slate-200" />
                 <SpecTile icon={Users} label="Team" value={team?.name || '—'} color="bg-slate-50 border-slate-200" />
+                <SpecTile icon={Weight} label="Max Payload" value={vehicle.max_weight_kg ? `${Math.round(vehicle.max_weight_kg)} kg` : '—'} color="bg-blue-50 border-blue-200" />
+                <SpecTile icon={Ruler} label="Height" value={vehicle.height_m ? `${vehicle.height_m} m` : '—'} color="bg-violet-50 border-violet-200" />
+                <SpecTile icon={Box} label="Max Volume" value={vehicle.max_volume_m3 ? `${vehicle.max_volume_m3} m³` : '—'} color="bg-slate-50 border-slate-200" />
               </div>
             </div>
 

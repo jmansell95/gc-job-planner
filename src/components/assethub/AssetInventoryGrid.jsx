@@ -3,7 +3,7 @@ import {
   Cog, Wrench, Package, Truck, Anchor, Plug, ShieldCheck, ShieldAlert, ShieldX,
   HelpCircle, ChevronRight, Link2, Lock, ScanLine, Check, CheckSquare, Database, CircleDot,
   Warehouse, MapPin, CalendarClock, AlertTriangle, Boxes, Hash, Ruler, Gauge, Clock,
-  TrendingDown, PoundSterling, Activity,
+  TrendingDown, PoundSterling, Activity, Weight,
 } from 'lucide-react';
 import { rollupCompliance, derivedComplianceStatus, COMPLIANCE_META, ASSET_TYPE_META, findParentRig, daysUntil } from '@/utils/rigRollup';
 import RigUtilizationSparkline from '@/components/righub/RigUtilizationSparkline';
@@ -335,6 +335,11 @@ export default function AssetInventoryGrid({
                         ? <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200" title={syncTitle(rig)}><Database className="w-2.5 h-2.5" /> Panda</span>
                         : <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200" title={syncTitle(rig)}><CircleDot className="w-2.5 h-2.5" /> Local</span>}
                       <QuantityBadge available={rig.quantity_available} owned={rig.quantity_owned} />
+                      {rig.weight_kg != null && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                          <Weight className="w-2.5 h-2.5" /> {Math.round(rig.weight_kg)} kg
+                        </span>
+                      )}
                     </div>
                     <div className="flex gap-1.5 mb-2">
                       {['compliant', 'expiring', 'expired', 'unknown'].map(k => rollup.counts[k] > 0 && (
@@ -451,6 +456,11 @@ export default function AssetInventoryGrid({
                         </span>
                       )}
                       <QuantityBadge available={equip.quantity_available} owned={equip.quantity_owned} />
+                      {equip.weight_kg != null && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                          <Weight className="w-2.5 h-2.5" /> {Math.round(equip.weight_kg)} kg
+                        </span>
+                      )}
                     </div>
                     {/* Financial + lifecycle + utilization strip */}
                     <div className="flex items-center gap-1.5 flex-wrap mb-1.5">

@@ -29,6 +29,7 @@ import SmartCertImport from '@/components/righub/SmartCertImport';
 import BulkQRPrinter from '@/components/assetcommand/BulkQRPrinter';
 import ScrapPilePanel from '@/components/assetcommand/ScrapPilePanel';
 import AssetInventoryGrid from '@/components/assethub/AssetInventoryGrid';
+import PrintWeightRegister from '@/components/assethub/PrintWeightRegister';
 import AssetDeploymentsPanel from '@/components/assethub/AssetDeploymentsPanel';
 import PredictiveMaintenanceWidget from '@/components/vehicles/PredictiveMaintenanceWidget';
 import PredictiveInsightsWidget from '@/components/dashboard/PredictiveInsightsWidget';
@@ -165,6 +166,7 @@ export default function AssetHub() {
         subtitle="Rigs, gear & PAT — Asset Panda synced + locally created. Warehouse consumables & internal stock."
         actions={
             <div className="flex items-center gap-2 flex-wrap">
+              <PrintWeightRegister assets={assets} />
               <RunReportButton hub="assets" />
               <button onClick={() => navigate('/scanner')} className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg font-semibold text-xs hover:bg-[#244715] transition shadow-sm"><ScanLine className="w-3.5 h-3.5" /> Scanner</button>
               <button onClick={() => setShowBulkQR(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><QrCode className="w-3.5 h-3.5" /> QR Labels</button>

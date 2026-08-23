@@ -4,6 +4,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Truck, Package, ClipboardList, X, Calendar, User, MapPin, Loader2, Navigation, Weight, AlertTriangle, PackageCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
+import WeightProgressBar from '@/components/logistics/WeightProgressBar';
+import { calculateAxleGuidance } from '@/utils/loadWeight';
 
 const typeOptions = [
   { value: 'site_delivery', label: 'Delivery', desc: 'Deliver to site', icon: Truck, color: 'emerald' },
@@ -169,32 +171,19 @@ export default function LoadPlannerModal({ selectedItems = [], staff = [], vehic
               </div>
             )}
             {selectedVehicle && (selectedVehicle.max_weight_kg || selectedVehicle.max_volume_m3) && (
-              <div className="mt-2 space-y-1.5">
-                {selectedVehicle.max_weight_kg && (
-                  <div>
-                    <div className="flex items-center justify-between text-[10px] mb-0.5">
-                      <span className="text-slate-500 font-medium">Weight capacity</span>
-                      <span className={overWeight ? 'text-red-600 font-bold' : 'text-slate-600'}>{Math.round(totalWeight)} / {Math.round(selectedVehicle.max_weight_kg)} kg</span>
-                    </div>
-                    <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${overWeight ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${weightPct}%` }} />
-                    </div>
-                  </div>
-                )}
-                {selectedVehicle.max_volume_m3 && (
-                  <div>
-                    <div className="flex items-center justify-between text-[10px] mb-0.5">
-                      <span className="text-slate-500 font-medium">Volume capacity</span>
-                      <span className={overVolume ? 'text-red-600 font-bold' : 'text-slate-600'}>{totalVolume.toFixed(1)} / {selectedVehicle.max_volume_m3.toFixed(1)} m³</span>
-                    </div>
-                    <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${overVolume ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${volumePct}%` }} />
-                    </div>
-                  </div>
-                )}
-                {(overWeight || overVolume) && (
-                  <div className="flex items-center gap-1.5 text-[10px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-2 py-1">
-                    <AlertTriangle className="w-3 h-3 flex-shrink-0" /> Vehicle capacity exceeded — consider a larger vehicle or split the load.
+              <div className="mt-2">
+                <WeightProgressBar
+                  loadedWeightKg={totalWeight}
+                  maxWeightKg={selectedVehicle.max_weight_kg}
+                  loadedVolumeM3={totalVolume}
+                  maxVolumeM3={selectedVehicle.max_volume_m3}
+                />
+                {totalWeight > 0 && (
+                  <div className="mt-2 bg-slate-50 border border-slate-200 rounded-lg p-2">
+                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wide mb-0.5 flex items-center gap-1">
+                      <Truck className="w-3 h-3" /> Axle Load Guidance
+                    </p>
+                    <p className="text-[11px] text-slate-600 leading-snug">{calculateAxleGuidance(selectedItems, selectedVehicle).note}</p>
                   </div>
                 )}
               </div>

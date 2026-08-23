@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, ShieldCheck, ShieldAlert, ShieldX, Gauge, Wrench, Link2, Link2Off, AlertTriangle } from 'lucide-react';
+import { Truck, ShieldCheck, ShieldAlert, ShieldX, Gauge, Wrench, Link2, Link2Off, AlertTriangle, Weight, Ruler } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
 
 function getStatus(vehicle) {
@@ -66,6 +66,20 @@ export default function VehicleCard({ vehicle, staff, team, onClick }) {
           {vehicle.service_due_date && <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium">Service: {new Date(vehicle.service_due_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}</span>}
         </div>
       )}
+
+      {/* Payload & height badges */}
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {vehicle.max_weight_kg > 0 && (
+          <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium" title="Maximum payload weight">
+            <Weight className="w-3 h-3" /> {Math.round(vehicle.max_weight_kg)} kg
+          </span>
+        )}
+        {vehicle.height_m > 0 && (
+          <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 font-medium" title="Vehicle height">
+            <Ruler className="w-3 h-3" /> {vehicle.height_m} m H
+          </span>
+        )}
+      </div>
 
       {/* Footer row */}
       <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400">

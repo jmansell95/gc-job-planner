@@ -4,12 +4,13 @@ import { base44 } from '@/api/base44Client';
 import {
   X, Truck, Package, ArrowRightLeft, MapPin, Clock, CheckCircle2, PlayCircle,
   AlertTriangle, Navigation, Link2, User, Phone, ChevronRight, Calendar,
-  ShieldCheck, FlaskConical, Store, Loader2, FileCheck,
+  ShieldCheck, FlaskConical, Store, Loader2, FileCheck, Weight,
 } from 'lucide-react';
 import { format, isToday, parseISO } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import DeliveryRouteMap from '@/components/delivery/DeliveryRouteMap';
 import RouteOptimizeBar from '@/components/delivery/RouteOptimizeBar';
+import PrintLoadManifest from '@/components/logistics/PrintLoadManifest';
 
 const typeConfig = {
   site_delivery: { label: 'Delivery', icon: Truck, accent: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' },
@@ -65,6 +66,13 @@ export default function DeliveryDetailDrawer({ delivery, jobs, staff, onClose })
     queryKey: ['driver-day-stops', delivery.driver_staff_id, delivery.scheduled_date],
     queryFn: () => base44.entities.DeliveryLog.filter({ driver_staff_id: delivery.driver_staff_id, scheduled_date: delivery.scheduled_date }),
     enabled: !!delivery.driver_staff_id,
+  });
+
+  // Vehicle for this delivery (for weight/manifest)
+  const { data: deliveryVehicle } = useQuery({
+    queryKey: ['delivery-vehicle', delivery.vehicle_id],
+    queryFn: () => base44.entities.Vehicle.get(delivery.vehicle_id),
+    enabled: !!delivery.vehicle_id,
   });
 
   // Chain legs for the job
@@ -157,6 +165,40 @@ export default function DeliveryDetailDrawer({ delivery, jobs, staff, onClose })
               </span>
             )}
           </div>
+
+          {/* Weight & safe-to-drive summary */}
+          {(delivery.total_loaded_weight_kg || delivery.axle_guidance_note) && (
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-3 space-y-2">
+              {delivery.total_loaded_weight_kg != null && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium flex items-center gap-1.5"><Weight className="w-3.5 h-3.5" /> Loaded Weight</span>
+                  <span className={`font-bold tabular-nums ${
+                    deliveryVehicle?.max_weight_kg && delivery.total_loaded_weight_kg > deliveryVehicle.max_weight_kg ? 'text-rose-600'
+                    : deliveryVehicle?.max_weight_kg && delivery.total_loaded_weight_kg >= deliveryVehicle.max_weight_kg * 0.9 ? 'text-amber-600'
+                    : 'text-slate-800'
+                  }`}>
+                    {Math.round(delivery.total_loaded_weight_kg)} kg
+                    {deliveryVehicle?.max_weight_kg ? ` / ${Math.round(deliveryVehicle.max_weight_kg)} kg` : ''}
+                    {delivery.weight_override && <span className="ml-1.5 text-[10px] text-rose-600 font-bold">(OVERRIDE)</span>}
+                  </span>
+                </div>
+              )}
+              {delivery.axle_guidance_note && (
+                <div className="text-[11px] text-slate-600 leading-snug bg-white rounded-lg p-2 border border-slate-100">
+                  <span className="font-bold text-slate-700">Axle Guidance:</span> {delivery.axle_guidance_note}
+                </div>
+              )}
+              {deliveryVehicle && (
+                <PrintLoadManifest
+                  delivery={delivery}
+                  vehicle={deliveryVehicle}
+                  driverName={delivery.driver_staff_name}
+                  items={(delivery.items || '').split(/\n|,(?=\s)/).map(x => x.trim()).filter(Boolean).map(x => ({ name: x, weight_kg: delivery.total_loaded_weight_kg || 0 }))}
+                  axleGuidanceNote={delivery.axle_guidance_note}
+                />
+              )}
+            </div>
+          )}
 
           {/* Signature & Photos */}
           {delivery.signature_url && (
