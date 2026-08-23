@@ -188,20 +188,65 @@ export default async function(req: Request): Promise<Response> {
     }
 
     // ── Job asset assignments → plant hire line items (grouped by asset) ──
+    // Resolve the daily hire rate from the rate card / contract snapshot so
+    // plant hire items carry a real price instead of £0.
     const assetGroups: Record<string, any[]> = {};
     for (const a of fAssignments) {
       const key = a.asset_id;
       if (!assetGroups[key]) assetGroups[key] = [];
       assetGroups[key].push(a);
     }
+    // Fetch the SiteAsset records for proper rate-card matching by asset name
+    const assetIds = [...new Set(fAssignments.map(a => a.asset_id).filter(Boolean))];
+    const siteAssets = assetIds.length > 0
+      ? await base44.entities.SiteAsset.filter({ id: { $in: assetIds } }, '-created_date', 500)
+      : [];
+    const assetById = new Map(siteAssets.map(s => [s.id, s]));
+    // Load the active billing contract once for rate resolution
+    const activeContract = await loadActiveContract(base44, afp.job_id);
     for (const [, assignList] of Object.entries(assetGroups)) {
       const days = assignList.length;
+      const asset = assetById.get(assignList[0].asset_id);
+      const assetName = asset?.name || assignList[0].asset_name || 'Equipment';
+      // Try the rate resolver first (contract snapshot → job rate card → global master)
+      let rate = 0;
+      let rateCardItemId = null;
+      let rateSource = null;
+      const resolved = await resolveRate(base44, {
+        job_id: afp.job_id,
+        description: assetName,
+        quantity: days,
+        activeContract,
+        job_date: assignList[0].assigned_date,
+      });
+      if (resolved && resolved.unit_price > 0) {
+        rate = resolved.unit_price;
+        rateCardItemId = resolved.rate_card_item_id;
+        rateSource = resolved.rate_source;
+      } else if (asset?.rate_card_item_id) {
+        // Fall back to the SiteAsset's linked rate card item
+        const rcItem = await base44.entities.RateCardItem.get(asset.rate_card_item_id);
+        if (rcItem && Number(rcItem.price) > 0) {
+          rate = Number(rcItem.price);
+          rateCardItemId = rcItem.id;
+          rateSource = 'asset_link';
+        }
+      } else if (asset?.charge_out_price && asset.charge_out_price > 0) {
+        // Fall back to the SiteAsset's charge-out price
+        rate = asset.charge_out_price;
+        rateSource = 'asset_charge_out';
+      } else if (asset?.cost_price && asset.cost_price > 0) {
+        // Last resort: the SiteAsset's cost price
+        rate = asset.cost_price;
+        rateSource = 'asset_cost';
+      }
+      const amount = Math.round(rate * days * 100) / 100;
       newItems.push({
         afp_id, job_id: afp.job_id, sheet_name: 'plant_hire', category: 'plant_hire',
-        item: `Plant Hire — ${assignList[0].asset_name || 'Equipment'}`,
-        unit: 'day', qty: days, rate: 0, amount: 0,
+        item: `Plant Hire — ${assetName}`,
+        unit: 'day', qty: days, rate, amount,
         source: 'delivery', source_date: assignList[0].assigned_date, source_id: assignList[0].asset_id,
-        is_manual: false, dispute_status: 'none', original_amount: 0, agreed_amount: 0,
+        is_manual: false, dispute_status: 'none', original_amount: amount, agreed_amount: amount,
         sort_order: sortOrder++,
       });
     }
