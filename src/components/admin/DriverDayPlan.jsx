@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { isToday, format } from 'date-fns';
-import { Clock, PlayCircle, CheckCircle2, AlertTriangle, MapPin, Package, ShieldCheck, Navigation, Truck, ArrowRightLeft } from 'lucide-react';
+import { Clock, PlayCircle, CheckCircle2, AlertTriangle, MapPin, Package, ShieldCheck, Navigation, Truck, ArrowRightLeft, FlaskConical } from 'lucide-react';
 import SafeToDrivePanel from '@/components/logistics/SafeToDrivePanel';
 import PrintLoadManifest from '@/components/logistics/PrintLoadManifest';
 import PrintPickList from '@/components/logistics/PrintPickList';
@@ -13,8 +13,8 @@ const typeConfig = {
   supplier_collection: { label: 'Collection', icon: Package, color: 'blue' },
   supplier_delivery: { label: 'Goods In', icon: Package, color: 'cyan' },
   item_handover: { label: 'Handover', icon: ArrowRightLeft, color: 'violet' },
-  sample_collection: { label: 'Sample Pick', icon: Package, color: 'amber' },
-  sample_delivery: { label: 'Sample Drop', icon: Package, color: 'amber' },
+  sample_collection: { label: 'Sample Pick', icon: FlaskConical, color: 'amber' },
+  sample_delivery: { label: 'Sample Drop', icon: FlaskConical, color: 'amber' },
 };
 
 const statusDot = {

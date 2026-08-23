@@ -1,12 +1,14 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Truck, Package, ArrowRightLeft, CheckCircle2, Clock, PlayCircle, AlertTriangle, ShieldCheck, ArrowDownToLine, ArrowRightLeft as HandoverIcon } from 'lucide-react';
+import { Truck, Package, ArrowRightLeft, CheckCircle2, Clock, PlayCircle, AlertTriangle, ShieldCheck, ArrowDownToLine, ArrowRightLeft as HandoverIcon, FlaskConical } from 'lucide-react';
 import PrintPickList from '@/components/logistics/PrintPickList';
 
 const typeConfig = {
   site_delivery: { label: 'Delivery', icon: Truck, badge: 'bg-emerald-50 text-emerald-700' },
   supplier_collection: { label: 'Collection', icon: Package, badge: 'bg-blue-50 text-blue-700' },
-  item_handover: { label: 'Handover', icon: ArrowRightLeft, badge: 'bg-purple-50 text-purple-700' }
+  item_handover: { label: 'Handover', icon: ArrowRightLeft, badge: 'bg-purple-50 text-purple-700' },
+  sample_collection: { label: 'Sample Collect', icon: FlaskConical, badge: 'bg-teal-50 text-teal-700' },
+  sample_delivery: { label: 'Sample to Lab', icon: FlaskConical, badge: 'bg-cyan-50 text-cyan-700' },
 };
 
 const statusBadge = {

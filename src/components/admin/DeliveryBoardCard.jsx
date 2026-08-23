@@ -1,13 +1,15 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { MapPin, Package, User, Clock, CheckCircle2, PlayCircle, ArrowRightLeft, Truck, FileText, Phone, AlertTriangle, ShieldCheck, ArrowDownToLine } from 'lucide-react';
+import { MapPin, Package, User, Clock, CheckCircle2, PlayCircle, ArrowRightLeft, Truck, FileText, Phone, AlertTriangle, ShieldCheck, ArrowDownToLine, FlaskConical } from 'lucide-react';
 import PrintPickList from '@/components/logistics/PrintPickList';
 
 const typeConfig = {
   site_delivery: { label: 'Delivery', icon: Truck, accent: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200', dot: 'bg-emerald-500' },
   supplier_collection: { label: 'Collection', icon: Package, accent: 'bg-blue-500', badge: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200', dot: 'bg-blue-500' },
-  item_handover: { label: 'Handover', icon: ArrowRightLeft, accent: 'bg-purple-500', badge: 'bg-purple-50 text-purple-700 ring-1 ring-purple-200', dot: 'bg-purple-500' }
+  item_handover: { label: 'Handover', icon: ArrowRightLeft, accent: 'bg-purple-500', badge: 'bg-purple-50 text-purple-700 ring-1 ring-purple-200', dot: 'bg-purple-500' },
+  sample_collection: { label: 'Sample Collect', icon: FlaskConical, accent: 'bg-teal-500', badge: 'bg-teal-50 text-teal-700 ring-1 ring-teal-200', dot: 'bg-teal-500' },
+  sample_delivery: { label: 'Sample to Lab', icon: FlaskConical, accent: 'bg-cyan-500', badge: 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200', dot: 'bg-cyan-500' },
 };
 
 const statusConfig = {

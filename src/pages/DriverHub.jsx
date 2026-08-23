@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useScopedEntity } from '@/hooks/useScopedEntity';
 import {
   Truck, Store, Package, FileText, CheckCircle2, Clock, PlayCircle,
-  AlertTriangle, ArrowRightLeft, Boxes, LayoutGrid, List, Navigation, Search,
+  AlertTriangle, ArrowRightLeft, Boxes, LayoutGrid, List, Navigation, Search, FlaskConical,
 } from 'lucide-react';
 import { format, isToday, isFuture, isPast } from 'date-fns';
 import DeliveryBoard from '@/components/admin/DeliveryBoard';
@@ -29,6 +29,8 @@ const typeFilters = [
   { value: 'supplier_delivery', label: 'Goods In', icon: Store },
   { value: 'supplier_collection', label: 'Collections', icon: Package },
   { value: 'item_handover', label: 'Handovers', icon: ArrowRightLeft },
+  { value: 'sample_collection', label: 'Sample Collect', icon: FlaskConical },
+  { value: 'sample_delivery', label: 'Sample to Lab', icon: FlaskConical },
 ];
 
 const dateFilters = [
