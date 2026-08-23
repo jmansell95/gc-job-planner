@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Truck, Package, ClipboardList, Calendar, MapPin, Trash2, PoundSterling, Weight, User, Navigation } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
+import PrintPickList from './PrintPickList';
 
 const typeBadge = {
   site_delivery: { label: 'Delivery', cls: 'bg-emerald-100 text-emerald-700', icon: Truck },
@@ -88,6 +89,7 @@ export default function DeliveryList({ deliveries = [], jobId, canSeeCosts }) {
                   <Navigation className="w-3 h-3" /> Route
                 </a>
               )}
+              <PrintPickList delivery={d} />
               {d.status === 'pending' && (
                 <button onClick={() => handleDelete(d.id)} className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"><Trash2 className="w-3.5 h-3.5" /></button>
               )}

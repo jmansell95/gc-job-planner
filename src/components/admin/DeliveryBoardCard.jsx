@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { MapPin, Package, User, Clock, CheckCircle2, PlayCircle, ArrowRightLeft, Truck, FileText, Phone, AlertTriangle, ShieldCheck, ArrowDownToLine } from 'lucide-react';
+import PrintPickList from '@/components/logistics/PrintPickList';
 
 const typeConfig = {
   site_delivery: { label: 'Delivery', icon: Truck, accent: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200', dot: 'bg-emerald-500' },
@@ -123,6 +124,9 @@ export default function DeliveryBoardCard({ delivery, job, driver, onClick }) {
             <span className="truncate">From {delivery.handover_from_staff_name} — deliver to recipient</span>
           </div>
         )}
+        <div onClick={e => e.stopPropagation()} className="pt-1.5 border-t border-slate-100">
+          <PrintPickList delivery={delivery} job={job} driverName={driverName} className="flex items-center justify-center gap-1.5 w-full py-1.5 bg-slate-100 text-slate-700 rounded-lg text-[11px] font-semibold hover:bg-slate-200 transition" />
+        </div>
       </div>
     </motion.div>
   );

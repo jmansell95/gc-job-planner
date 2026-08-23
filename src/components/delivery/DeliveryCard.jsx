@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Navigation, Truck, Package, Clock, CheckCircle2, PlayCircle, Phone, ChevronDown, CloudOff, ArrowRightLeft, XCircle, ClipboardList, FileText, FlaskConical, ScanLine } from 'lucide-react';
 import { format } from 'date-fns';
+import PrintPickList from '@/components/logistics/PrintPickList';
 
 const typeConfig = {
   site_delivery: { label: 'Delivery', icon: Truck, accent: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200' },
@@ -220,6 +221,7 @@ export default function DeliveryCard({ delivery, job, vehicle, vehicleTotalWeigh
       {/* Expanded details */}
       {expanded && (
         <div className="px-4 pb-4 border-t border-slate-100 pt-3 space-y-3">
+          <PrintPickList delivery={delivery} vehicle={vehicle} className="flex items-center justify-center gap-1.5 w-full py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-200 transition" />
           <div className="grid grid-cols-1 gap-3">
             {delivery.pickup_address && (
               <div className="flex items-start gap-2 text-sm text-slate-600">

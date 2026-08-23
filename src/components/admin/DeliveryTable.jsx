@@ -1,6 +1,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { Truck, Package, ArrowRightLeft, CheckCircle2, Clock, PlayCircle, AlertTriangle, ShieldCheck, ArrowDownToLine, ArrowRightLeft as HandoverIcon } from 'lucide-react';
+import PrintPickList from '@/components/logistics/PrintPickList';
 
 const typeConfig = {
   site_delivery: { label: 'Delivery', icon: Truck, badge: 'bg-emerald-50 text-emerald-700' },
@@ -31,6 +32,7 @@ export default function DeliveryTable({ deliveries, jobs, drivers, onSelectDeliv
               <th className="px-3 py-2.5 font-semibold text-slate-600 text-xs uppercase tracking-wide">Date</th>
               <th className="px-3 py-2.5 font-semibold text-slate-600 text-xs uppercase tracking-wide">Signed by</th>
               <th className="px-3 py-2.5 font-semibold text-slate-600 text-xs uppercase tracking-wide">Handover</th>
+              <th className="px-3 py-2.5 font-semibold text-slate-600 text-xs uppercase tracking-wide">Pick List</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -75,6 +77,9 @@ export default function DeliveryTable({ deliveries, jobs, drivers, onSelectDeliv
                         <ArrowDownToLine className="w-2.5 h-2.5" />from {d.handover_from_staff_name}
                       </span>
                     ) : '—'}
+                  </td>
+                  <td className="px-3 py-2.5" onClick={e => e.stopPropagation()}>
+                    <PrintPickList delivery={d} job={job} driverName={driverName} />
                   </td>
                 </tr>
               );
