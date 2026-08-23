@@ -27,6 +27,7 @@ import DepreciationSchedule from '@/components/assethub/DepreciationSchedule';
 import BulkAssetUpload from '@/components/righub/BulkAssetUpload';
 import SmartCertImport from '@/components/righub/SmartCertImport';
 import BulkQRPrinter from '@/components/assetcommand/BulkQRPrinter';
+import PATTestingPanel from '@/components/pat/PATTestingPanel';
 import ScrapPilePanel from '@/components/assetcommand/ScrapPilePanel';
 import AssetInventoryGrid from '@/components/assethub/AssetInventoryGrid';
 import PrintWeightRegister from '@/components/assethub/PrintWeightRegister';
@@ -127,6 +128,7 @@ export default function AssetHub() {
     ]},
     { id: 'compliance', label: 'Compliance & Certs', icon: ShieldCheck, sub: [
       { id: 'compliance', label: 'Recert & Vaults', icon: ShieldCheck, badge: recertCount },
+      { id: 'pat_testing', label: 'PAT Testing', icon: Plug, badge: categoryCounts.portable_appliance },
     ]},
     { id: 'performance', label: 'Performance & Lifecycle', icon: TrendingUp, sub: [
       { id: 'performance', label: 'Performance', icon: TrendingUp },
@@ -320,6 +322,10 @@ export default function AssetHub() {
                   <MasterCertificateVault assets={assets} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} />
                 </div>
               </div>
+            </ErrorBoundary>
+          ) : view === 'pat_testing' ? (
+            <ErrorBoundary>
+              <PATTestingPanel />
             </ErrorBoundary>
           ) : view === 'performance' ? (
             <ErrorBoundary>
