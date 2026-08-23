@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import {
   Wrench, AlertTriangle, Briefcase, QrCode,
-  Package, ShieldCheck, FileText, Clock, X,
+  Package, ShieldCheck, FileText, Clock, X, Plug,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { rollupCompliance } from '@/utils/rigRollup';
@@ -25,6 +25,7 @@ import CertificateVault from '@/components/righub/CertificateVault';
 import CompliancePackGenerator from '@/components/assetcommand/CompliancePackGenerator';
 import AssetMovementHistory from '@/components/assetcommand/AssetMovementHistory';
 import AssetPandaImageGallery from '@/components/assetdetail/AssetPandaImageGallery';
+import PATTestForm from '@/components/pat/PATTestForm';
 import { useAssetRealtime } from '@/hooks/useAssetRealtime';
 
 const TABS = [
@@ -50,6 +51,7 @@ export default function AssetDetailPage() {
   const [showQR, setShowQR] = useState(false);
   const [showRecert, setShowRecert] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
+  const [showPATTest, setShowPATTest] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const staffProfile = useMemo(() => ({ name: user?.full_name || user?.email || 'Manager' }), [user]);
@@ -148,7 +150,9 @@ export default function AssetDetailPage() {
     );
   }
 
+  const isPortableAppliance = asset.asset_type === 'portable_appliance';
   const quickActions = [
+    ...(isPortableAppliance ? [{ label: 'PAT Test', icon: Plug, onClick: () => setShowPATTest(true) }] : []),
     { label: 'Log Service', icon: Wrench, onClick: () => setShowLogService(true) },
     { label: 'Report Fault', icon: AlertTriangle, onClick: () => setShowReportFault(true) },
     { label: 'Assign to Job', icon: Briefcase, onClick: () => setShowAssignJob(true) },
@@ -330,6 +334,13 @@ export default function AssetDetailPage() {
         <AssetComplianceEditor
           asset={asset}
           onClose={() => { setShowEditor(false); invalidateAll(); }}
+        />
+      )}
+      {showPATTest && (
+        <PATTestForm
+          asset={asset}
+          onClose={() => setShowPATTest(false)}
+          onSaved={() => invalidateAll()}
         />
       )}
       {showQR && (
