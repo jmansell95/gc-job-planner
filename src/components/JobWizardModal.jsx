@@ -4,11 +4,12 @@ import { base44 } from '@/api/base44Client';
 import {
   X, ChevronLeft, ChevronRight, Check, Briefcase, CalendarDays, Users, MapPin,
   FileText, Sparkles, Loader2, FolderOpen, PoundSterling, Target, AlertTriangle,
-  HardHat, Receipt, Percent, Building2, Phone, Ruler, FileCheck2, ArrowRightLeft, LayoutTemplate, Plus,
+  HardHat, Receipt, Percent, Building2, Phone, Ruler, FileCheck2, ArrowRightLeft, LayoutTemplate, Plus, Settings,
   Upload, Eye, Download, RefreshCw,
 } from 'lucide-react';
 import SubcontractorAssignments from '@/components/SubcontractorAssignments';
 import DisciplineBuilder from '@/components/disciplines/DisciplineBuilder';
+import JobTypeManager from '@/components/jobs/JobTypeManager';
 import { getJobDisciplines, getDisciplineSubcategories } from '@/utils/jobDisciplines';
 import { getJobTypeColor, isDrillingJobType } from '@/utils/jobTeams';
 import { useDivision } from '@/contexts/DivisionContext';
@@ -61,8 +62,9 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
   const [error, setError] = useState('');
   const [subAssignments, setSubAssignments] = useState([]);
   const [originalSubIds, setOriginalSubIds] = useState([]);
+  const [managerOpen, setManagerOpen] = useState(false);
   const queryClient = useQueryClient();
-  const { activeDivisionId } = useDivision();
+  const { activeDivisionId, isSuperAdmin } = useDivision();
 
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list(), enabled: open });
   const { data: contractors = [] } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list(), enabled: open });
@@ -356,10 +358,17 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                   {/* Template picker — pre-fills the form from Job Type defaults */}
                   {jobTypes.filter(jt => jt.is_active !== false).length > 0 && (
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                        <span className="inline-flex items-center gap-1.5"><LayoutTemplate className="w-3.5 h-3.5 text-[#2E5A1A]" /> Start from a template</span>
-                        <span className="text-xs text-slate-400 font-normal">· pre-fills billing, teams & defaults</span>
-                      </label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-sm font-medium text-slate-700">
+                          <span className="inline-flex items-center gap-1.5"><LayoutTemplate className="w-3.5 h-3.5 text-[#2E5A1A]" /> Start from a template</span>
+                          <span className="text-xs text-slate-400 font-normal">· pre-fills billing, teams & defaults</span>
+                        </label>
+                        {isSuperAdmin && (
+                          <button type="button" onClick={() => setManagerOpen(true)} className="text-xs text-[#2E5A1A] font-medium hover:underline inline-flex items-center gap-1 flex-shrink-0">
+                            <Settings className="w-3 h-3" /> Manage
+                          </button>
+                        )}
+                      </div>
                       <div className="flex flex-wrap gap-2">
                         {jobTypes.filter(jt => jt.is_active !== false).sort((a, b) => (a.order || 0) - (b.order || 0)).map(jt => {
                           const selected = form.job_type === jt.key;
@@ -749,6 +758,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
           <button type="button" onClick={onClose} className="px-4 py-2.5 text-slate-500 hover:text-slate-700 text-sm font-medium transition">Cancel</button>
         </div>
       </div>
+      <JobTypeManager open={managerOpen} onClose={() => setManagerOpen(false)} activeDivisionId={activeDivisionId} />
     </div>
   );
 }

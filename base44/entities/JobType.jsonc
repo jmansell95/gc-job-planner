@@ -4,11 +4,11 @@
   "properties": {
     "key": {
       "type": "string",
-      "description": "Unique slug key stored on jobs (e.g. groundworks, cp_drilling, piling)"
+      "description": "Unique slug key stored on jobs (e.g. groundworks, cp_drilling, piling). Auto-generated from the label if not set manually."
     },
     "label": {
       "type": "string",
-      "description": "Display name shown on badges and dropdowns"
+      "description": "Display name shown on the template chips in the job wizard and on badges across the app."
     },
     "color": {
       "type": "string",
@@ -23,22 +23,26 @@
         "orange"
       ],
       "default": "slate",
-      "description": "Colour theme used for badges, dots and bars across the app"
+      "description": "Colour theme used for badges, dots and bars across the app."
     },
     "is_drilling": {
       "type": "boolean",
       "default": false,
-      "description": "Whether this is a drilling job type \u2014 shows meterage fields on jobs and enables drilling cost calculations"
+      "description": "Whether this is a drilling job type \u2014 shows meterage fields on jobs and enables drilling cost calculations."
     },
     "order": {
       "type": "number",
       "default": 0,
-      "description": "Display order (lower = first in dropdowns and lists)"
+      "description": "Display order in the wizard chip list (lower = first). Managed via the up/down arrows in the Job Type Manager."
     },
     "is_active": {
       "type": "boolean",
       "default": true,
-      "description": "Whether this job type is available for new jobs"
+      "description": "Whether this template appears in the job wizard. Inactive templates are hidden from the picker but can be re-enabled from the manager."
+    },
+    "division_id": {
+      "type": "string",
+      "description": "The business stream this template belongs to. Blank = company-wide (visible to all streams in the wizard). Set to a division ID to scope it to that stream only. Managed via the Job Type Manager inside the job wizard."
     },
     "default_revenue_method": {
       "type": "string",
@@ -92,5 +96,47 @@
   "required": [
     "key",
     "label"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.division_id": "{{user.data.division_id}}"
+        },
+        {
+          "data.division_id": {
+            "$in": "{{user.data.managed_division_ids}}"
+          }
+        },
+        {
+          "data.division_id": null
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }
