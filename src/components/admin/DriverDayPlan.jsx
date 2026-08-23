@@ -5,6 +5,7 @@ import { isToday, format } from 'date-fns';
 import { Clock, PlayCircle, CheckCircle2, AlertTriangle, MapPin, Package, ShieldCheck, Navigation, Truck, ArrowRightLeft } from 'lucide-react';
 import SafeToDrivePanel from '@/components/logistics/SafeToDrivePanel';
 import PrintLoadManifest from '@/components/logistics/PrintLoadManifest';
+import PrintPickList from '@/components/logistics/PrintPickList';
 import { totalWeight } from '@/utils/loadWeight';
 
 const typeConfig = {
@@ -201,9 +202,17 @@ export default function DriverDayPlan({ deliveries, jobs, drivers, onSelectDeliv
                           </p>
                         )}
                       </div>
-                      <div className="flex-shrink-0 text-right">
+                      <div className="flex-shrink-0 text-right space-y-1">
                         {d.optimized_eta && <span className="text-[10px] text-slate-400 block">{format(new Date(d.optimized_eta), 'HH:mm')}</span>}
-                        {d.leg_distance_miles != null && <span className="text-[10px] text-slate-400">{d.leg_distance_miles.toFixed(1)} mi</span>}
+                        {d.leg_distance_miles != null && <span className="text-[10px] text-slate-400 block">{d.leg_distance_miles.toFixed(1)} mi</span>}
+                        <span onClick={e => e.stopPropagation()} className="block">
+                          <PrintPickList
+                            delivery={d}
+                            job={jobs?.find(j => j.id === d.job_id)}
+                            vehicle={runVehicle}
+                            driverName={run.driverName}
+                          />
+                        </span>
                       </div>
                     </button>
                   );

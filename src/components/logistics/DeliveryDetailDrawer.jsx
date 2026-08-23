@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 import DeliveryRouteMap from '@/components/delivery/DeliveryRouteMap';
 import RouteOptimizeBar from '@/components/delivery/RouteOptimizeBar';
 import PrintLoadManifest from '@/components/logistics/PrintLoadManifest';
+import PrintPickList from '@/components/logistics/PrintPickList';
 
 const typeConfig = {
   site_delivery: { label: 'Delivery', icon: Truck, accent: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' },
@@ -164,6 +165,16 @@ export default function DeliveryDetailDrawer({ delivery, jobs, staff, onClose })
                 <Calendar className="w-3 h-3" />{format(new Date(delivery.scheduled_date + 'T00:00:00'), 'dd MMM')}
               </span>
             )}
+          </div>
+
+          {/* Warehouse pick list — always available */}
+          <div className="flex items-center gap-2">
+            <PrintPickList
+              delivery={delivery}
+              job={job}
+              vehicle={deliveryVehicle}
+              driverName={delivery.driver_staff_name}
+            />
           </div>
 
           {/* Weight & safe-to-drive summary */}
