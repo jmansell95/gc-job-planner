@@ -148,7 +148,7 @@ export default function AccessMatrixEditor({ fixedGroup, inline = false }) {
     onSuccess: () => {
       qc.invalidateQueries(['division-access-manifests', selectedDivisionId]);
       qc.invalidateQueries(['all-access-manifests']);
-      toast({ title: 'Division lockdown saved', description: `${selectedDivision?.name} · ${selectedGroup?.name}` });
+      toast({ title: 'Business Stream lockdown saved', description: `${selectedDivision?.name} · ${selectedGroup?.name}` });
       setDirty(false);
     },
     onError: (e) => toast({ title: 'Could not save', description: e.message, variant: 'destructive' }),
@@ -186,7 +186,7 @@ export default function AccessMatrixEditor({ fixedGroup, inline = false }) {
       <div className="insight-card rounded-2xl p-8 text-center">
         <Building2 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
         <p className="text-sm font-semibold text-slate-700">No divisions available</p>
-        <p className="text-xs text-slate-400 mt-1">Create a division first in the Divisions tab to configure lockdown rules.</p>
+        <p className="text-xs text-slate-400 mt-1">Create a business stream first in the Business Streams tab to configure lockdown rules.</p>
       </div>
     );
   }
@@ -406,7 +406,7 @@ export default function AccessMatrixEditor({ fixedGroup, inline = false }) {
         <div className={'insight-card rounded-2xl p-4 lg:max-h-[calc(100dvh-12rem)] lg:overflow-y-auto ' + (fixedGroup ? 'lg:col-span-4' : 'lg:col-span-3')}>
           <div className="flex items-center gap-2 mb-3">
             <Layers className="w-4 h-4 text-[#2E5A1A]" />
-            <h3 className="text-sm font-bold text-slate-900">{fixedGroup ? 'Divisions' : 'Hierarchy'}</h3>
+            <h3 className="text-sm font-bold text-slate-900">{fixedGroup ? 'Business Streams' : 'Hierarchy'}</h3>
             {fixedGroup && (
               <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 flex items-center gap-1">
                 <Crown className="w-3 h-3" /> {fixedGroup.name}
@@ -415,7 +415,7 @@ export default function AccessMatrixEditor({ fixedGroup, inline = false }) {
           </div>
 
           <div className="space-y-1 mb-4">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1.5">Divisions</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1.5">Business Streams</p>
             {permittedDivisions.map(d => {
               const active = selectedDivisionId === d.id;
               const manifestCount = manifests.filter(m => m.division_id === d.id && m.permission_group_id === selectedGroupId).length;

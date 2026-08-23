@@ -136,7 +136,7 @@ export default function EnterpriseStaffHub() {
                   <Building2 className="w-4.5 h-4.5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide truncate">Divisions</p>
+                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-wide truncate">Business Streams</p>
                   <p className="text-lg font-extrabold text-white tabular-nums truncate">{divisionStats.length}</p>
                 </div>
               </div>
@@ -184,7 +184,7 @@ export default function EnterpriseStaffHub() {
               onClick={() => setDivisionFilter('all')}
               className={`px-3.5 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap transition ${divisionFilter === 'all' ? 'bg-[#2E5A1A] text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
-              All Divisions ({totalStaff})
+              All Business Streams ({totalStaff})
             </button>
             {divisionStats.map(({ division, count }) => (
               <button

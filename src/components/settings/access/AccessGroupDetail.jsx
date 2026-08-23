@@ -80,7 +80,7 @@ export default function AccessGroupDetail({ group, groups, staffCount, divisions
           <div className="rounded-xl bg-slate-50 p-2.5 text-center">
             <Building2 className="w-4 h-4 text-slate-400 mx-auto mb-1" />
             <p className="text-lg font-extrabold text-slate-700 tabular-nums">{divisions.length}</p>
-            <p className="text-[10px] font-bold text-slate-400 uppercase">Divisions</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase">Business Streams</p>
           </div>
           <div className="rounded-xl bg-slate-50 p-2.5 text-center">
             <Layers className="w-4 h-4 text-slate-400 mx-auto mb-1" />

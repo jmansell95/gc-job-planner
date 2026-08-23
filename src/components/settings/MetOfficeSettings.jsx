@@ -119,7 +119,7 @@ export default function MetOfficeSettings() {
           <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-50">
             <Check className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-slate-700">All Divisions Covered</p>
+              <p className="font-semibold text-slate-700">All Business Streams Covered</p>
               <p className="text-slate-500 mt-0.5">Every active job site across every division gets weather data.</p>
             </div>
           </div>

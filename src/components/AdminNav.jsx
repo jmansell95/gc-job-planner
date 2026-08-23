@@ -145,7 +145,7 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
           <button type="button" onClick={() => navigate('/enterprise')}
             className={`w-full flex items-center ${effectiveCollapsed ? 'justify-center' : 'gap-3'} ${effectiveCollapsed ? 'px-0 py-2.5' : 'px-3.5 py-2'} rounded-xl text-sm font-bold transition cursor-pointer touch-manipulation select-none bg-gradient-to-r from-amber-500/20 to-amber-600/10 text-amber-200 hover:from-amber-500/30 hover:to-amber-600/20 ring-1 ring-amber-400/30`}>
             <ArrowLeftRight className="w-[18px] h-[18px] flex-shrink-0 text-amber-300" />
-            {!effectiveCollapsed && <span>Switch Division</span>}
+            {!effectiveCollapsed && <span>Switch Business Stream</span>}
           </button>
         </div>
       )}

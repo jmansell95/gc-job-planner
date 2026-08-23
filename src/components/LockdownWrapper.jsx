@@ -26,7 +26,7 @@ export default function LockdownWrapper({ feature, module: moduleKey, fallback =
     return React.cloneElement(child, {
       disabled: true,
       className: `${child.props.className || ''} opacity-50 cursor-not-allowed pointer-events-none`,
-      title: 'Restricted in this division',
+      title: 'Restricted in this business stream',
     });
   }
 

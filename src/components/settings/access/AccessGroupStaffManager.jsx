@@ -86,7 +86,7 @@ export default function AccessGroupStaffManager({ group, groups }) {
 
   const handleDivisionChange = (staffId, newDivisionId) => {
     updateMutation.mutate({ staffId, fields: { division_id: newDivisionId || null } });
-    toast({ title: 'Division updated' });
+    toast({ title: 'Business Stream updated' });
   };
 
   const toggleAddSelect = (id) => {

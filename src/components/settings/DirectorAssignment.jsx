@@ -66,7 +66,7 @@ export default function DirectorAssignment() {
         ? current.filter(id => id !== divisionId)
         : [...current, divisionId];
       await base44.entities.User.update(director.id, { managed_division_ids: next });
-      toast({ title: next.includes(divisionId) ? 'Division assigned' : 'Division removed' });
+      toast({ title: next.includes(divisionId) ? 'Business Stream assigned' : 'Business Stream removed' });
       queryClient.invalidateQueries({ queryKey: ['all-users-directors'] });
     } catch (e) {
       toast({ title: 'Update failed', description: e.message, variant: 'destructive' });
@@ -176,7 +176,7 @@ function DirectorCard({ director, divisions, updating, onToggleDivision, onDemot
             <p className="text-xs text-slate-400 truncate">{director.email}</p>
           </div>
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 ring-1 ring-amber-200 flex-shrink-0">
-            {managedIds.length} {managedIds.length === 1 ? 'Division' : 'Divisions'}
+            {managedIds.length} {managedIds.length === 1 ? 'Business Stream' : 'Business Streams'}
           </span>
           <button
             onClick={() => setExpanded(!expanded)}
@@ -187,7 +187,7 @@ function DirectorCard({ director, divisions, updating, onToggleDivision, onDemot
 
         {expanded && (
           <>
-            <p className="text-xs text-slate-500 mb-2">Assigned Divisions (can switch between these only):</p>
+            <p className="text-xs text-slate-500 mb-2">Assigned Business Streams (can switch between these only):</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-3">
               {divisions.map(d => {
                 const assigned = managedIds.includes(d.id);

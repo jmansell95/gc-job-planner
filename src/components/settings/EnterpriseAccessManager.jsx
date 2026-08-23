@@ -182,8 +182,8 @@ export default function EnterpriseAccessManager({ profile }) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <StatTile icon={KeyRound} label="Total Groups" value={groups.length} tone="emerald" />
         <StatTile icon={Users} label="Staff Assigned" value={totalAssigned} tone="blue" />
-        <StatTile icon={Building2} label="Divisions Covered" value={totalDivisionsCovered} tone="amber" />
-        <StatTile icon={Layers} label="Division Overrides" value={totalManifests} tone="violet" />
+        <StatTile icon={Building2} label="Business Streams Covered" value={totalDivisionsCovered} tone="amber" />
+        <StatTile icon={Layers} label="Business Stream Overrides" value={totalManifests} tone="violet" />
       </div>
 
       {/* Two-pane layout */}

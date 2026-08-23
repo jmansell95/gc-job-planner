@@ -169,9 +169,9 @@ export default function SettingsHubOverview({ onNavigate }) {
             <div className="flex-1 min-w-0">
               <h3 className="text-base font-extrabold text-slate-900">Enterprise-Level Settings</h3>
               <p className="text-sm text-slate-500 mt-1 leading-relaxed">
-                Divisions, Integrations, Backup &amp; Restore, and Access Levels are now managed centrally from
+                Business Streams, Integrations, Backup &amp; Restore, and Access Levels are now managed centrally from
                 the <span className="font-semibold text-[#2E5A1A]">Enterprise Dashboard → Settings</span>.
-                This ensures every division shares the same configuration.
+                This ensures every business stream shares the same configuration.
               </p>
               <a
                 href="/enterprise/settings"

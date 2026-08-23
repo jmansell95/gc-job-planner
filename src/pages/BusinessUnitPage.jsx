@@ -152,8 +152,8 @@ export default function BusinessUnitPage() {
             <Building2 className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="text-base sm:text-lg font-extrabold text-slate-900">Divisions</h2>
-            <p className="text-xs text-slate-500">{buStats.divisionCount} specialist divisions within {bu.name}</p>
+            <h2 className="text-base sm:text-lg font-extrabold text-slate-900">Business Streams</h2>
+            <p className="text-xs text-slate-500">{buStats.divisionCount} specialist business streams within {bu.name}</p>
           </div>
         </div>
 
@@ -205,7 +205,7 @@ export default function BusinessUnitPage() {
 
                   <div className="pt-2.5 border-t border-slate-100 flex items-center justify-end">
                     <span className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-[#2E5A1A] group-hover:gap-2 transition-all">
-                      Enter Division <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      Enter Business Stream <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </span>
                   </div>
                 </div>

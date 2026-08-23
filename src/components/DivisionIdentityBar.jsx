@@ -42,7 +42,7 @@ export default function DivisionIdentityBar() {
               <p className="text-sm font-bold text-slate-900 truncate leading-tight">{activeDivision.name}</p>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex-shrink-0">{activeDivision.code}</span>
             </div>
-            <p className="text-[10px] text-slate-500 leading-tight mt-0.5 capitalize">{activeDivision.division_type} Division</p>
+            <p className="text-[10px] text-slate-500 leading-tight mt-0.5 capitalize">{activeDivision.division_type} Business Stream</p>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <span className="relative flex h-2 w-2">

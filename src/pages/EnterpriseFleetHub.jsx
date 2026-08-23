@@ -243,7 +243,7 @@ export default function EnterpriseFleetHub() {
               onClick={() => setDivisionFilter('all')}
               className={`px-3.5 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap transition ${divisionFilter === 'all' ? 'bg-[#2E5A1A] text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
-              All Divisions ({stats.total})
+              All Business Streams ({stats.total})
             </button>
             {divisionStats.map(({ division, count }) => (
               <button

@@ -59,7 +59,7 @@ export default function NativeReportSection({ hub, filters }) {
   const charts = useMemo(() => {
     const all = [
       { id: 'jobs-status', title: 'Jobs by Status', icon: Briefcase, data: jobsByStatus, type: 'pie', rows: filteredJobs },
-      { id: 'jobs-div', title: 'Jobs by Division', icon: Briefcase, data: jobsByDivision, type: 'bar', rows: filteredJobs },
+      { id: 'jobs-div', title: 'Jobs by Business Stream', icon: Briefcase, data: jobsByDivision, type: 'bar', rows: filteredJobs },
       { id: 'revenue', title: 'Revenue (Client Charge)', icon: PoundSterling, data: [{ name: 'Total', value: revenueTotal }], type: 'stat', rows: filteredJobs },
       { id: 'staff-team', title: 'Staff by Team', icon: Users, data: staffByTeam, type: 'bar', rows: staff },
       { id: 'fleet-status', title: 'Fleet by Status', icon: Car, data: vehiclesByStatus, type: 'pie', rows: vehicles },

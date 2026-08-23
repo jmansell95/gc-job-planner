@@ -140,7 +140,7 @@ export default function EnterpriseIntegrationsOverview() {
       {/* Division legend */}
       {permittedDivisions.length > 0 && (
         <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-3 flex-wrap">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Divisions:</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Business Streams:</span>
           {permittedDivisions.map(d => (
             <span key={d.id} className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-600">
               <span className="w-2.5 h-2.5 rounded-full" style={{ background: d.color || '#2E5A1A' }} />

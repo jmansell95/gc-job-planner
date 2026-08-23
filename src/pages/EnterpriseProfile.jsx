@@ -65,7 +65,7 @@ export default function EnterpriseProfile() {
   const gbp = (n) => n ? '\u00A3' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '\u00A30';
 
   const statTiles = [
-    { label: 'Divisions', value: globalStats.divisions, sub: globalStats.activeDivisions + ' active', icon: Building2, gradient: 'stat-gradient-emerald' },
+    { label: 'Business Streams', value: globalStats.divisions, sub: globalStats.activeDivisions + ' active', icon: Building2, gradient: 'stat-gradient-emerald' },
     { label: 'Total Crew', value: globalStats.staff, sub: 'across all divisions', icon: Users, gradient: 'stat-gradient-blue' },
     { label: 'Active Jobs', value: globalStats.activeJobs, sub: 'in progress', icon: Briefcase, gradient: 'stat-gradient-amber' },
     { label: 'Fleet', value: globalStats.vehicles, sub: 'vehicles', icon: Truck, gradient: 'stat-gradient-violet' },
@@ -188,7 +188,7 @@ export default function EnterpriseProfile() {
               <Building2 className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-base font-extrabold text-slate-900">Your Divisions</h2>
+              <h2 className="text-base font-extrabold text-slate-900">Your Business Streams</h2>
               <p className="text-xs text-slate-500">Tap a division to enter its workspace</p>
             </div>
           </div>

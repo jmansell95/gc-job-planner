@@ -24,7 +24,7 @@ export default function PendingAccess() {
           <div className="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="w-7 h-7 text-amber-600" />
           </div>
-          <h1 className="text-xl font-extrabold text-slate-900 mb-2">Awaiting Division Assignment</h1>
+          <h1 className="text-xl font-extrabold text-slate-900 mb-2">Awaiting Business Stream Assignment</h1>
           <p className="text-sm text-slate-500 mb-1">
             Your account hasn't been assigned to a division yet.
           </p>

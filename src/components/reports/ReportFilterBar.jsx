@@ -39,10 +39,10 @@ export default function ReportFilterBar({ filters, setFilters, onExport, exporti
             className="rounded-lg border border-slate-200 px-2.5 py-2 text-sm font-medium text-slate-900 focus:border-[#2E5A1A] focus:ring-2 focus:ring-emerald-100 outline-none" />
         </div>
         <div className="min-w-[160px]">
-          <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Division</label>
+          <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Business Stream</label>
           <select value={filters.divisionId} onChange={e => set('divisionId', e.target.value)}
             className="rounded-lg border border-slate-200 px-2.5 py-2 text-sm font-medium text-slate-900 focus:border-[#2E5A1A] focus:ring-2 focus:ring-emerald-100 outline-none w-full">
-            <option value="">All Divisions</option>
+            <option value="">All Business Streams</option>
             {divisions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </div>

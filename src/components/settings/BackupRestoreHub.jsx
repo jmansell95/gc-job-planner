@@ -84,7 +84,7 @@ export default function BackupRestoreHub() {
         : null;
       const payload = {
         division_id: scheduleForm.division_id || '',
-        division_name: div?.name || 'All Divisions',
+        division_name: div?.name || 'All Business Streams',
         frequency: scheduleForm.frequency,
         backup_time: scheduleForm.backup_time,
         weekly_day: scheduleForm.frequency === 'weekly' ? scheduleForm.weekly_day : undefined,
@@ -320,7 +320,7 @@ export default function BackupRestoreHub() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-slate-900 truncate">{sch.division_name || 'All Divisions'}</span>
+                      <span className="text-sm font-bold text-slate-900 truncate">{sch.division_name || 'All Business Streams'}</span>
                       <span className={'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ' + (sch.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500')}>
                         {sch.is_active ? <Power className="w-2.5 h-2.5" /> : <PowerOff className="w-2.5 h-2.5" />}
                         {sch.is_active ? 'Active' : 'Paused'}
@@ -387,13 +387,13 @@ export default function BackupRestoreHub() {
             <div className="space-y-3.5">
               {/* Division */}
               <div>
-                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Division</label>
+                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Business Stream</label>
                 <select
                   value={scheduleForm.division_id}
                   onChange={e => setScheduleForm(f => ({ ...f, division_id: e.target.value }))}
                   className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:border-[#2E5A1A]"
                 >
-                  <option value="">All Divisions</option>
+                  <option value="">All Business Streams</option>
                   {divisions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
@@ -506,7 +506,7 @@ export default function BackupRestoreHub() {
           onChange={e => setFilterDivision(e.target.value)}
           className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:border-[#2E5A1A]"
         >
-          <option value="all">All Divisions</option>
+          <option value="all">All Business Streams</option>
           {divisions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select>
       </div>
@@ -633,7 +633,7 @@ export default function BackupRestoreHub() {
                 <RotateCcw className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <h3 className="text-base font-extrabold text-slate-900">Restore Division?</h3>
+                <h3 className="text-base font-extrabold text-slate-900">Restore Business Stream?</h3>
                 <p className="text-xs text-slate-500">This will roll back the division's configuration.</p>
               </div>
             </div>
