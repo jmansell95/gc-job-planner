@@ -23,8 +23,8 @@ export default function DrillingSiteLogs({ job, assignedStaff }) {
   const totalMinutes = remarksLogs.reduce((s, l) => s + (l.duration_minutes || 0), 0);
   const approvedCount = remarksLogs.filter(l => l.manager_review_status === 'approved').length;
   const pricedCount = remarksLogs.filter(l => l.chargeable).length;
-  const noNameCount = logs.filter(l => !l.logged_by_role || l.logged_by_role === 'unspecified' || l.logged_by_role === 'ags_import').length;
-  const hasNoName = noNameCount > 0 && logs.length > 0;
+  const noNameCount = logs.filter(l => l.source === 'keylogbook_remarks' && !l.staff_name && !l.completed_by_name).length;
+  const hasNoName = noNameCount > 0;
 
   const fmtDur = (mins) => {
     const m = Math.round(mins || 0);

@@ -23,6 +23,10 @@ const JOB_QUERY_KEYS = [
   ['all-jobs-financials'],
   ['job-financials'],
   ['site-assets'],
+  ['investigation-logs'],
+  ['staff-timesheets'],
+  ['all-timesheets-mgr'],
+  ['timesheets'],
 ];
 
 export default function useJobRealtimeSync() {
@@ -30,6 +34,7 @@ export default function useJobRealtimeSync() {
 
   useEffect(() => {
     let unsubscribe = null;
+    let unsubLogs = null;
     try {
       unsubscribe = base44.entities.Job.subscribe((event) => {
         if (!event || !event.type) return;
@@ -39,9 +44,25 @@ export default function useJobRealtimeSync() {
     } catch {
       // Realtime not available — silently skip; views still refresh on navigation.
     }
+    try {
+      unsubLogs = base44.entities.InvestigationLog.subscribe((event) => {
+        if (!event || !event.type) return;
+        // Invalidate log + timesheet queries so the Site Logs tab refreshes
+        // when the KeyLogBook webhook creates new entries.
+        queryClient.invalidateQueries({ queryKey: ['investigation-logs'] });
+        queryClient.invalidateQueries({ queryKey: ['staff-timesheets'] });
+        queryClient.invalidateQueries({ queryKey: ['all-timesheets-mgr'] });
+        queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+      });
+    } catch {
+      // Realtime not available — silently skip
+    }
     return () => {
       if (typeof unsubscribe === 'function') {
         try { unsubscribe(); } catch {}
+      }
+      if (typeof unsubLogs === 'function') {
+        try { unsubLogs(); } catch {}
       }
     };
   }, [queryClient]);
