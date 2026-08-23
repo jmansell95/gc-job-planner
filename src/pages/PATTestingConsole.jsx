@@ -1,14 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Plug, Search, ShieldCheck, ShieldAlert, ShieldX, HelpCircle,
-  RefreshCw, Plus, CheckCircle2, XCircle, Clock, Cog, Printer, Zap, ChevronRight,
+  RefreshCw, CheckCircle2, XCircle, Clock, Printer, Zap, ChevronRight,
+  ScanLine, Camera, AlertTriangle,
 } from 'lucide-react';
-import { daysUntil, ASSET_TYPE_META } from '@/utils/rigRollup';
+import { daysUntil } from '@/utils/rigRollup';
 import { Skeleton } from '@/components/StateViews';
 import PATTestForm from '@/components/pat/PATTestForm';
+import BarcodeScanner from '@/components/staff/BarcodeScanner';
 import PageHeader from '@/components/PageHeader';
 import { safeFormat } from '@/utils/format';
 import { useToast } from '@/components/ui/use-toast';
@@ -18,16 +20,21 @@ import { useToast } from '@/components/ui/use-toast';
  * Pulls every portable appliance (synced from Asset Panda) into a queue,
  * lets the tester open the digital PAT form, and tracks the session's
  * completed tests so the tester can work through a batch and print labels.
+ *
+ * Now with barcode scanner support — scan an asset's barcode/QR to instantly
+ * jump to its test form without searching.
  */
 export default function PATTestingConsole() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
-  const [bucket, setBucket] = useState('all'); // all | overdue | due_soon | unknown | ok
+  const [bucket, setBucket] = useState('all');
   const [testAsset, setTestAsset] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [sessionLog, setSessionLog] = useState([]);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanError, setScanError] = useState('');
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['site-assets'],
@@ -58,9 +65,11 @@ export default function PATTestingConsole() {
   const filtered = items.filter(({ asset, bucket: b }) => {
     if (bucket !== 'all' && b !== bucket) return false;
     if (!q) return true;
-    return (asset.name || '').toLowerCase().includes(q) || (asset.serial_number || '').toLowerCase().includes(q);
+    return (asset.name || '').toLowerCase().includes(q)
+      || (asset.serial_number || '').toLowerCase().includes(q)
+      || (asset.barcode || '').toLowerCase().includes(q)
+      || (asset.fleet_number || '').toLowerCase().includes(q);
   }).sort((a, b) => {
-    // urgent first, then no-date
     const order = { overdue: 0, due_soon: 1, unknown: 2, ok: 3 };
     if (order[a.bucket] !== order[b.bucket]) return order[a.bucket] - order[b.bucket];
     return (a.days ?? 9999) - (b.days ?? 9999);
@@ -78,6 +87,26 @@ export default function PATTestingConsole() {
     setSyncing(false);
   };
 
+  // Match a scanned barcode against the portable appliance list.
+  // Tries barcode, serial_number, fleet_number, and panda_asset_id.
+  const handleScan = (scannedValue) => {
+    setScanError('');
+    const val = scannedValue.trim().toLowerCase();
+    const match = patAssets.find(a =>
+      (a.barcode || '').toLowerCase() === val ||
+      (a.serial_number || '').toLowerCase() === val ||
+      (a.fleet_number || '').toLowerCase() === val ||
+      (a.panda_asset_id || '').toLowerCase() === val
+    );
+    if (match) {
+      setScannerOpen(false);
+      setTestAsset(match);
+      toast({ title: 'Asset found', description: match.name, duration: 1500 });
+    } else {
+      setScanError(`No portable appliance found for "${scannedValue}". Try searching manually below.`);
+    }
+  };
+
   const handleTestSaved = (assetName, result) => {
     setSessionLog(prev => [...prev, { name: assetName, result, time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) }]);
   };
@@ -92,7 +121,7 @@ export default function PATTestingConsole() {
         title="PAT Testing Console"
         subtitle="Portable appliance testing queue & labels"
         stats={[
-          { key: 'all', label: 'Total', value: counts.total, icon: Plug, onClick: () => setBucket(bucket === 'all' ? 'all' : 'all'), active: bucket === 'all' },
+          { key: 'all', label: 'Total', value: counts.total, icon: Plug, onClick: () => setBucket('all'), active: bucket === 'all' },
           { key: 'overdue', label: 'Overdue', value: counts.overdue, icon: ShieldX, onClick: () => setBucket(bucket === 'overdue' ? 'all' : 'overdue'), active: bucket === 'overdue' },
           { key: 'due_soon', label: 'Due Soon', value: counts.due_soon, icon: ShieldAlert, onClick: () => setBucket(bucket === 'due_soon' ? 'all' : 'due_soon'), active: bucket === 'due_soon' },
           { key: 'unknown', label: 'No Date', value: counts.unknown, icon: HelpCircle, onClick: () => setBucket(bucket === 'unknown' ? 'all' : 'unknown'), active: bucket === 'unknown' },
@@ -106,6 +135,43 @@ export default function PATTestingConsole() {
       />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 space-y-4">
+        {/* Scanner section — scan an asset barcode to jump straight to the test form */}
+        {!scannerOpen ? (
+          <button
+            onClick={() => setScannerOpen(true)}
+            className="w-full flex items-center gap-3 p-4 bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl shadow-sm hover:brightness-110 transition active:scale-[0.98]"
+          >
+            <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+              <ScanLine className="w-6 h-6" />
+            </div>
+            <div className="text-left flex-1">
+              <p className="font-bold text-sm">Scan to Test</p>
+              <p className="text-xs text-white/80">Scan an asset barcode to open its PAT form instantly</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/60" />
+          </button>
+        ) : (
+          <div className="bg-white rounded-xl border border-amber-200 shadow-sm p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <ScanLine className="w-4 h-4 text-amber-600" /> Scan Asset Barcode
+              </p>
+              <button onClick={() => { setScannerOpen(false); setScanError(''); }} className="text-xs text-slate-400 hover:text-slate-600 font-medium">Close</button>
+            </div>
+            <BarcodeScanner
+              onScan={handleScan}
+              placeholder="Scan or type the asset barcode…"
+              autoFocus={true}
+            />
+            {scanError && (
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-800">{scanError}</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Session progress */}
         {sessionLog.length > 0 && (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3.5">
@@ -124,7 +190,7 @@ export default function PATTestingConsole() {
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or serial number..."
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, serial, barcode or fleet no..."
             className="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-amber-500 bg-white" />
         </div>
 
@@ -161,6 +227,7 @@ export default function PATTestingConsole() {
                       <p className="text-[11px] text-slate-400 truncate">
                         {asset.equipment_type || asset.compliance_category || 'Portable Appliance'}
                         {asset.serial_number && ` · ${asset.serial_number}`}
+                        {asset.fleet_number && ` · #${asset.fleet_number}`}
                       </p>
                       {days !== null && (
                         <p className={`text-[10px] font-medium ${days < 0 ? 'text-red-600' : days <= 30 ? 'text-amber-600' : 'text-slate-400'}`}>
@@ -192,6 +259,7 @@ export default function PATTestingConsole() {
         <PATTestForm
           asset={testAsset}
           onClose={() => setTestAsset(null)}
+          onSaved={handleTestSaved}
         />
       )}
     </div>

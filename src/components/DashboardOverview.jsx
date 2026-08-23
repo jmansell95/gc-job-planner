@@ -17,7 +17,7 @@ import QuickActionBar from '@/components/dashboard/QuickActionBar';
 import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
 import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
 import CommandJobModal from '@/components/dashboard/CommandJobModal';
-import { useSafetyCultureStatus } from '@/hooks/useSafetyCultureStatus';
+import { useMittiStatus } from '@/hooks/useSafetyCultureStatus';
 import { useScopedEntity } from '@/hooks/useScopedEntity';
 
 export default function DashboardOverview({ onNavigate, onSelectJob }) {
@@ -32,7 +32,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const { data: deliveries = [] } = useScopedEntity('DeliveryLog', { queryKey: ['deliveries', todayStr], filter: { scheduled_date: todayStr }, limit: 500 });
   const { data: safetyReports = [] } = useQuery({ queryKey: ['safety-reports-open'], queryFn: () => base44.entities.SafetyReport.filter({ status: 'open' }) });
-  const { isConnected: scConnected } = useSafetyCultureStatus();
+  const { isConnected: scConnected } = useMittiStatus();
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');

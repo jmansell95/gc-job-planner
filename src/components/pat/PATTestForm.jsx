@@ -22,7 +22,7 @@ const APPLIANCE_CLASSES = [
  * pat_inspection ServiceRecord and pushes the new expiry onto the asset so the
  * pipeline clears immediately.
  */
-export default function PATTestForm({ asset, onClose }) {
+export default function PATTestForm({ asset, onClose, onSaved }) {
   const [form, setForm] = useState({
     appliance_class: 'class_I',
     visual_pass: true,
@@ -147,6 +147,7 @@ export default function PATTestForm({ asset, onClose }) {
         description: `${asset.name} ${finalResult === 'fail' ? 'failed — withdrawn from service' : `passed · next due ${safeFormat(expiryDate, 'dd MMM yyyy')}`}.`,
         variant: finalResult === 'fail' ? 'destructive' : 'default',
       });
+      if (onSaved) onSaved(asset.name, finalResult);
       onClose();
     } catch (e) { toast({ title: 'Save failed', description: e.message, variant: 'destructive' }); }
     setSaving(false);
