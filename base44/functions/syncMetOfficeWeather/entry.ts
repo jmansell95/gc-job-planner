@@ -62,17 +62,30 @@ function assessVerdict(d: any): { level: string; reasons: string[] } {
   return { level, reasons };
 }
 
-async function fetchWeather(lat: number, lng: number): Promise<any | null> {
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function fetchWeather(lat: number, lng: number): Promise<{ data?: any; error?: string }> {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
     `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max` +
     `&timezone=auto&forecast_days=1`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
+  // Retry once on 429 (rate limit) with a backoff — Open-Meteo's free tier
+  // throttles burst requests from the backend runtime IP.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (res.status === 429) {
+        if (attempt === 0) { await sleep(2500); continue; }
+        return { error: 'Open-Meteo rate limit (429) — try again in a minute' };
+      }
+      if (!res.ok) return { error: `Open-Meteo returned HTTP ${res.status}` };
+      const json = await res.json();
+      if (!json?.daily?.time?.length) return { error: `No daily.time in response (keys: ${Object.keys(json || {}).join(',')})` };
+      return { data: json };
+    } catch (e: any) {
+      return { error: e?.message || String(e) };
+    }
   }
+  return { error: 'Open-Meteo rate limit (429) — try again in a minute' };
 }
 
 export default async function(req: Request): Promise<Response> {
@@ -101,11 +114,15 @@ export default async function(req: Request): Promise<Response> {
     const today = new Date().toISOString().slice(0, 10);
     let synced = 0;
     let errors = 0;
+    let lastError = '';
 
     for (const job of activeJobs) {
       try {
-        const weather = await fetchWeather(job.site_lat, job.site_lng);
-        if (!weather?.daily?.time?.length) { errors++; continue; }
+        // Pace requests so Open-Meteo doesn't rate-limit the backend IP.
+        if (synced + errors > 0) await sleep(800);
+        const result = await fetchWeather(job.site_lat, job.site_lng);
+        if (result.error) { errors++; lastError = `${job.name}: ${result.error}`; continue; }
+        const weather = result.data;
 
         const i = 0;
         const day = {
@@ -138,12 +155,13 @@ export default async function(req: Request): Promise<Response> {
           verdict_reasons: verdict.reasons.join(', '),
         });
         synced++;
-      } catch (_) {
+      } catch (e: any) {
         errors++;
+        lastError = e?.message || String(e);
       }
     }
 
-    const summary = `Synced weather for ${synced} of ${activeJobs.length} active site(s)${errors > 0 ? ` (${errors} error${errors > 1 ? 's' : ''})` : ''}`;
+    const summary = `Synced weather for ${synced} of ${activeJobs.length} active site(s)${errors > 0 ? ` (${errors} error${errors > 1 ? 's' : ''})` : ''}` + (lastError ? ` — ${lastError}` : '');
 
     await updateAppSettingValue(base44, 'met_office_config', 'Open-Meteo Weather API Configuration', {
       last_sync_at: new Date().toISOString(),
@@ -151,7 +169,7 @@ export default async function(req: Request): Promise<Response> {
       last_sync_summary: summary,
     });
 
-    return Response.json({ ok: true, message: summary, synced, errors });
+    return Response.json({ ok: true, message: summary, synced, errors, last_error: lastError || null });
   } catch (error: any) {
     return Response.json({ ok: false, error: error.message }, { status: 500 });
   }
