@@ -25,6 +25,18 @@ Deno.serve(async (req) => {
       if (teamList[0] && teamList[0].job_type === 'depot') isDepot = true;
     }
 
+    // Load BusinessConfig for required hours & travel deductible
+    let REQUIRED_WORK_MINS = 540; // 9 hours default
+    let TRAVEL_DEDUCTIBLE = 90;   // 1.5 hours default
+    try {
+      const bizConfigs = await base44.asServiceRole.entities.BusinessConfig.filter({ key: 'global' });
+      const bizConfig = bizConfigs?.[0];
+      if (bizConfig) {
+        if (bizConfig.required_daily_on_site_minutes != null) REQUIRED_WORK_MINS = Number(bizConfig.required_daily_on_site_minutes);
+        if (bizConfig.travel_deductible_minutes != null) TRAVEL_DEDUCTIBLE = Number(bizConfig.travel_deductible_minutes);
+      }
+    } catch (e) { /* use defaults */ }
+
     // Fetch all draft entries for this staff+date
     const drafts = await base44.asServiceRole.entities.Timesheet.filter({ staff_id, date, status: 'draft' });
 

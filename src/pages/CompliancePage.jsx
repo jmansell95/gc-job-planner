@@ -118,7 +118,7 @@ export default function CompliancePage() {
     <HubShell
       icon={ShieldAlert}
       title="Safety & Compliance"
-      subtitle="SafetyCulture integration pending — configure in Settings to sync audits & incidents"
+      subtitle="Mitti integration pending — configure in Settings to sync audits & incidents"
       actions={
         <div className="flex items-center gap-2">
           <RunReportButton hub="compliance" />
@@ -128,7 +128,7 @@ export default function CompliancePage() {
             rel="noreferrer"
             className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition active:scale-95"
           >
-            <ExternalLink className="w-3.5 h-3.5" /> SafetyCulture
+            <ExternalLink className="w-3.5 h-3.5" /> Mitti
           </a>
         </div>
       }

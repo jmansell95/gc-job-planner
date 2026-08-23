@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Radar, AlertTriangle, Activity, Gauge, ArrowRight, PoundSterling, ShieldCheck, TrendingUp, CheckCircle2 } from 'lucide-react';
 import StateMonitorBar from '@/components/dashboard/StateMonitorBar';
-import { useSafetyCultureStatus } from '@/hooks/useSafetyCultureStatus';
+import { useMittiStatus } from '@/hooks/useSafetyCultureStatus';
 
 /**
  * CommandCentreSection — merges the live stat tiles with a clean Mission
@@ -18,7 +18,7 @@ export default function CommandCentreSection({ monitors, onNavigate }) {
   const { data: safetyReports = [] } = useQuery({ queryKey: ['mc-safety'], queryFn: () => base44.entities.SafetyReport.filter({ status: 'open' }) });
   const { data: siteAssets = [] } = useQuery({ queryKey: ['mc-assets'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 500) });
   const { data: delays = [] } = useQuery({ queryKey: ['mc-delays'], queryFn: () => base44.entities.JobDelayLog.filter({ manager_review_status: 'approved' }) });
-  const { isConnected: scConnected } = useSafetyCultureStatus();
+  const { isConnected: scConnected } = useMittiStatus();
 
   const m = useMemo(() => {
     const activeJobs = jobs.filter(j => (j.status || 'planning') === 'in_progress');

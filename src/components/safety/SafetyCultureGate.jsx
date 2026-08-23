@@ -4,24 +4,24 @@ import { base44 } from '@/api/base44Client';
 import { ShieldAlert, CheckCircle2, RefreshCw, Loader2, Zap } from 'lucide-react';
 
 /**
- * SafetyCultureGate — wraps compliance hub tab content.
+ * MittiGate — wraps compliance hub tab content.
  *
- * When SafetyCulture is NOT connected (no webhook secret or disabled):
+ * When Mitti is NOT connected (no webhook secret or disabled):
  *   - Shows an amber "not connected" banner with a Configure button
  *   - Shows a "No data available" info card instead of the tab content
  *
- * When SafetyCulture IS connected:
+ * When Mitti IS connected:
  *   - Shows a green "everything is working" banner with a Sync Now button
  *   - Renders the children (normal tab content)
  */
-export default function SafetyCultureGate({ children, onConfigure, message }) {
+export default function MittiGate({ children, onConfigure, message }) {
   const queryClient = useQueryClient();
   const [syncing, setSyncing] = useState(false);
 
   const { data: config, isLoading } = useQuery({
-    queryKey: ['safetyculture-config'],
+    queryKey: ['mitti-config'],
     queryFn: async () => {
-      const list = await base44.entities.SafetyCultureConfig.filter({ key: 'global' });
+      const list = await base44.entities.MittiConfig.filter({ key: 'global' });
       return list?.[0] || null;
     },
   });
@@ -31,9 +31,9 @@ export default function SafetyCultureGate({ children, onConfigure, message }) {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      await base44.functions.invoke('syncSafetyCulture');
+      await base44.functions.invoke('syncMitti');
       queryClient.invalidateQueries({ queryKey: ['safety-reports'] });
-      queryClient.invalidateQueries({ queryKey: ['safetyculture-config'] });
+      queryClient.invalidateQueries({ queryKey: ['mitti-config'] });
     } catch (e) {
       // sync errors are non-fatal — the banner stays green
     }
@@ -57,10 +57,10 @@ export default function SafetyCultureGate({ children, onConfigure, message }) {
             <ShieldAlert className="w-5 h-5 text-amber-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-slate-900">SafetyCulture not connected</p>
+            <p className="text-sm font-bold text-slate-900">Mitti not connected</p>
             <p className="text-xs text-slate-600 mt-0.5">
               {message ||
-                'SafetyCulture sync is not connected. Once the integration is configured, data will appear here automatically.'}
+                'Mitti sync is not connected. Once the integration is configured, data will appear here automatically.'}
             </p>
           </div>
           {onConfigure && (
@@ -80,7 +80,7 @@ export default function SafetyCultureGate({ children, onConfigure, message }) {
           </div>
           <h3 className="text-lg font-bold text-slate-900 mb-1.5">No data available</h3>
           <p className="text-sm text-slate-500 max-w-md mx-auto">
-            SafetyCulture sync is not connected. Once the integration is configured, data will appear here automatically.
+            Mitti sync is not connected. Once the integration is configured, data will appear here automatically.
           </p>
         </div>
       </div>
@@ -97,7 +97,7 @@ export default function SafetyCultureGate({ children, onConfigure, message }) {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-slate-900">Everything is working</p>
           <p className="text-xs text-slate-600 mt-0.5">
-            Audits, incidents and inspections are being synced from SafetyCulture.
+            Audits, incidents and inspections are being synced from Mitti.
           </p>
         </div>
         <button

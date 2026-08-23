@@ -1,5 +1,5 @@
 {
-  "name": "SafetyCultureConfig",
+  "name": "MittiConfig",
   "type": "object",
   "properties": {
     "key": {
@@ -8,16 +8,16 @@
     },
     "webhook_secret": {
       "type": "string",
-      "description": "Shared secret that SafetyCulture sends with each webhook payload to authenticate it. Enter this same value in your SafetyCulture webhook configuration. The webhook receiver validates every incoming request against this secret."
+      "description": "Shared secret that Mitti sends with each webhook payload to authenticate it. Enter this same value in your Mitti webhook configuration. The webhook receiver validates every incoming request against this secret."
     },
     "api_token": {
       "type": "string",
-      "description": "SafetyCulture API bearer token (optional, for future pull-based synchronisation of audit reports). Leave blank if using webhooks only."
+      "description": "Mitti API bearer token (optional, for future pull-based synchronisation of audit reports). Leave blank if using webhooks only."
     },
     "enabled": {
       "type": "boolean",
       "default": false,
-      "description": "Master toggle for the SafetyCulture webhook receiver. When false, incoming webhooks are rejected even if the secret matches."
+      "description": "Master toggle for the Mitti webhook receiver. When false, incoming webhooks are rejected even if the secret matches."
     },
     "auto_link_to_jobs": {
       "type": "boolean",
@@ -26,7 +26,7 @@
     },
     "last_webhook_at": {
       "type": "string",
-      "description": "ISO timestamp of the last webhook payload received from SafetyCulture."
+      "description": "ISO timestamp of the last webhook payload received from Mitti."
     },
     "last_webhook_status": {
       "type": "string",

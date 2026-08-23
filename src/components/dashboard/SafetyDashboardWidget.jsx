@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { ShieldCheck, AlertTriangle, FileText, Calendar } from 'lucide-react';
 import WidgetShell from '@/components/dashboard/WidgetShell';
 import ModernBadge from '@/components/ui/ModernBadge';
-import { useSafetyCultureStatus } from '@/hooks/useSafetyCultureStatus';
+import { useMittiStatus } from '@/hooks/useSafetyCultureStatus';
 
 /**
  * Phase 6 — Safety: Safety Dashboard widget.
@@ -13,7 +13,7 @@ import { useSafetyCultureStatus } from '@/hooks/useSafetyCultureStatus';
  * recent safety culture audits, and compliance briefing status.
  */
 export default function SafetyDashboardWidget() {
-  const { isConnected: scConnected } = useSafetyCultureStatus();
+  const { isConnected: scConnected } = useMittiStatus();
   const { data: reports = [], isLoading } = useQuery({
     queryKey: ['safety-reports-dashboard'],
     queryFn: () => base44.entities.SafetyReport.list('-created_date', 50),
@@ -25,7 +25,7 @@ export default function SafetyDashboardWidget() {
   });
 
   const stats = useMemo(() => {
-    // When SafetyCulture is not connected, zero out all SafetyCulture-derived
+    // When Mitti is not connected, zero out all Mitti-derived
     // stats so stale demo/orphan records don't surface as live data.
     if (!scConnected) {
       const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
@@ -82,7 +82,7 @@ export default function SafetyDashboardWidget() {
           <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center mb-2">
             <ShieldCheck className="w-5 h-5 text-amber-600" />
           </div>
-          <p className="text-sm font-semibold text-slate-700">SafetyCulture not connected</p>
+          <p className="text-sm font-semibold text-slate-700">Mitti not connected</p>
           <p className="text-xs text-slate-400 mt-0.5">Safety stats will appear once the integration is configured</p>
         </div>
       ) : recentReports.length === 0 ? (

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 const ACCENT = '#2E5A1A';
 
-// Classify a SafetyCulture audit template into one of the standard daily checks.
+// Classify a Mitti audit template into one of the standard daily checks.
 function classifyTemplate(name = '') {
   const n = name.toLowerCase();
   if (/vehicle|car|van|daily check/.test(n)) return { key: 'vehicle', label: 'Vehicle Check', icon: Car, color: 'amber' };
@@ -27,7 +27,7 @@ const toneCls = {
 const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 const fmtDateTime = (iso) => (iso ? new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
 
-export default function SafetyCultureCheckHub({ onNavigate }) {
+export default function MittiCheckHub({ onNavigate }) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all'); // all | overdue | vehicle | plant | powra
 
@@ -107,9 +107,9 @@ export default function SafetyCultureCheckHub({ onNavigate }) {
         <div className="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-4">
           <ShieldAlert className="w-7 h-7 text-amber-600" />
         </div>
-        <h3 className="text-lg font-bold text-slate-900 mb-1.5">No SafetyCulture data synced</h3>
+        <h3 className="text-lg font-bold text-slate-900 mb-1.5">No Mitti data synced</h3>
         <p className="text-sm text-slate-500 max-w-md mx-auto mb-5">
-          Audit, incident and inspection data is not currently being pulled from SafetyCulture.
+          Audit, incident and inspection data is not currently being pulled from Mitti.
           Once the integration is configured, audits, overdue actions and auditor breakdowns will appear here.
         </p>
         {onNavigate && (
@@ -198,7 +198,7 @@ export default function SafetyCultureCheckHub({ onNavigate }) {
         {byAuditor.length === 0 ? (
           <div className="text-center py-8 text-slate-400 text-sm">
             <ShieldCheck className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-            No SafetyCulture audits received yet.
+            No Mitti audits received yet.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -320,7 +320,7 @@ export default function SafetyCultureCheckHub({ onNavigate }) {
           <ShieldAlert className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-slate-900">Synced from SafetyCulture</p>
+          <p className="text-sm font-bold text-slate-900">Synced from Mitti</p>
           <p className="text-xs text-slate-500">Audits sync automatically via webhook & scheduled pull. Configure in Settings → Integrations.</p>
         </div>
         {onNavigate && (

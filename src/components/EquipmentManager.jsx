@@ -125,10 +125,14 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
   const dailyTotal = items
     .filter(c => (c.hire_status || 'active') !== 'off_hired')
     .filter(c => c.category !== 'contractor_supplied' && c.category !== 'client_supplied')
-    .filter(c => c.unit_label === 'day')
+    .filter(c => ['day', 'week', 'hour'].includes(c.unit_label))
     .reduce((s, c) => {
       const rate = c.price_confirmed && c.negotiated_unit_cost != null ? Number(c.negotiated_unit_cost) : (Number(c.unit_cost) || 0);
-      return s + rate * (Number(c.men) || 1);
+      const men = Number(c.men) || 1;
+      if (c.unit_label === 'day') return s + rate * men;
+      if (c.unit_label === 'week') return s + (rate / 5) * men;
+      if (c.unit_label === 'hour') return s + rate * 8 * men;
+      return s;
     }, 0);
   const defaultDates = job ? { start: job.start_date, end: job.end_date } : null;
   const rigsWithGear = catalogueItems.filter(c => (c.linked_catalogue_ids || []).length > 0);

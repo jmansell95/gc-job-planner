@@ -32,6 +32,7 @@ import IncentiveQuickLook from '@/components/staff/IncentiveQuickLook';
 import DrillingWeatherWidget from '@/components/DrillingWeatherWidget';
 import DivisionIdentityBar from '@/components/DivisionIdentityBar';
 import { useDivision } from '@/contexts/DivisionContext';
+import { useJobTypes } from '@/hooks/useJobTypes';
 import RigSignInScanner from '@/components/staff/RigSignInScanner';
 import WeeklyRotaView from '@/components/staff/WeeklyRotaView';
 import OfflineBanner from '@/components/field/OfflineBanner';
@@ -161,6 +162,7 @@ export default function StaffDashboard() {
   const { data: equipmentCompliance = [] } = useQuery({ queryKey: ['equipment-compliance'], queryFn: () => base44.entities.ComplianceItem.filter({ category: 'equipment' }) });
   const { data: myHotelBookings = [] } = useQuery({ queryKey: ['my-hotel-bookings', staff?.id], queryFn: () => base44.entities.HotelBooking.list('-created_date', 500).then(list => list.filter(b => (b.assigned_staff_ids || []).includes(staff.id) || b.staff_id === staff.id)), enabled: !!staff?.id });
   const { data: rigs = [] } = useQuery({ queryKey: ['rigs-active-staff'], queryFn: () => base44.entities.SiteAsset.filter({ is_rig: true, is_active: true }) });
+  const { data: jobTypes = [] } = useJobTypes();
 
   const handleStartJob = async (assignmentId) => {
     try {
@@ -884,7 +886,7 @@ export default function StaffDashboard() {
           staffId={staff.id}
           crewAssignments={allAssignments.filter(a => a.job_id === assignments.find(a2 => a2.id === shiftWizard.assignmentId)?.job_id && a.assigned_date === assignments.find(a2 => a2.id === shiftWizard.assignmentId)?.assigned_date)}
           visibleAssignments={visibleAssignments}
-          isDriller={['cp_drilling', 'rotary_drilling'].includes(jobs.find(j => j.id === assignments.find(a => a.id === shiftWizard.assignmentId)?.job_id)?.job_type)}
+          isDriller={(() => { const job = jobs.find(j => j.id === assignments.find(a => a.id === shiftWizard.assignmentId)?.job_id); if (!job) return false; const jt = jobTypes.find(t => t.key === job.job_type); return !!(jt?.is_drilling || ['cp','rotary','mixed'].includes(job.drilling_method)); })()}
           isLastJob={shiftWizard.isLastJob}
           forceStep={shiftWizard.forceStep}
           onArrivedConfirm={handleArrivedConfirm}

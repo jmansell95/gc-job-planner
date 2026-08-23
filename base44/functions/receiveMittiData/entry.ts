@@ -1,10 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
 // ============================================================
-// SafetyCulture (iAuditor) webhook receiver
+// Mitti (formerly SafetyCulture / iAuditor) webhook receiver
 // ============================================================
-// Receives audit-completion events from SafetyCulture. Validates the
-// shared webhook secret against the SafetyCultureConfig singleton,
+// Receives audit-completion events from Mitti. Validates the
+// shared webhook secret against the MittiConfig singleton,
 // then stores each audit as a SafetyReport — auto-matching the auditor's
 // email to a Contractor record and the audit site name to a Job.
 
@@ -14,7 +14,7 @@ function num(v: any): number | null {
   return isNaN(n) ? null : n;
 }
 
-// Defensive field extraction — SafetyCulture payload shapes vary by
+// Defensive field extraction — Mitti payload shapes vary by
 // template and webhook version, so we try several common paths.
 function deepGet(obj: any, ...paths: string[]): any {
   for (const p of paths) {
@@ -38,21 +38,22 @@ Deno.serve(async (req) => {
     const secret =
       url.searchParams.get('webhook_secret') ||
       req.headers.get('x-webhook-secret') ||
+      req.headers.get('x-mitti-secret') ||
       req.headers.get('x-safetyculture-secret') ||
       '';
 
     // Load config singleton
     let config: any = null;
     try {
-      const configs = await base44.asServiceRole.entities.SafetyCultureConfig.filter({ key: 'global' });
+      const configs = await base44.asServiceRole.entities.MittiConfig.filter({ key: 'global' });
       config = configs && configs[0];
     } catch (e) { /* entity may not exist yet */ }
 
     if (!config) {
-      return Response.json({ error: 'SafetyCulture not configured.' }, { status: 422 });
+      return Response.json({ error: 'Mitti not configured.' }, { status: 422 });
     }
     if (!config.enabled) {
-      return Response.json({ error: 'SafetyCulture webhook is disabled.' }, { status: 403 });
+      return Response.json({ error: 'Mitti webhook is disabled.' }, { status: 403 });
     }
     if (!secret || secret !== config.webhook_secret) {
       return Response.json({ error: 'Invalid webhook secret.' }, { status: 401 });
@@ -188,7 +189,7 @@ Deno.serve(async (req) => {
     // Update config status
     const summary = `Stored audit ${auditTitle || templateName || auditId}${actionItems.length > 0 ? ` · ${actionItems.length} action item${actionItems.length === 1 ? '' : 's'}` : ''}${jobName ? ` · linked to ${jobName}` : ''}`;
     try {
-      await base44.asServiceRole.entities.SafetyCultureConfig.update(config.id, {
+      await base44.asServiceRole.entities.MittiConfig.update(config.id, {
         last_webhook_at: new Date().toISOString(),
         last_webhook_status: 'success',
         last_webhook_summary: summary,
@@ -200,9 +201,9 @@ Deno.serve(async (req) => {
     // Record failure on the config if we can reach it
     try {
       const base44 = createClientFromRequest(req);
-      const configs = await base44.asServiceRole.entities.SafetyCultureConfig.filter({ key: 'global' });
+      const configs = await base44.asServiceRole.entities.MittiConfig.filter({ key: 'global' });
       if (configs && configs[0]) {
-        await base44.asServiceRole.entities.SafetyCultureConfig.update(configs[0].id, {
+        await base44.asServiceRole.entities.MittiConfig.update(configs[0].id, {
           last_webhook_at: new Date().toISOString(),
           last_webhook_status: 'failed',
           last_webhook_summary: 'Error: ' + (error.message || 'Unknown'),

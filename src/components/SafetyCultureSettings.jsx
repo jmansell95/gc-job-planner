@@ -23,18 +23,18 @@ function ScoreBadge({ pct, passFail }) {
   );
 }
 
-export default function SafetyCultureSettings() {
+export default function MittiSettings() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const { data: config, isLoading } = useQuery({
-    queryKey: ['safetyculture-config'],
+    queryKey: ['mitti-config'],
     queryFn: async () => {
-      const list = await base44.entities.SafetyCultureConfig.filter({ key: 'global' });
+      const list = await base44.entities.MittiConfig.filter({ key: 'global' });
       if (list && list[0]) return list[0];
       // Create the singleton if it doesn't exist yet
-      const created = await base44.entities.SafetyCultureConfig.create({
+      const created = await base44.entities.MittiConfig.create({
         key: 'global', enabled: false, auto_link_to_jobs: true,
         webhook_secret: '', api_token: '', last_webhook_status: 'never',
       });
@@ -59,7 +59,7 @@ export default function SafetyCultureSettings() {
     queryFn: () => base44.entities.SafetyReport.list('-created_date', 50),
   });
 
-  const webhookUrl = buildWebhookUrl('/api/functions/receiveSafetyCultureData');
+  const webhookUrl = buildWebhookUrl('/api/functions/receiveMittiData');
   const isConfigured = !!(form?.webhook_secret);
   const [expandedPayload, setExpandedPayload] = useState(null);
 
@@ -72,10 +72,10 @@ export default function SafetyCultureSettings() {
     setSyncing(true);
     setSyncResult(null);
     try {
-      const res = await base44.functions.invoke('syncSafetyCulture');
+      const res = await base44.functions.invoke('syncMitti');
       setSyncResult(res.data || res);
       queryClient.invalidateQueries({ queryKey: ['safety-reports'] });
-      queryClient.invalidateQueries({ queryKey: ['safetyculture-config'] });
+      queryClient.invalidateQueries({ queryKey: ['mitti-config'] });
     } catch (e) {
       setSyncResult({ error: e.message || 'Sync failed — check your API token.' });
     } finally {
@@ -87,13 +87,13 @@ export default function SafetyCultureSettings() {
     if (!config) return;
     setSaving(true);
     try {
-      await base44.entities.SafetyCultureConfig.update(config.id, {
+      await base44.entities.MittiConfig.update(config.id, {
         webhook_secret: form.webhook_secret,
         api_token: form.api_token,
         enabled: form.enabled,
         auto_link_to_jobs: form.auto_link_to_jobs,
       });
-      queryClient.invalidateQueries({ queryKey: ['safetyculture-config'] });
+      queryClient.invalidateQueries({ queryKey: ['mitti-config'] });
     } catch (e) {
       alert('Failed to save: ' + (e.message || 'Unknown error'));
     } finally {
@@ -115,8 +115,8 @@ export default function SafetyCultureSettings() {
     <div className="space-y-6">
       <SettingsSectionHeader
         icon={ShieldAlert}
-        title="SafetyCulture (iAuditor) Sync"
-        description="Sync site safety audits & inspection forms from SafetyCulture — every audit auto-links to its job and subcontractor"
+        title="Mitti (Mitti) Sync"
+        description="Sync site safety audits & inspection forms from Mitti — every audit auto-links to its job and subcontractor"
       />
 
       {/* Get Started guide — shown until the webhook secret is set */}
@@ -131,13 +131,13 @@ export default function SafetyCultureSettings() {
             <div className="flex items-start gap-3">
               <div className="w-6 h-6 rounded-full bg-[#2E5A1A] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</div>
               <div className="text-sm text-slate-600">
-                <span className="font-semibold text-slate-800">Enter a webhook secret below</span> — any strong password-like string. You'll set the same value in SafetyCulture.
+                <span className="font-semibold text-slate-800">Enter a webhook secret below</span> — any strong password-like string. You'll set the same value in Mitti.
               </div>
             </div>
             <div className="flex items-start gap-3">
               <div className="w-6 h-6 rounded-full bg-[#2E5A1A] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</div>
               <div className="text-sm text-slate-600">
-                <span className="font-semibold text-slate-800">Copy the Webhook Endpoint URL</span> below and add it in SafetyCulture → Integrations → Webhooks, appending <code className="px-1 bg-slate-100 rounded">?webhook_secret=YOUR_SECRET</code>.
+                <span className="font-semibold text-slate-800">Copy the Webhook Endpoint URL</span> below and add it in Mitti → Integrations → Webhooks, appending <code className="px-1 bg-slate-100 rounded">?webhook_secret=YOUR_SECRET</code>.
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -189,7 +189,7 @@ export default function SafetyCultureSettings() {
               onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
               className="w-4 h-4 rounded accent-emerald-600" />
             <label htmlFor="sc-enabled" className="text-sm font-medium text-slate-700">
-              Enable SafetyCulture webhook receiver
+              Enable Mitti webhook receiver
             </label>
           </div>
           <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
@@ -204,9 +204,9 @@ export default function SafetyCultureSettings() {
             <label className="block text-xs font-medium text-slate-600 mb-1">Webhook Secret *</label>
             <input type="text" value={form.webhook_secret}
               onChange={(e) => setForm({ ...form, webhook_secret: e.target.value })}
-              placeholder="Enter a strong secret — set the same in SafetyCulture"
+              placeholder="Enter a strong secret — set the same in Mitti"
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
-            <p className="text-[11px] text-slate-400 mt-1">SafetyCulture must send this secret as the <code className="px-1 bg-slate-100 rounded">webhook_secret</code> query param or <code className="px-1 bg-slate-100 rounded">x-webhook-secret</code> header.</p>
+            <p className="text-[11px] text-slate-400 mt-1">Mitti must send this secret as the <code className="px-1 bg-slate-100 rounded">webhook_secret</code> query param or <code className="px-1 bg-slate-100 rounded">x-webhook-secret</code> header.</p>
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">API Token (optional)</label>
@@ -225,7 +225,7 @@ export default function SafetyCultureSettings() {
                 <Copy className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">Add this URL in SafetyCulture → Integrations → Webhooks, and append <code className="px-1 bg-slate-100 rounded">?webhook_secret=YOUR_SECRET</code>.</p>
+            <p className="text-[11px] text-slate-400 mt-1">Add this URL in Mitti → Integrations → Webhooks, and append <code className="px-1 bg-slate-100 rounded">?webhook_secret=YOUR_SECRET</code>.</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={handleSave} disabled={saving}
@@ -236,7 +236,7 @@ export default function SafetyCultureSettings() {
             </button>
             <button onClick={handleSyncNow} disabled={syncing || !form?.api_token}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition disabled:opacity-50"
-              title={!form?.api_token ? 'Add an API token first' : 'Pull recent audits from SafetyCulture now'}>
+              title={!form?.api_token ? 'Add an API token first' : 'Pull recent audits from Mitti now'}>
               {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               Sync Now
             </button>
@@ -255,7 +255,7 @@ export default function SafetyCultureSettings() {
           <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
             <Webhook className="w-4 h-4 text-slate-500" />
             <h3 className="font-semibold text-slate-900">Webhook Debug Log</h3>
-            <span className="text-xs text-slate-400 hidden sm:inline">Expand a row to inspect the raw SafetyCulture payload</span>
+            <span className="text-xs text-slate-400 hidden sm:inline">Expand a row to inspect the raw Mitti payload</span>
           </div>
           <div className="divide-y divide-slate-100">
             {reports.slice(0, 10).map((r) => (
@@ -282,7 +282,7 @@ export default function SafetyCultureSettings() {
         {reports.length === 0 ? (
           <div className="px-5 py-10 text-center text-slate-400 text-sm">
             <ShieldAlert className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-            No audits received yet. Configure the webhook in SafetyCulture to start syncing.
+            No audits received yet. Configure the webhook in Mitti to start syncing.
           </div>
         ) : (
           <div className="overflow-x-auto">

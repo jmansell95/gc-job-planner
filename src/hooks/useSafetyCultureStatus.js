@@ -2,21 +2,21 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 
 /**
- * useSafetyCultureStatus — shared hook that checks whether SafetyCulture
+ * useMittiStatus — shared hook that checks whether Mitti
  * integration is connected (enabled + webhook secret configured).
  *
  * Returns { isConnected, isLoading, config }.
  *
  * Used by dashboard widgets and stat cards to zero-out or hide
- * SafetyCulture-derived data when the sync is not active, so stale
+ * Mitti-derived data when the sync is not active, so stale
  * demo/orphan records in the SafetyReport entity don't surface as
  * live compliance stats.
  */
-export function useSafetyCultureStatus() {
+export function useMittiStatus() {
   const { data: config, isLoading } = useQuery({
-    queryKey: ['safetyculture-config'],
+    queryKey: ['mitti-config'],
     queryFn: async () => {
-      const list = await base44.entities.SafetyCultureConfig.filter({ key: 'global' });
+      const list = await base44.entities.MittiConfig.filter({ key: 'global' });
       return list?.[0] || null;
     },
     staleTime: 60 * 1000,

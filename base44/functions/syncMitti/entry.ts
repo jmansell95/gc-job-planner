@@ -1,15 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
 // ============================================================
-// SafetyCulture pull-based sync
+// Mitti (formerly SafetyCulture / iAuditor) pull-based sync
 // ============================================================
-// Pulls recent audits from the SafetyCulture REST API using the stored
-// API token (SafetyCultureConfig.api_token). Stores each new audit as a
-// SafetyReport — same shape as the webhook receiver. Designed to run on
-// a schedule (every 15-30 minutes) so audits appear in the platform even
-// if the webhook isn't configured yet.
+// Pulls recent audits from the Mitti REST API using the stored
+// API token (MittiConfig.api_token). Stores each new audit as a
+// SafetyReport — same shape as the webhook receiver. Designed to
+// run on a schedule (every 15-30 minutes) so audits appear in the
+// platform even if the webhook isn't configured yet.
 //
-// SafetyCulture API docs: https://developer.safetyculture.com/
+// Mitti API docs: https://developer.safetyculture.com/
 // Endpoint: GET https://api.safetyculture.com/audits?modified_after=...
 // Auth: Bearer <api_token>
 
@@ -39,15 +39,15 @@ Deno.serve(async (req) => {
   // Load config singleton
   let config: any = null;
   try {
-    const configs = await base44.asServiceRole.entities.SafetyCultureConfig.filter({ key: 'global' });
+    const configs = await base44.asServiceRole.entities.MittiConfig.filter({ key: 'global' });
     config = configs && configs[0];
   } catch (e) { /* entity may not exist yet */ }
 
   if (!config) {
-    return Response.json({ error: 'SafetyCulture not configured.' }, { status: 422 });
+    return Response.json({ error: 'Mitti not configured.' }, { status: 422 });
   }
   if (!config.api_token) {
-    return Response.json({ error: 'No API token configured. Add one in Settings → SafetyCulture.' }, { status: 422 });
+    return Response.json({ error: 'No API token configured. Add one in Settings → Mitti.' }, { status: 422 });
   }
 
   // Pull audits modified in the last 24 hours
@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
       if (!resp.ok) {
         const errText = await resp.text();
         return Response.json({
-          error: `SafetyCulture API returned ${resp.status}`,
+          error: `Mitti API returned ${resp.status}`,
           details: errText.slice(0, 500),
         }, { status: 502 });
       }
@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
       totalPages++;
     } while (nextCursor && totalPages < maxPages);
   } catch (err) {
-    return Response.json({ error: 'Failed to reach SafetyCulture API', details: err.message }, { status: 502 });
+    return Response.json({ error: 'Failed to reach Mitti API', details: err.message }, { status: 502 });
   }
 
   // Load jobs once for auto-matching
@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
 
   // Update config status
   try {
-    await base44.asServiceRole.entities.SafetyCultureConfig.update(config.id, {
+    await base44.asServiceRole.entities.MittiConfig.update(config.id, {
       last_webhook_at: new Date().toISOString(),
       last_webhook_status: 'success',
       last_webhook_summary: `Pull sync: ${stored} new, ${updated} updated, ${linkedJobs} jobs linked`,
