@@ -29,11 +29,11 @@ export default function StaffHeaderActions({ staff }) {
         {isOnline ? 'Live' : 'Offline'}
       </span>
       <button onClick={() => setShowNumbers(true)} type="button" aria-label="Useful Numbers"
-        className="w-9 h-9 rounded-xl bg-slate-100/80 hover:bg-slate-200/80 flex items-center justify-center transition active:scale-95 touch-manipulation">
+        className="w-10 h-10 rounded-xl bg-slate-100/80 hover:bg-slate-200/80 flex items-center justify-center transition active:scale-95 touch-manipulation">
         <Phone className="w-4 h-4 text-slate-600" strokeWidth={2.5} />
       </button>
       <button onClick={() => base44.auth.logout('/login')} type="button" aria-label="Logout"
-        className="w-9 h-9 rounded-xl bg-slate-100/80 hover:bg-slate-200/80 flex items-center justify-center transition active:scale-95 touch-manipulation">
+        className="w-10 h-10 rounded-xl bg-slate-100/80 hover:bg-slate-200/80 flex items-center justify-center transition active:scale-95 touch-manipulation">
         <LogOut className="w-4 h-4 text-slate-600" strokeWidth={2.5} />
       </button>
 

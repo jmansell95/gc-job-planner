@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   PoundSterling, TrendingUp, TrendingDown, Scale, FileText, Truck, Mountain,
-  Clock, ArrowRightLeft, AlertTriangle, Receipt,
+  Clock, ArrowRightLeft, AlertTriangle, Receipt, Loader2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import {
@@ -19,30 +19,32 @@ const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFracti
  * raised invoices. Shows cost vs revenue vs margin with a timeline chart.
  */
 export default function JobFinancialFootprint({ job }) {
-  const { data: invLogs = [] } = useQuery({
+  const { data: invLogs = [], isLoading: invLoading } = useQuery({
     queryKey: ['footprint-inv', job.id],
     queryFn: () => base44.entities.InvestigationLog.filter({ job_id: job.id }, '-date', 500),
   });
-  const { data: subconLogs = [] } = useQuery({
+  const { data: subconLogs = [], isLoading: subconLoading } = useQuery({
     queryKey: ['footprint-subcon', job.id],
     queryFn: () => base44.entities.SubcontractorLog.filter({ job_id: job.id }, '-date', 500),
   });
-  const { data: timesheets = [] } = useQuery({
+  const { data: timesheets = [], isLoading: tsLoading } = useQuery({
     queryKey: ['footprint-ts', job.id],
     queryFn: () => base44.entities.Timesheet.filter({ job_id: job.id, chargeable: true }, '-date', 500),
   });
-  const { data: deliveries = [] } = useQuery({
+  const { data: deliveries = [], isLoading: delLoading } = useQuery({
     queryKey: ['footprint-del', job.id],
     queryFn: () => base44.entities.DeliveryLog.filter({ job_id: job.id, chargeable: true }, '-date', 500),
   });
-  const { data: invoices = [] } = useQuery({
+  const { data: invoices = [], isLoading: invRecLoading } = useQuery({
     queryKey: ['footprint-inv-rec', job.id],
     queryFn: () => base44.entities.Invoice.filter({ job_id: job.id }, '-issue_date', 200),
   });
-  const { data: costItems = [] } = useQuery({
+  const { data: costItems = [], isLoading: costLoading } = useQuery({
     queryKey: ['footprint-cost', job.id],
     queryFn: () => base44.entities.JobCostItem.filter({ job_id: job.id }, '-created_date', 500),
   });
+
+  const anyLoading = invLoading || subconLoading || tsLoading || delLoading || invRecLoading || costLoading;
 
   // Build unified ledger entries
   const ledger = useMemo(() => {
@@ -123,6 +125,14 @@ export default function JobFinancialFootprint({ job }) {
     Timesheet: 'text-violet-600 bg-violet-50', Delivery: 'text-emerald-600 bg-emerald-50',
     'Cost Item': 'text-slate-600 bg-slate-50',
   };
+
+  if (anyLoading) {
+    return (
+      <div className="insight-card rounded-2xl p-8 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
