@@ -9,7 +9,7 @@ import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
 import AssignmentCard from '@/components/staff/AssignmentCard';
 import EndOfDayCard from '@/components/staff/EndOfDayCard';
 import { useToast } from '@/components/ui/use-toast';
-import { syncAllOfflineData, getOfflineDeliveryCount } from '@/utils/offlineSync';
+import { syncAllOfflineData, getOfflineDeliveryCount, saveOrQueue } from '@/utils/offlineSync';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME, SITE_EARLY_ACCESS_TIME } from '@/utils/siteHours';
 import { complianceDaysUntil } from '@/utils/complianceDate';
 import OutsideSiteHours from '@/components/staff/OutsideSiteHours';
@@ -301,7 +301,7 @@ export default function StaffDashboard() {
         const travelMins = (ah * 60 + am) - (dh * 60 + dm);
         if (travelMins > 0) {
           const assignment = assignments.find(a => a.id === assignmentId);
-          await base44.entities.Timesheet.create({
+          await saveOrQueue('Timesheet', 'create', {
             staff_id: staff.id,
             date: todayStr,
             job_id: assignment?.job_id || '',
@@ -316,15 +316,17 @@ export default function StaffDashboard() {
         }
       }
       let submitResult = null;
-      try {
-        submitResult = await base44.functions.invoke('submitDailyTimesheet', { staff_id: staff.id, date: todayStr });
-      } catch (e) {
-        console.error('Timesheet submit error:', e);
-        const msg = e?.message || '';
-        if (msg.includes('under 9 hours') || msg.includes('UNDER_9H_NO_EARLY_LEAVE')) {
-          toast({ title: 'Cannot submit timesheet', description: 'Your on-site work is under 9 hours and no early-leave reason was recorded. Use the Leave Site Early button to record why you left early, or add the missing tasks.', variant: 'destructive' });
-          queryClient.invalidateQueries({ queryKey: ['daily-tasks'] });
-          return;
+      if (navigator.onLine) {
+        try {
+          submitResult = await base44.functions.invoke('submitDailyTimesheet', { staff_id: staff.id, date: todayStr });
+        } catch (e) {
+          console.error('Timesheet submit error:', e);
+          const msg = e?.message || '';
+          if (msg.includes('under 9 hours') || msg.includes('UNDER_9H_NO_EARLY_LEAVE')) {
+            toast({ title: 'Cannot submit timesheet', description: 'Your on-site work is under 9 hours and no early-leave reason was recorded. Use the Leave Site Early button to record why you left early, or add the missing tasks.', variant: 'destructive' });
+            queryClient.invalidateQueries({ queryKey: ['daily-tasks'] });
+            return;
+          }
         }
       }
       const updateData = {
@@ -357,7 +359,7 @@ export default function StaffDashboard() {
           toast({ title: 'Gear return failed', description: 'Your timesheet was submitted but the asset return could not be processed. Please tell the yard manager.', variant: 'destructive' });
         }
       }
-      await base44.entities.RotaAssignment.update(assignmentId, updateData);
+      await saveOrQueue('RotaAssignment', 'update', updateData, assignmentId);
       queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
       queryClient.invalidateQueries({ queryKey: ['daily-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['staff-timesheets'] });
@@ -367,7 +369,7 @@ export default function StaffDashboard() {
       if (remaining.length > 0) {
         setShowNextJobPrompt(true);
       } else {
-        toast({ title: 'Shift completed', description: 'Your timesheet has been submitted for approval.' });
+        toast({ title: 'Shift completed', description: navigator.onLine ? 'Your timesheet has been submitted for approval.' : 'Saved offline — your timesheet will be submitted when you reconnect.' });
       }
     } catch (error) {
       console.error('Error completing shift:', error);

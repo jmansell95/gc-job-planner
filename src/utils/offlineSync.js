@@ -324,3 +324,41 @@ export async function syncPendingBriefings() {
 export function getTotalOfflineCount() {
   return getOfflineBriefingCount() + getOfflineDeliveryCount() + getOfflineActionCount();
 }
+
+// ============================================================
+// saveOrQueue — try an entity create/update; if the network
+// fails, queue it offline for automatic sync on reconnect.
+// Used by field forms (driller logs, PAT tests, etc.) so staff
+// never lose data to a dead signal.
+// Returns the entity record on success, or { _offline: true } when queued.
+// ============================================================
+
+export async function saveOrQueue(entityName, operation, data, entityId = null) {
+  const entity = base44.entities[entityName];
+  if (!entity) throw new Error(`Entity ${entityName} not found`);
+
+  // Fast path: if we know we're offline, skip the doomed network round-trip
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    saveOfflineAction({ entity_name: entityName, operation, data, entity_id: entityId });
+    return { _offline: true };
+  }
+
+  try {
+    if (operation === 'create') return await entity.create(data);
+    if (operation === 'update') return await entity.update(entityId, data);
+    throw new Error(`Unknown operation: ${operation}`);
+  } catch (err) {
+    // Network failure (TypeError: Failed to fetch, network error, etc.) — queue
+    const isNetworkError = err?.message?.includes('fetch')
+      || err?.message?.includes('network')
+      || err?.message?.includes('Network')
+      || err?.name === 'TypeError'
+      || !navigator.onLine;
+    if (isNetworkError) {
+      saveOfflineAction({ entity_name: entityName, operation, data, entity_id: entityId });
+      return { _offline: true };
+    }
+    // Validation or server error — don't queue, let it surface to the user
+    throw err;
+  }
+}

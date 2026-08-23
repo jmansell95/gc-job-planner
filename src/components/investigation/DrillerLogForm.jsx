@@ -11,6 +11,7 @@ import BoreholeCompletionModal from './BoreholeCompletionModal';
 import VoiceToTextButton from '@/components/ui/VoiceToTextButton';
 import { useConfigLists } from '@/hooks/useConfigLists';
 import { useDrillingRole } from '@/hooks/useDrillingRole';
+import { saveOrQueue } from '@/utils/offlineSync';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 bg-white";
 const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
@@ -203,11 +204,15 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
         chargeable: form.completed_by_type !== 'client',
         billing_status: form.completed_by_type === 'client' ? 'no_charge' : 'auto',
       };
-      await base44.entities.InvestigationLog.create(payload);
+      const result = await saveOrQueue('InvestigationLog', 'create', payload);
+      if (result?._offline) {
+        toast({ title: 'Saved offline', description: 'Log entry queued — will sync when you reconnect.' });
+      } else {
+        toast({ title: 'Log entry added', description: sptN != null ? `SPT N = ${sptN}` : undefined });
+      }
       queryClient.invalidateQueries({ queryKey: ['investigation-logs-today', jobId, staffId, todayStr] });
       queryClient.invalidateQueries({ queryKey: ['investigation-logs', jobId] });
       queryClient.invalidateQueries({ queryKey: ['log-quality-control'] });
-      toast({ title: 'Log entry added', description: sptN != null ? `SPT N = ${sptN}` : undefined });
       // Pre-fill borehole ref and carry depth_from forward
       setForm({
         ...form,

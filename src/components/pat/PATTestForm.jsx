@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { safeFormat } from '@/utils/format';
+import { saveOrQueue } from '@/utils/offlineSync';
 
 const APPLIANCE_CLASSES = [
   { value: 'class_I', label: 'Class I (Earthed)', needs_earth: true, desc: 'Metal casing, needs earth bond' },
@@ -102,7 +103,7 @@ export default function PATTestForm({ asset, onClose, onSaved }) {
       const computedResult = autoResult();
       const finalResult = form.result === 'pass' && computedResult === 'fail' ? 'fail' : form.result;
 
-      await base44.entities.ServiceRecord.create({
+      const recordResult = await saveOrQueue('ServiceRecord', 'create', {
         site_asset_id: asset.id,
         record_type: 'pat_inspection',
         date: form.date,
@@ -123,20 +124,29 @@ export default function PATTestForm({ asset, onClose, onSaved }) {
         pat_tester_serial: form.tester_serial,
       });
 
+      // If the ServiceRecord was queued offline, don't update the asset yet —
+      // the sync will handle consistency on reconnect.
+      if (recordResult?._offline) {
+        toast({ title: 'Saved offline', description: `${asset.name} PAT record queued — will sync when you reconnect.` });
+        if (onSaved) onSaved(asset.name, finalResult);
+        onClose();
+        return;
+      }
+
       const warnDays = 30;
       const daysUntilExpiry = expiryDate ? Math.floor((new Date(expiryDate + 'T00:00:00') - new Date()) / 86400000) : null;
       const status = finalResult === 'fail' ? 'expired'
         : (daysUntilExpiry !== null && daysUntilExpiry < 0) ? 'expired'
         : (daysUntilExpiry !== null && daysUntilExpiry <= warnDays) ? 'expiring'
         : 'compliant';
-      await base44.entities.SiteAsset.update(asset.id, {
+      await saveOrQueue('SiteAsset', 'update', {
         last_service_date: form.date,
         next_service_date: finalResult === 'fail' ? null : expiryDate,
         compliance_expiry_date: finalResult === 'fail' ? null : expiryDate,
         compliance_status: status,
         compliance_last_checked: new Date().toISOString(),
         is_active: finalResult !== 'fail',
-      });
+      }, asset.id);
 
       queryClient.invalidateQueries({ queryKey: ['site-assets'] });
       queryClient.invalidateQueries({ queryKey: ['service-records', asset.id] });
