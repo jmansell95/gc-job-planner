@@ -57,12 +57,29 @@ export default function useJobRealtimeSync() {
     } catch {
       // Realtime not available — silently skip
     }
+    let unsubTimesheets = null;
+    try {
+      unsubTimesheets = base44.entities.Timesheet.subscribe((event) => {
+        if (!event || !event.type) return;
+        // Invalidate all timesheet queries so both the staff view and the
+        // manager Timesheets tab update instantly when entries are submitted,
+        // approved, rejected, or merged — no manual refresh needed.
+        queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+        queryClient.invalidateQueries({ queryKey: ['staff-timesheets'] });
+        queryClient.invalidateQueries({ queryKey: ['all-timesheets-mgr'] });
+      });
+    } catch {
+      // Realtime not available — silently skip
+    }
     return () => {
       if (typeof unsubscribe === 'function') {
         try { unsubscribe(); } catch {}
       }
       if (typeof unsubLogs === 'function') {
         try { unsubLogs(); } catch {}
+      }
+      if (typeof unsubTimesheets === 'function') {
+        try { unsubTimesheets(); } catch {}
       }
     };
   }, [queryClient]);

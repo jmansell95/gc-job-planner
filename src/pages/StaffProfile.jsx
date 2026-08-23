@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import TimesheetHistory from '@/components/staff/TimesheetHistory';
+import StaffWeeklySignCard from '@/components/timesheets/StaffWeeklySignCard';
 import StaffBookings from '@/components/staff/StaffBookings';
 import ProfileStats from '@/components/staff/ProfileStats';
 import ComplianceWallet from '@/components/staff/ComplianceWallet';
@@ -254,6 +255,7 @@ export default function StaffProfile() {
             : <NoCrewProfileState tab="earnings" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
           {activeTab === 'timesheets' && (staff.id ? (
             <div className="space-y-5">
+              <StaffWeeklySignCard staffId={staff.id} staffName={staff.name} />
               <TimesheetHistory staffId={staff.id} />
               {upcomingAbsences.length > 0 && (
                 <div className="insight-card rounded-2xl p-4 md:p-5">

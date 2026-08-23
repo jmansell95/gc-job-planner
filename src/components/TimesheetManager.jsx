@@ -3,22 +3,18 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Clock, CheckCircle2, XCircle, TrendingUp, Users, Search, ChevronLeft, ChevronRight,
-  CalendarDays, Ruler, FileText, RotateCcw, Calendar, CalendarRange,
+  CalendarDays, Ruler, FileText, RotateCcw, Calendar, CalendarRange, Merge, Loader2,
 } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import WithdrawnAcknowledgementPanel from '@/components/WithdrawnAcknowledgementPanel';
 import { EmptyState, ErrorState, TableSkeleton } from '@/components/StateViews';
 import { computeStaffOvertime, buildRateMap, weekKey, entryMinutes } from '@/utils/overtime';
+import { fmtDur, getWeekSignatures, computeWeekStatus } from '@/utils/timesheetHelpers';
 import WeeklyTimesheetCard from '@/components/timesheets/WeeklyTimesheetCard';
+import PendingReviewQueue from '@/components/timesheets/PendingReviewQueue';
+import WeeklySummaryTable from '@/components/timesheets/WeeklySummaryTable';
 
-const fmtMins = (m) => {
-  const mm = Math.round(Number(m) || 0);
-  const h = Math.floor(mm / 60), r = mm % 60;
-  if (h && r) return `${h}h ${r}m`;
-  if (h) return `${h}h`;
-  return mm > 0 ? `${r}m` : '—';
-};
 const meterageOf = (t) => Number(t?.meterage) || 0;
 
 function StatBox({ icon: Icon, label, value, gradient = 'stat-gradient-slate', sub }) {
@@ -50,6 +46,7 @@ export default function TimesheetManager() {
   const [monthOffset, setMonthOffset] = useState(0);
   const [customStart, setCustomStart] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [customEnd, setCustomEnd] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [bulkMerging, setBulkMerging] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: timesheets = [], isLoading, isError, refetch } = useQuery({
@@ -100,11 +97,10 @@ export default function TimesheetManager() {
         rangeLabel: format(d, 'MMMM yyyy'),
       };
     }
-    // custom
     return { rangeStart: customStart, rangeEnd: customEnd, rangeLabel: `${format(parseISO(customStart), 'dd MMM')} – ${format(parseISO(customEnd), 'dd MMM yyyy')}` };
   }, [rangeMode, weekOffset, monthOffset, customStart, customEnd]);
 
-  // Work timesheets = non-break, non-merged-granular. Keep weekly summaries.
+  // Work timesheets = non-break
   const workTimesheets = timesheets.filter((t) => !t.is_break);
 
   // Overtime breakdowns per staff
@@ -131,7 +127,6 @@ export default function TimesheetManager() {
   const rangeMins = rangeFiltered.filter((t) => t.status !== 'rejected').reduce((s, t) => s + entryMinutes(t), 0);
   const rangeOtMins = rangeFiltered.filter((t) => t.status !== 'rejected').reduce((s, t) => s + (otBreakdowns[t.staff_id]?.[t.id]?.otMins || 0), 0);
   const rangeMeterage = rangeFiltered.filter((t) => t.status === 'approved').reduce((s, t) => s + meterageOf(t), 0);
-  const mergedCount = rangeFiltered.filter((t) => t.is_weekly_summary).length;
 
   // Apply staff, status, and search filters
   const displayFiltered = useMemo(() => {
@@ -194,6 +189,28 @@ export default function TimesheetManager() {
     queryClient.invalidateQueries({ queryKey: ['timesheets'] });
   };
 
+  // Bulk merge all ready weeks
+  const handleMergeAllReady = async () => {
+    // Check which groups are ready to merge (all approved, not yet merged)
+    const readyGroups = [];
+    for (const g of weeklyGroups) {
+      const sigs = await getWeekSignatures(g.weekStart, g.staffId);
+      const status = computeWeekStatus(g.entries, sigs);
+      if (status.readyToMerge) readyGroups.push(g);
+    }
+    if (readyGroups.length === 0) return;
+    if (!confirm(`Merge ${readyGroups.length} ready week(s) into weekly timesheets? This locks them for payroll.`)) return;
+    setBulkMerging(true);
+    for (const g of readyGroups) {
+      try {
+        await base44.functions.invoke('mergeWeeklyTimesheet', { staff_id: g.staffId, week_start: g.weekStart });
+      } catch (e) { /* continue with next */ }
+    }
+    queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+    queryClient.invalidateQueries({ queryKey: ['all-timesheets-mgr'] });
+    setBulkMerging(false);
+  };
+
   const statusConfig = {
     draft: { label: 'Draft', badge: 'bg-slate-100 text-slate-600' },
     submitted: { label: 'Submitted', badge: 'bg-amber-100 text-amber-700' },
@@ -220,7 +237,7 @@ export default function TimesheetManager() {
           </div>
           <p className="text-xs text-slate-500 truncate mt-0.5">{job?.name || '—'} · {t.is_summary ? 'Daily Summary' : t.task_description}</p>
           <div className="flex items-center gap-2 mt-1 text-xs flex-wrap">
-            <span className="font-semibold text-slate-700">{fmtMins(mins)}</span>
+            <span className="font-semibold text-slate-700">{fmtDur(mins)}</span>
             {ot.isOvertime && <span className="text-amber-600 font-medium">OT ×{ot.multiplier}</span>}
             {t.start_time && t.end_time && <span className="text-slate-400">{t.start_time}–{t.end_time}</span>}
           </div>
@@ -242,8 +259,8 @@ export default function TimesheetManager() {
       {/* Stat boxes */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         <StatBox icon={Clock} label="Pending Approval" value={pendingCount} gradient="stat-gradient-amber" />
-        <StatBox icon={CheckCircle2} label="Total Hours" value={fmtMins(rangeMins)} gradient="stat-gradient-emerald" sub="in range" />
-        <StatBox icon={TrendingUp} label="Overtime" value={fmtMins(rangeOtMins)} gradient="stat-gradient-rose" sub="across all crew" />
+        <StatBox icon={CheckCircle2} label="Total Hours" value={fmtDur(rangeMins)} gradient="stat-gradient-emerald" sub="in range" />
+        <StatBox icon={TrendingUp} label="Overtime" value={fmtDur(rangeOtMins)} gradient="stat-gradient-rose" sub="across all crew" />
         <StatBox icon={FileText} label="Approved" value={approvedCount} gradient="stat-gradient-slate" sub="entries" />
         {rangeMeterage > 0 && (
           <StatBox icon={Ruler} label="Meterage" value={`${rangeMeterage}m`} gradient="stat-gradient-violet" sub="approved" />
@@ -267,7 +284,6 @@ export default function TimesheetManager() {
 
       {/* Date navigator + filters */}
       <div className="flex flex-col sm:flex-row gap-2 mb-4 items-stretch sm:items-center">
-        {/* Week navigator */}
         {rangeMode === 'week' && (
           <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1.5">
             <button onClick={() => setWeekOffset((w) => w - 1)} className="p-1 text-slate-400 hover:text-slate-700 rounded transition" title="Previous week">
@@ -287,7 +303,6 @@ export default function TimesheetManager() {
             )}
           </div>
         )}
-        {/* Month navigator */}
         {rangeMode === 'month' && (
           <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1.5">
             <button onClick={() => setMonthOffset((m) => m - 1)} className="p-1 text-slate-400 hover:text-slate-700 rounded transition" title="Previous month">
@@ -307,14 +322,12 @@ export default function TimesheetManager() {
             )}
           </div>
         )}
-        {/* Today label */}
         {rangeMode === 'today' && (
           <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2">
             <Clock className="w-4 h-4 text-emerald-600" />
             <span className="text-sm font-semibold text-slate-700">{rangeLabel}</span>
           </div>
         )}
-        {/* Custom date pickers */}
         {rangeMode === 'custom' && (
           <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1.5">
             <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)}
@@ -324,13 +337,11 @@ export default function TimesheetManager() {
               className="px-2 py-1 text-sm border-0 focus:outline-none focus:ring-0 bg-transparent" />
           </div>
         )}
-        {/* Staff filter */}
         <select value={staffFilter} onChange={(e) => setStaffFilter(e.target.value)}
           className="px-3 py-1.5 rounded-lg text-sm border border-slate-200 bg-white text-slate-600 focus:outline-none focus:border-emerald-600 capitalize">
           <option value="all">All staff</option>
           {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
-        {/* Status filter */}
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
           className="px-3 py-1.5 rounded-lg text-sm border border-slate-200 bg-white text-slate-600 focus:outline-none focus:border-emerald-600 capitalize">
           <option value="all">All statuses</option>
@@ -339,7 +350,6 @@ export default function TimesheetManager() {
           <option value="rejected">Rejected</option>
           <option value="merged">Merged</option>
         </select>
-        {/* Search */}
         <div className="relative flex-1 sm:max-w-xs sm:ml-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search staff, job or task..."
@@ -347,8 +357,8 @@ export default function TimesheetManager() {
         </div>
       </div>
 
-      {/* Bulk approve */}
-      {pendingCount > 0 && (
+      {/* Bulk approve (non-week modes) */}
+      {rangeMode !== 'week' && pendingCount > 0 && (
         <div className="flex flex-wrap items-center gap-2 mb-4">
           <button onClick={handleBulkApprove} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition">
             <CheckCircle2 className="w-3.5 h-3.5" /> Approve all submitted ({pendingCount})
@@ -357,7 +367,7 @@ export default function TimesheetManager() {
         </div>
       )}
 
-      {/* Content — week mode uses WeeklyTimesheetCard, other modes use flat list */}
+      {/* Content */}
       {isLoading ? (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
           <TableSkeleton rows={4} cols={6} />
@@ -367,28 +377,54 @@ export default function TimesheetManager() {
           <ErrorState message="Couldn't load timesheets" onRetry={refetch} />
         </div>
       ) : rangeMode === 'week' ? (
-        weeklyGroups.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-            <EmptyState icon={Users} title="No timesheets this week" message="No submitted or approved timesheets for the selected week and filters. Use the arrows to check other weeks." />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {weeklyGroups.map((g) => {
-              const member = staff.find((s) => s.id === g.staffId);
-              return (
-                <WeeklyTimesheetCard
-                  key={`${g.staffId}|${g.weekStart}`}
-                  staffMember={member}
-                  weekStart={g.weekStart}
-                  dailySummaries={g.entries}
-                  jobs={jobs}
-                  otBreakdowns={otBreakdowns[g.staffId] || {}}
-                  currentUser={currentUser}
-                />
-              );
-            })}
-          </div>
-        )
+        <div className="space-y-4">
+          {/* 1. Pending Review Queue */}
+          <PendingReviewQueue
+            timesheets={rangeFiltered}
+            staff={staff}
+            jobs={jobs}
+            otBreakdowns={otBreakdowns}
+            currentUser={currentUser}
+            weekStart={rangeStart}
+          />
+
+          {/* 2. Consolidated Weekly Summary Table */}
+          {weeklyGroups.length > 0 && (
+            <WeeklySummaryTable
+              weeklyGroups={weeklyGroups}
+              staff={staff}
+              jobs={jobs}
+              otBreakdowns={otBreakdowns}
+              weekStart={rangeStart}
+              onMergeAll={handleMergeAllReady}
+              merging={bulkMerging}
+            />
+          )}
+
+          {/* 3. Per-staff Weekly Cards */}
+          {weeklyGroups.length === 0 ? (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+              <EmptyState icon={Users} title="No timesheets this week" message="No submitted or approved timesheets for the selected week and filters. Use the arrows to check other weeks." />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {weeklyGroups.map((g) => {
+                const member = staff.find((s) => s.id === g.staffId);
+                return (
+                  <WeeklyTimesheetCard
+                    key={`${g.staffId}|${g.weekStart}`}
+                    staffMember={member}
+                    weekStart={g.weekStart}
+                    dailySummaries={g.entries}
+                    jobs={jobs}
+                    otBreakdowns={otBreakdowns[g.staffId] || {}}
+                    currentUser={currentUser}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
       ) : (
         byDateGroups.length === 0 ? (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm">

@@ -1,5 +1,7 @@
 // Weekly timesheet PDF generator — uses jspdf (installed).
 // Renders a clean, payroll-ready weekly timesheet for one staff member.
+// Shows ALL jobs/tasks per day (not just the first entry), with both
+// employee and manager drawn signatures injected into the document.
 
 import { format } from 'date-fns';
 
@@ -13,7 +15,17 @@ const fmtDur = (mins) => {
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-// data: { staffName, staffRole, weekStart, dailyEntries: [{date, dayLabel, jobName, taskDescription, onSiteMins, travelMins, totalMins, isOvertime, otMultiplier, meterage, status}], totals: { totalMins, onSiteMins, travelMins, otMins, meterage } }
+/**
+ * @param {object} data
+ * @param {string} data.staffName
+ * @param {string} [data.staffRole]
+ * @param {string} data.weekStart  ISO Monday date
+ * @param {Array}  data.dailyEntries  Array of { dateStr, dayLabel, rows: [{ jobName, taskDescription, onSiteMins, travelMins, totalMins, isOvertime, otMins, otMultiplier, meterage, status }] }
+ * @param {object} data.totals  { totalMins, onSiteMins, travelMins, otMins, meterage }
+ * @param {string} [data.approvedByName]
+ * @param {string} [data.employeeSignatureUrl]
+ * @param {string} [data.managerSignatureUrl]
+ */
 export async function downloadWeeklyTimesheetPDF(data) {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -49,14 +61,14 @@ export async function downloadWeeklyTimesheetPDF(data) {
 
   // Table header
   const cols = [
-    { label: 'Day', w: 18 },
-    { label: 'Date', w: 18 },
-    { label: 'Job', w: 45 },
-    { label: 'On-site', w: 22 },
-    { label: 'Travel', w: 20 },
-    { label: 'OT', w: 18 },
-    { label: 'Total', w: 22 },
-    { label: 'Meterage', w: 20 },
+    { label: 'Day', w: 16 },
+    { label: 'Date', w: 16 },
+    { label: 'Job / Task', w: 55 },
+    { label: 'On-site', w: 20 },
+    { label: 'Travel', w: 18 },
+    { label: 'OT', w: 16 },
+    { label: 'Total', w: 20 },
+    { label: 'Meterage', w: 18 },
   ];
   const tableW = cols.reduce((s, c) => s + c.w, 0);
   let x = margin;
@@ -71,32 +83,46 @@ export async function downloadWeeklyTimesheetPDF(data) {
   });
   y += 8;
 
-  // Rows
+  // Rows — iterate all entries per day
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   let rowAlt = false;
-  const dailyRows = data.dailyEntries.filter((d) => d.totalMins > 0 || d.status === 'merged');
-  dailyRows.forEach((d) => {
-    if (y > 270) { doc.addPage(); y = margin; }
-    if (rowAlt) { doc.setFillColor(245, 247, 244); doc.rect(margin, y, tableW, 7, 'F'); }
-    rowAlt = !rowAlt;
-    doc.setTextColor(50, 50, 50);
-    x = margin;
-    const cells = [
-      d.dayLabel,
-      d.dateStr,
-      (d.jobName || '—').slice(0, 26),
-      fmtDur(d.onSiteMins),
-      fmtDur(d.travelMins),
-      d.isOvertime ? `${fmtDur(d.otMins)} ×${d.otMultiplier}` : '—',
-      fmtDur(d.totalMins),
-      d.meterage ? `${d.meterage}m` : '—',
-    ];
-    cells.forEach((val, i) => {
-      doc.text(String(val), x + 1.5, y + 5);
-      x += cols[i].w;
+  let dayRowCount = 0;
+
+  data.dailyEntries.forEach((d) => {
+    // d.rows is an array of task rows for this day
+    const rows = d.rows || [];
+    // Only render days that have at least one row with data
+    const hasData = rows.some((r) => r.totalMins > 0 || r.status === 'merged');
+    if (!hasData) return;
+
+    rows.forEach((row, rowIdx) => {
+      if (y > 270) { doc.addPage(); y = margin; rowAlt = false; }
+      if (rowAlt) { doc.setFillColor(245, 247, 244); doc.rect(margin, y, tableW, 7, 'F'); }
+      rowAlt = !rowAlt;
+      doc.setTextColor(50, 50, 50);
+      x = margin;
+      // Show day label + date only on the first row of each day
+      const dayCell = rowIdx === 0 ? d.dayLabel : '';
+      const dateCell = rowIdx === 0 ? d.dateStr : '';
+      const jobTask = (row.jobName || '—').slice(0, 28) + (row.taskDescription ? ` — ${row.taskDescription}` : '').slice(0, 28);
+      const cells = [
+        dayCell,
+        dateCell,
+        jobTask,
+        fmtDur(row.onSiteMins),
+        fmtDur(row.travelMins),
+        row.isOvertime ? `${fmtDur(row.otMins)} ×${row.otMultiplier}` : '—',
+        fmtDur(row.totalMins),
+        row.meterage ? `${row.meterage}m` : '—',
+      ];
+      cells.forEach((val, i) => {
+        doc.text(String(val), x + 1.5, y + 5);
+        x += cols[i].w;
+      });
+      y += 7;
+      dayRowCount++;
     });
-    y += 7;
   });
 
   // Totals row
@@ -131,7 +157,6 @@ export async function downloadWeeklyTimesheetPDF(data) {
       const res = await fetch(url);
       const buf = await res.arrayBuffer();
       const u8 = new Uint8Array(buf);
-      // Detect PNG vs JPEG from magic bytes
       const isPng = u8[0] === 0x89 && u8[1] === 0x50;
       return { data: u8, format: isPng ? 'PNG' : 'JPEG' };
     } catch { return null; }
