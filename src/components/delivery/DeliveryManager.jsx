@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Truck, Plus, X, Package, MapPin, User, Phone, Calendar, FileText, ClipboardList, PoundSterling, Route, ToggleRight, ToggleLeft, AlertTriangle, Boxes, ExternalLink, Weight } from 'lucide-react';
+import { Truck, Plus, X, Package, MapPin, User, Phone, Calendar, FileText, ClipboardList, PoundSterling, Route, ToggleRight, ToggleLeft, AlertTriangle, Boxes, ExternalLink, Weight, FlaskConical } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton, EmptyState } from '@/components/StateViews';
@@ -13,7 +13,9 @@ const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFracti
 const typeOptions = [
   { value: 'site_delivery', label: 'Site Delivery', icon: Truck },
   { value: 'supplier_collection', label: 'Supplier Collection', icon: Package },
-  { value: 'item_handover', label: 'Item Handover', icon: ClipboardList }
+  { value: 'item_handover', label: 'Item Handover', icon: ClipboardList },
+  { value: 'sample_collection', label: 'Sample Collection', icon: FlaskConical },
+  { value: 'sample_delivery', label: 'Sample to Lab', icon: FlaskConical },
 ];
 
 export default function DeliveryManager({ jobId, jobName }) {
@@ -219,7 +221,9 @@ export default function DeliveryManager({ jobId, jobName }) {
   const typeBadge = {
     site_delivery: 'bg-emerald-100 text-emerald-700',
     supplier_collection: 'bg-blue-100 text-blue-700',
-    item_handover: 'bg-purple-100 text-purple-700'
+    item_handover: 'bg-purple-100 text-purple-700',
+    sample_collection: 'bg-teal-100 text-teal-700',
+    sample_delivery: 'bg-cyan-100 text-cyan-700',
   };
 
   const statusBadge = {

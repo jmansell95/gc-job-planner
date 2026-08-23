@@ -139,7 +139,7 @@ export default function SampleManager({ job, allStaff, suppliers }) {
           {stats.needsCollection > 0 && (
             <button onClick={() => setShowScheduleModal(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition text-xs font-medium">
-              <Truck className="w-3.5 h-3.5" /> Schedule Collection ({stats.needsCollection})
+              <Truck className="w-3.5 h-3.5" /> Schedule Run ({stats.needsCollection})
             </button>
           )}
           <button onClick={() => { setEditing(null); setShowModal(true); }}

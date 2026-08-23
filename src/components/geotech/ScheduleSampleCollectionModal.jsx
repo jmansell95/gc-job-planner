@@ -1,20 +1,28 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { FlaskConical, Truck, X, CheckCircle2, Loader2, MapPin, Package, User, Calendar } from 'lucide-react';
+import { FlaskConical, Truck, X, CheckCircle2, Loader2, MapPin, Package, User, Calendar, Link2, ArrowRight } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 /**
- * Modal for scheduling a sample collection or sample delivery task.
- * Creates a DeliveryLog with linked sample_ids so the driver sees a sample
- * checklist in their sign-off modal and must tick "all samples accounted for".
+ * Modal for scheduling a sample run — collecting samples from site and
+ * delivering them to a laboratory.
+ *
+ * Auto-chains TWO linked DeliveryLog tasks so both legs are tracked
+ * separately but connected:
+ *   1. sample_collection  — driver picks up samples from site (→ depot/transfer)
+ *   2. sample_delivery     — driver delivers samples to the lab (child, parent_delivery_id set)
+ *
+ * The sample_ids checklist is carried across both legs, so the driver must
+ * tick "all samples accounted" at collection AND again at delivery sign-off.
  *
  * Props:
  *  - job: the Job record (used for pickup address + job_id)
  *  - samples: all Sample records for this job
  *  - allStaff: active staff list (for driver selection)
  *  - suppliers: supplier list (labs)
+ *  - scheduledSampleIds: Set of sample_ids already scheduled (to dim them)
  *  - onClose: () => void
  */
 export default function ScheduleSampleCollectionModal({ job, samples, allStaff, suppliers, scheduledSampleIds, onClose }) {
@@ -23,19 +31,19 @@ export default function ScheduleSampleCollectionModal({ job, samples, allStaff, 
   const [saving, setSaving] = useState(false);
 
   // Only samples still on site (collected status) and not already scheduled
-  // for collection are eligible by default. Already-scheduled samples can still
-  // be toggled on manually if the admin wants to re-schedule.
+  // for collection are eligible by default.
   const eligibleSamples = useMemo(
     () => samples.filter(s => s.status === 'collected' && !scheduledSampleIds?.has(s.sample_id)),
     [samples, scheduledSampleIds]
   );
 
   const [selectedIds, setSelectedIds] = useState(() => eligibleSamples.map(s => s.id));
-  const [deliveryType, setDeliveryType] = useState('sample_collection');
   const [driverId, setDriverId] = useState('');
-  const [scheduledDate, setScheduledDate] = useState(new Date().toISOString().slice(0, 10));
+  const [collectionDate, setCollectionDate] = useState(new Date().toISOString().slice(0, 10));
+  const [deliveryDate, setDeliveryDate] = useState(new Date().toISOString().slice(0, 10));
   const [labId, setLabId] = useState('');
   const [pickupAddress, setPickupAddress] = useState(job?.location || '');
+  const [transferPoint, setTransferPoint] = useState('Ground Control Depot');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
@@ -58,7 +66,7 @@ export default function ScheduleSampleCollectionModal({ job, samples, allStaff, 
     }
   };
 
-  const canSubmit = selectedIds.length > 0 && driverId && scheduledDate && (deliveryType === 'sample_collection' ? pickupAddress : deliveryAddress);
+  const canSubmit = selectedIds.length > 0 && driverId && collectionDate && deliveryDate && pickupAddress && deliveryAddress;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -66,35 +74,60 @@ export default function ScheduleSampleCollectionModal({ job, samples, allStaff, 
     try {
       const driver = drivers.find(s => s.id === driverId);
       const sampleIdList = selectedIds.join(',');
-      // Build a human-readable items list from the selected samples
       const selectedSamples = samples.filter(s => selectedIds.includes(s.id));
       const itemsList = selectedSamples.map(s => `${s.sample_id}${s.borehole_ref ? ' (' + s.borehole_ref + ')' : ''}`).join(', ');
+      const sharedItems = `Samples: ${itemsList}`;
 
+      // Leg 1 — collect samples from site (→ transfer point / depot)
+      const collectionTask = await base44.entities.DeliveryLog.create({
+        job_id: job.id,
+        job_name: job.name || '',
+        driver_staff_id: driverId,
+        driver_staff_name: driver?.name || '',
+        delivery_type: 'sample_collection',
+        status: 'pending',
+        items: sharedItems,
+        sample_ids: sampleIdList,
+        samples_accounted: false,
+        pickup_address: pickupAddress || '',
+        delivery_address: transferPoint || 'Ground Control Depot',
+        contact_name: '',
+        contact_phone: '',
+        scheduled_date: collectionDate,
+        notes: notes || '',
+        chargeable: false,
+      });
+
+      // Leg 2 — deliver samples to the lab (child, linked back to collection)
       await base44.entities.DeliveryLog.create({
         job_id: job.id,
         job_name: job.name || '',
         driver_staff_id: driverId,
         driver_staff_name: driver?.name || '',
-        delivery_type: deliveryType,
+        delivery_type: 'sample_delivery',
         status: 'pending',
-        items: `Samples: ${itemsList}`,
+        items: sharedItems,
         sample_ids: sampleIdList,
         samples_accounted: false,
-        pickup_address: pickupAddress || '',
+        pickup_address: transferPoint || 'Ground Control Depot',
         delivery_address: deliveryAddress || '',
         contact_name: contactName || '',
         contact_phone: contactPhone || '',
-        scheduled_date: scheduledDate,
+        scheduled_date: deliveryDate,
         notes: notes || '',
         chargeable: false,
+        parent_delivery_id: collectionTask.id,
+        handover_from_staff_name: driver?.name || '',
       });
 
       toast({
         title: 'Sample run scheduled',
-        description: `${selectedIds.length} sample${selectedIds.length === 1 ? '' : 's'} assigned to ${driver?.name || 'driver'}. They'll see a checklist on their delivery dashboard.`,
+        description: `${selectedIds.length} sample${selectedIds.length === 1 ? '' : 's'} — collect ${formatShort(collectionDate)} → deliver to lab ${formatShort(deliveryDate)}. Both legs assigned to ${driver?.name || 'driver'}.`,
       });
       queryClient.invalidateQueries({ queryKey: ['sample-deliveries-for-job', job.id] });
       queryClient.invalidateQueries({ queryKey: ['samples-for-job', job.id] });
+      queryClient.invalidateQueries({ queryKey: ['job-deliveries', job.id] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-deliveries'] });
       onClose();
     } catch (e) {
       toast({ title: 'Error scheduling sample run', description: e.message, variant: 'destructive' });
@@ -109,8 +142,11 @@ export default function ScheduleSampleCollectionModal({ job, samples, allStaff, 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FlaskConical className="w-5 h-5 text-teal-600" />
-            Schedule Sample Collection
+            Schedule Sample Run
           </DialogTitle>
+          <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
+            <Link2 className="w-3.5 h-3.5" /> Creates a linked collection <ArrowRight className="w-3 h-3" /> delivery — both legs tracked on the driver's day plan.
+          </p>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -128,9 +164,6 @@ export default function ScheduleSampleCollectionModal({ job, samples, allStaff, 
                   Samples to include ({selectedIds.length} selected)
                 </label>
                 <div className="max-h-48 overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100">
-                  {eligibleSamples.length === 0 && (
-                    <p className="px-3 py-3 text-xs text-slate-400">No uncollected samples — all collected samples are already scheduled.</p>
-                  )}
                   {eligibleSamples.map(s => (
                     <button key={s.id} type="button" onClick={() => toggleSample(s.id)}
                       className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition ${selectedIds.includes(s.id) ? 'bg-teal-50' : 'bg-white hover:bg-slate-50'}`}>
@@ -160,93 +193,85 @@ export default function ScheduleSampleCollectionModal({ job, samples, allStaff, 
                 )}
               </div>
 
-              {/* Run type */}
+              {/* Driver */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Run type</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => setDeliveryType('sample_collection')}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 transition text-left ${deliveryType === 'sample_collection' ? 'border-teal-500 bg-teal-50' : 'border-slate-200 hover:border-teal-300'}`}>
-                    <Package className="w-4 h-4 text-teal-600" />
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">Collect from site</p>
-                      <p className="text-[10px] text-slate-500">Driver picks up samples</p>
-                    </div>
-                  </button>
-                  <button type="button" onClick={() => setDeliveryType('sample_delivery')}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 transition text-left ${deliveryType === 'sample_delivery' ? 'border-cyan-500 bg-cyan-50' : 'border-slate-200 hover:border-cyan-300'}`}>
-                    <Truck className="w-4 h-4 text-cyan-600" />
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">Deliver to lab</p>
-                      <p className="text-[10px] text-slate-500">Driver drops at laboratory</p>
-                    </div>
-                  </button>
-                </div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <User className="w-3 h-3 inline mr-1" /> Driver (both legs)
+                </label>
+                <select value={driverId} onChange={e => setDriverId(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-teal-600">
+                  <option value="">Select driver…</option>
+                  {drivers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
               </div>
 
-              {/* Driver + date */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    <User className="w-3 h-3 inline mr-1" /> Driver
-                  </label>
-                  <select value={driverId} onChange={e => setDriverId(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-teal-600">
-                    <option value="">Select driver…</option>
-                    {drivers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
+              {/* Two-leg visual */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Leg 1 — Collection */}
+                <div className="rounded-xl border-2 border-teal-200 bg-teal-50/40 p-3 space-y-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-teal-600 text-white text-[10px] font-bold flex items-center justify-center">1</span>
+                    <Package className="w-3.5 h-3.5 text-teal-700" />
+                    <span className="text-xs font-bold text-teal-800 uppercase tracking-wide">Collect from site</span>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Date</label>
+                    <input type="date" value={collectionDate} onChange={e => setCollectionDate(e.target.value)}
+                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-teal-600" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 mb-0.5"><MapPin className="w-2.5 h-2.5 inline mr-0.5" />Pickup (site)</label>
+                    <input value={pickupAddress} onChange={e => setPickupAddress(e.target.value)}
+                      placeholder="Site address"
+                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-teal-600" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Drop to (transfer point)</label>
+                    <input value={transferPoint} onChange={e => setTransferPoint(e.target.value)}
+                      placeholder="Ground Control Depot"
+                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-teal-600" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    <Calendar className="w-3 h-3 inline mr-1" /> Date
-                  </label>
-                  <input type="date" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-teal-600" />
-                </div>
-              </div>
 
-              {/* Lab selection (for sample_delivery) */}
-              {deliveryType === 'sample_delivery' && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    <FlaskConical className="w-3 h-3 inline mr-1" /> Laboratory
-                  </label>
-                  <select value={labId} onChange={e => handleLabChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-teal-600">
-                    <option value="">Select lab…</option>
-                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </div>
-              )}
-
-              {/* Addresses */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    <Package className="w-3 h-3 inline mr-1" /> Pickup address
-                  </label>
-                  <input value={pickupAddress} onChange={e => setPickupAddress(e.target.value)}
-                    placeholder="Site address"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-teal-600" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    <MapPin className="w-3 h-3 inline mr-1" /> Delivery address
-                  </label>
-                  <input value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)}
-                    placeholder={deliveryType === 'sample_delivery' ? 'Lab address' : 'Depot / transfer point'}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-teal-600" />
+                {/* Leg 2 — Delivery */}
+                <div className="rounded-xl border-2 border-cyan-200 bg-cyan-50/40 p-3 space-y-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-cyan-600 text-white text-[10px] font-bold flex items-center justify-center">2</span>
+                    <Truck className="w-3.5 h-3.5 text-cyan-700" />
+                    <span className="text-xs font-bold text-cyan-800 uppercase tracking-wide">Deliver to lab</span>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Date</label>
+                    <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)}
+                      min={collectionDate}
+                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-cyan-600" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 mb-0.5"><FlaskConical className="w-2.5 h-2.5 inline mr-0.5" />Laboratory</label>
+                    <select value={labId} onChange={e => handleLabChange(e.target.value)}
+                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-cyan-600">
+                      <option value="">Select lab…</option>
+                      {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 mb-0.5"><MapPin className="w-2.5 h-2.5 inline mr-0.5" />Lab address</label>
+                    <input value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)}
+                      placeholder="Lab address"
+                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-cyan-600" />
+                  </div>
                 </div>
               </div>
 
               {/* Contact */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Contact name</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Lab contact name</label>
                   <input value={contactName} onChange={e => setContactName(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-teal-600" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Contact phone</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Lab contact phone</label>
                   <input value={contactPhone} onChange={e => setContactPhone(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-teal-600" />
                 </div>
@@ -267,7 +292,7 @@ export default function ScheduleSampleCollectionModal({ job, samples, allStaff, 
                 <button type="button" onClick={handleSubmit} disabled={!canSubmit || saving}
                   className="flex items-center gap-2 px-4 py-2 bg-teal-700 text-white rounded-lg text-sm font-medium hover:bg-teal-800 disabled:opacity-50">
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                  Schedule Run
+                  Schedule Sample Run
                 </button>
               </div>
             </>
@@ -276,4 +301,9 @@ export default function ScheduleSampleCollectionModal({ job, samples, allStaff, 
       </DialogContent>
     </Dialog>
   );
+}
+
+function formatShort(d) {
+  const date = new Date(d + 'T00:00:00');
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
 }

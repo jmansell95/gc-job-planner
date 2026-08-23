@@ -167,6 +167,14 @@ export default function DeliveryDetailDrawer({ delivery, jobs, staff, onClose })
             )}
           </div>
 
+          {/* Linked sample run banner */}
+          {delivery.parent_delivery_id && (
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-cyan-50 border border-cyan-200">
+              <Link2 className="w-4 h-4 text-cyan-700 flex-shrink-0" />
+              <span className="text-xs font-semibold text-cyan-800">Part of a linked sample run — collection and delivery tracked together.</span>
+            </div>
+          )}
+
           {/* Warehouse pick list — always available */}
           <div className="flex items-center gap-2">
             <PrintPickList

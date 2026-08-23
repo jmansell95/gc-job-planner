@@ -1,7 +1,7 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Truck, Package, ClipboardList, Calendar, MapPin, Trash2, PoundSterling, Weight, User, Navigation } from 'lucide-react';
+import { Truck, Package, ClipboardList, Calendar, MapPin, Trash2, PoundSterling, Weight, User, Navigation, FlaskConical, Link2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import PrintPickList from './PrintPickList';
@@ -9,7 +9,9 @@ import PrintPickList from './PrintPickList';
 const typeBadge = {
   site_delivery: { label: 'Delivery', cls: 'bg-emerald-100 text-emerald-700', icon: Truck },
   supplier_collection: { label: 'Collection', cls: 'bg-blue-100 text-blue-700', icon: Package },
-  item_handover: { label: 'Handover', cls: 'bg-purple-100 text-purple-700', icon: ClipboardList }
+  item_handover: { label: 'Handover', cls: 'bg-purple-100 text-purple-700', icon: ClipboardList },
+  sample_collection: { label: 'Sample Collect', cls: 'bg-teal-100 text-teal-700', icon: FlaskConical },
+  sample_delivery: { label: 'Sample to Lab', cls: 'bg-cyan-100 text-cyan-700', icon: FlaskConical },
 };
 
 const statusBadge = {
@@ -56,6 +58,11 @@ export default function DeliveryList({ deliveries = [], jobId, canSeeCosts }) {
               <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${tcfg.cls}`}>{tcfg.label}</span>
                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${statusBadge[d.status] || statusBadge.pending}`}>{d.status}</span>
+                {d.parent_delivery_id && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200">
+                    <Link2 className="w-2.5 h-2.5" /> Linked run
+                  </span>
+                )}
               </div>
               <p className="text-sm font-semibold text-slate-900 truncate">{d.items || 'No items listed'}</p>
               <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-400">
