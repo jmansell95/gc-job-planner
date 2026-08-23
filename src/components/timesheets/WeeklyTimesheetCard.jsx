@@ -130,7 +130,7 @@ export default function WeeklyTimesheetCard({ staffMember, weekStart, dailySumma
 
     await downloadWeeklyTimesheetPDF({
       staffName: staffMember?.name || 'Staff',
-      staffRole: staffMember?.job_role,
+      staffRole: staffMember?.job_title,
       weekStart,
       dailyEntries,
       totals: { totalMins, onSiteMins, travelMins, otMins, meterage },
