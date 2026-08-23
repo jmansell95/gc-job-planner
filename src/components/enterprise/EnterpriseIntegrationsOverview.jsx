@@ -44,6 +44,14 @@ export default function EnterpriseIntegrationsOverview() {
     }, '-created_date', 50),
   });
 
+  // Asset Panda stores its credentials in a dedicated entity (not AppSetting),
+  // so fetch it separately to determine its connection status.
+  const { data: pandaConfigs = [] } = useQuery({
+    queryKey: ['asset-panda-config'],
+    queryFn: () => base44.entities.AssetPandaConfig.filter({ key: 'global' }, '-created_date', 1),
+  });
+  const pandaConfig = pandaConfigs[0];
+
   const configMap = useMemo(() => {
     const m = {};
     for (const s of allSettings) m[s.key] = s.value || {};
@@ -51,6 +59,10 @@ export default function EnterpriseIntegrationsOverview() {
   }, [allSettings]);
 
   const isConnected = (integ) => {
+    // Asset Panda credentials live in a dedicated entity — check email/api_token.
+    if (integ.id === 'asset-panda') {
+      return !!(pandaConfig && (pandaConfig.email || pandaConfig.api_token));
+    }
     const cfg = configMap[integ.settingKey];
     if (!cfg) return false;
     return !!(cfg[integ.connectedField]);
