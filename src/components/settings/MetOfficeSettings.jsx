@@ -5,6 +5,7 @@ import {
   Cloud, Loader2, Check, AlertTriangle, RefreshCw, Link2, Download, Globe,
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
+import WeatherThresholdsSettings from '@/components/settings/WeatherThresholdsSettings';
 import { useToast } from '@/components/ui/use-toast';
 
 const DEFAULT_CONFIG = {
@@ -69,6 +70,8 @@ export default function MetOfficeSettings() {
         title="Open-Meteo Weather API"
         description="Free, no-API-key weather data from Open-Meteo — pulls daily forecasts for all active job sites across every division. Data is sourced from multiple NWP models (ECMWF, GFS, ICON) for high accuracy."
       />
+
+      <WeatherThresholdsSettings />
 
       {/* Connection status — always connected (free, no key) */}
       <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">

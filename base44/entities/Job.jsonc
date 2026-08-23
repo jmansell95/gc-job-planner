@@ -42,6 +42,26 @@
       "type": "string",
       "description": "what3words address for the primary site location (e.g. 'filled.count.soap'). A 3-word address separated by dots that pinpoints a 3m \u00d7 3m square. Used heavily by field crews for precise site finding \u2014 shown on job cards and the job detail hero."
     },
+    "weather_temp_min": {
+      "type": "number",
+      "description": "Per-job override for the minimum safe working temperature (\u00b0C). When blank, the global default from Settings \u2192 Weather Thresholds applies. The job detail weather card flags 'do not work' when the live temperature drops below this."
+    },
+    "weather_temp_max": {
+      "type": "number",
+      "description": "Per-job override for the maximum safe working temperature (\u00b0C). When blank, the global default applies. The job detail weather card flags 'do not work' when the live temperature exceeds this."
+    },
+    "weather_wind_max_mph": {
+      "type": "number",
+      "description": "Per-job override for the maximum safe wind gust speed (mph). When blank, the global default applies. The job detail weather card flags 'do not work' when live gusts exceed this."
+    },
+    "weather_rain_max_mm": {
+      "type": "number",
+      "description": "Per-job override for the maximum safe rainfall (mm). When blank, the global default applies. The job detail weather card flags 'do not work' when live precipitation exceeds this."
+    },
+    "weather_lightning_block": {
+      "type": "boolean",
+      "description": "Per-job override for whether thunderstorms block work. When blank, the global default applies. When true, any thunderstorm (weather code \u2265 95) flags 'do not work' due to lightning risk."
+    },
     "sites": {
       "type": "array",
       "items": {

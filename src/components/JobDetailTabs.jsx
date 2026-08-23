@@ -28,6 +28,7 @@ import GeotechDataTab from '@/components/geotech/GeotechDataTab';
 import TabStatRibbon from '@/components/TabStatRibbon';
 import JobSiteManager from '@/components/jobs/JobSiteManager';
 import JobFinancialsTab from '@/components/afp/JobFinancialsTab';
+import WeatherWorkSafeCard from '@/components/WeatherWorkSafeCard';
 
 /**
  * JobDetailTabs — consolidated, progressive-disclosure tab structure.
@@ -64,9 +65,9 @@ export default function JobDetailTabs({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      {/* Consolidated tab bar — 6 sections, scrollable on mobile */}
-      <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/70 shadow-sm p-1.5 mb-4 sticky top-14 z-30">
-        <TabsList className="flex w-full flex-nowrap overflow-x-auto no-scrollbar h-auto p-0 gap-1 bg-transparent">
+      {/* Consolidated tab bar — 6 sections, horizontally scrollable on mobile with edge fade */}
+      <div className="relative bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/70 shadow-sm p-1.5 mb-4 sticky top-14 z-30">
+        <TabsList className="flex w-full flex-nowrap overflow-x-auto no-scrollbar h-auto p-0 gap-1 bg-transparent justify-start">
           <TabsTrigger value="overview" className={triggerClass}><LayoutGrid className="w-4 h-4 shrink-0" />Overview</TabsTrigger>
           <TabsTrigger value="schedule" className={triggerClass}><CalendarDays className="w-4 h-4 shrink-0" />Schedule &amp; Crew</TabsTrigger>
           <TabsTrigger value="activity" className={triggerClass}><Activity className="w-4 h-4 shrink-0" />Site Activity</TabsTrigger>
@@ -74,6 +75,8 @@ export default function JobDetailTabs({
           {canSeeCosts && <TabsTrigger value="financials" className={triggerClass}><PoundSterling className="w-4 h-4 shrink-0" />Financials</TabsTrigger>}
           <TabsTrigger value="documents" className={triggerClass}><FolderOpen className="w-4 h-4 shrink-0" />Documents</TabsTrigger>
         </TabsList>
+        {/* Edge fade — visual cue that more tabs scroll into view */}
+        <div className="pointer-events-none absolute right-1 top-1 bottom-1 w-8 bg-gradient-to-l from-white/90 to-transparent rounded-r-2xl" />
       </div>
 
       {/* ── Overview ── */}
@@ -113,20 +116,25 @@ export default function JobDetailTabs({
             <JobDependencyManager job={job} />
             <PredictiveHazardAlerts job={job} />
             {(job.site_lat != null && job.site_lng != null) && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <DrillingWeatherWidget
-                  lat={job.site_lat}
-                  lng={job.site_lng}
-                  locationName={job.location}
-                  compact={isDrillingJob ? false : true}
-                  rigType={job.drilling_method === 'cp' ? 'cp' : job.drilling_method === 'rotary' ? 'rotary' : undefined}
-                />
-                <FloodRiskWidget
-                  lat={job.site_lat}
-                  lng={job.site_lng}
-                  locationName={job.location}
-                />
-              </div>
+              <>
+                <WeatherWorkSafeCard job={job} />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {isDrillingJob && (
+                    <DrillingWeatherWidget
+                      lat={job.site_lat}
+                      lng={job.site_lng}
+                      locationName={job.location}
+                      compact={false}
+                      rigType={job.drilling_method === 'cp' ? 'cp' : job.drilling_method === 'rotary' ? 'rotary' : undefined}
+                    />
+                  )}
+                  <FloodRiskWidget
+                    lat={job.site_lat}
+                    lng={job.site_lng}
+                    locationName={job.location}
+                  />
+                </div>
+              </>
             )}
           </>
         ) : (

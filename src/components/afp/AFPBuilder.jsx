@@ -5,7 +5,8 @@ import {
   FileText, Calendar, RefreshCw, Send, ArrowRight, CheckCircle2,
   Plus, Loader2, Clock, Receipt,
   MessageSquare, X, FileBarChart,
-  TrendingUp, Zap, CheckSquare, Square, Trash2,
+  TrendingUp, Zap, CheckSquare, Square, Trash2, Search,
+  ChevronDown, ChevronRight,
 } from 'lucide-react';
 import CreateFirstAFPModal from './CreateFirstAFPModal';
 import AFPDisputeRow from './AFPDisputeRow';
@@ -69,6 +70,9 @@ export default function AFPBuilder({ job }) {
   const [showAddManual, setShowAddManual] = useState(false);
   const [manualItem, setManualItem] = useState({ item: '', unit: 'sum', qty: 1, rate: 0, category: 'other' });
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [groupBy, setGroupBy] = useState('category');
+  const [collapsedCats, setCollapsedCats] = useState(new Set());
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [showPeriodEditor, setShowPeriodEditor] = useState(false);
   const [periodEndDate, setPeriodEndDate] = useState('');
@@ -90,11 +94,28 @@ export default function AFPBuilder({ job }) {
     enabled: !!selectedAfp?.id,
   });
 
-  // Filter by category (display only — totals always use all items)
+  // Filter by category + search (display only — totals always use all items)
   const filteredItems = useMemo(() => {
-    if (categoryFilter === 'all') return lineItems;
-    return lineItems.filter(li => li.category === categoryFilter);
-  }, [lineItems, categoryFilter]);
+    let result = lineItems;
+    if (categoryFilter !== 'all') result = result.filter(li => li.category === categoryFilter);
+    if (search.trim()) {
+      const q = search.toLowerCase().trim();
+      result = result.filter(li => String(li.item || '').toLowerCase().includes(q));
+    }
+    return result;
+  }, [lineItems, categoryFilter, search]);
+
+  // Category-grouped items (collapsible sections with subtotals)
+  const categoryGroupedItems = useMemo(() => {
+    const groups = {};
+    for (const li of filteredItems) {
+      const cat = li.category || 'other';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(li);
+    }
+    return CATEGORIES.filter(c => c.id !== 'all' && groups[c.id])
+      .map(c => ({ id: c.id, label: c.label, items: groups[c.id] }));
+  }, [filteredItems]);
 
   // Group filtered items by time bucket
   const groupedItems = useMemo(() => {
@@ -587,19 +608,45 @@ export default function AFPBuilder({ job }) {
           })}
         </div>
 
-        {/* Granularity + Add Line */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
-            {['day', 'week', 'month'].map(g => (
-              <button
-                key={g}
-                onClick={() => setGranularity(g)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition capitalize ${granularity === g ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}
-              >
-                {g}
-              </button>
-            ))}
+        {/* Search + Group-by + Add Line */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[140px]">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search line items…"
+              className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#2E5A1A]"
+            />
           </div>
+          <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
+            <button
+              onClick={() => setGroupBy('category')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${groupBy === 'category' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}
+            >
+              By Category
+            </button>
+            <button
+              onClick={() => setGroupBy('time')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${groupBy === 'time' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}
+            >
+              By Time
+            </button>
+          </div>
+          {groupBy === 'time' && (
+            <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
+              {['day', 'week', 'month'].map(g => (
+                <button
+                  key={g}
+                  onClick={() => setGranularity(g)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition capitalize ${granularity === g ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+          )}
           <button
             onClick={() => setShowAddManual(!showAddManual)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-50 transition active:scale-95"
@@ -770,7 +817,64 @@ export default function AFPBuilder({ job }) {
         </div>
       )}
 
-      {/* ── Line Items — Mobile card view ── */}
+      {/* ── Category-grouped view (collapsible sections with subtotals) ── */}
+      {groupBy === 'category' && (
+        <div className="space-y-2.5">
+          {categoryGroupedItems.length === 0 ? (
+            <div className="insight-card rounded-2xl p-6 text-center">
+              <p className="text-sm text-slate-400">{search ? 'No items match your search' : 'No items in this category'}</p>
+            </div>
+          ) : (
+            categoryGroupedItems.map(cat => {
+              const catTotal = cat.items.reduce((s, li) => s + (li.agreed_amount != null ? Number(li.agreed_amount) : (li.amount || 0)), 0);
+              const isCollapsed = collapsedCats.has(cat.id);
+              const allCatSelected = cat.items.every(li => selectedItems.has(li.id));
+              return (
+                <div key={cat.id} className="insight-card rounded-2xl overflow-hidden">
+                  <div className="px-3 py-2.5 bg-slate-100/80 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {canSelect && (
+                        <button onClick={() => toggleBucketSelection(cat.items)} className="flex-shrink-0 active:scale-95 transition">
+                          {allCatSelected ? <CheckSquare className="w-4 h-4 text-[#2E5A1A]" /> : <Square className="w-4 h-4 text-slate-300" />}
+                        </button>
+                      )}
+                      <button onClick={() => setCollapsedCats(prev => { const n = new Set(prev); n.has(cat.id) ? n.delete(cat.id) : n.add(cat.id); return n; })} className="flex items-center gap-1.5 active:scale-95 transition">
+                        {isCollapsed ? <ChevronRight className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                        <span className="font-bold text-slate-700 text-xs uppercase tracking-wide">{cat.label}</span>
+                        <span className="text-[10px] text-slate-400">({cat.items.length})</span>
+                      </button>
+                    </div>
+                    <span className="font-bold text-slate-700 text-xs tabular-nums">{fmt(catTotal)}</span>
+                  </div>
+                  {!isCollapsed && (
+                    <div className="divide-y divide-slate-50">
+                      {cat.items.map(li => (
+                        <AFPDisputeRow
+                          key={li.id}
+                          item={li}
+                          mobile
+                          canEdit={selectedAfp.status === 'draft'}
+                          canDispute={selectedAfp.status === 'submitted'}
+                          canSelect={canSelect}
+                          selected={selectedItems.has(li.id)}
+                          onSelect={() => toggleItemSelection(li.id)}
+                          expanded={expandedDisputes.has(li.id)}
+                          onToggleDispute={() => toggleDispute(li.id)}
+                          onUpdate={(updates) => handleLineItemUpdate(li.id, updates)}
+                          onDelete={() => handleDeleteItem(li.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* ── Line Items — Mobile card view (time-grouped) ── */}
+      {groupBy === 'time' && (
       <div className="sm:hidden space-y-3">
         {groupedItems.length === 0 ? (
           <div className="insight-card rounded-2xl p-6 text-center">
@@ -821,7 +925,10 @@ export default function AFPBuilder({ job }) {
         )}
       </div>
 
+      )}
+
       {/* ── Line Items Table (grouped by time bucket) — Desktop only ── */}
+      {groupBy === 'time' && (
       <div className="insight-card rounded-2xl overflow-hidden hidden sm:block">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -897,6 +1004,7 @@ export default function AFPBuilder({ job }) {
           </table>
         </div>
       </div>
+      )}
 
       {/* Spacer for sticky bar — increased to clear sticky bar + safe area */}
       <div className="h-28" />
