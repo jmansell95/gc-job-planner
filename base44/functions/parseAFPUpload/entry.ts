@@ -106,7 +106,14 @@ export default async function(req: Request): Promise<Response> {
             if (row[c2] != null && row[c2] !== '') { valCell = row[c2]; break; }
           }
           if (l.includes('project name') && valCell) details.project_name = String(valCell).trim();
-          else if ((l.includes('gcl') || l.includes('job no')) && valCell) details.gc_job_number = String(valCell).trim();
+          else if ((l.includes('gcl') || l.includes('job no')) && valCell) {
+            // The job number is often in the row BELOW the label (not the next cell).
+            // Only accept the look-ahead value if it doesn't look like another label.
+            const vc = String(valCell).trim();
+            if (!vc.includes(':') && !vc.toLowerCase().includes('project') && !vc.toLowerCase().includes('works')) {
+              details.gc_job_number = vc;
+            }
+          }
           else if (l === 'client' && valCell) details.client = String(valCell).trim();
           else if ((l.includes('order no') || l.includes('purchase order')) && valCell) details.client_purchase_order = String(valCell).trim();
           else if (l.includes('contact address') && valCell) details.contact_address = String(valCell).trim();
@@ -115,6 +122,14 @@ export default async function(req: Request): Promise<Response> {
           else if (l.includes('date') && !l.includes('payment') && valCell) details.date = toDateStr(valCell);
         }
         if (row[0] && /^PRJ-/i.test(String(row[0]).trim())) details.gc_job_number = String(row[0]).trim();
+      }
+      // Fallback: scan for a GCL/I-prefixed job number in col 0 (e.g. "I260219")
+      if (!details.gc_job_number || details.gc_job_number.includes(':')) {
+        for (const row of rows) {
+          if (!row || !row[0]) continue;
+          const v = String(row[0]).trim();
+          if (/^[A-Z]\d{4,}/i.test(v) || /^I\d+/i.test(v)) { details.gc_job_number = v; break; }
+        }
       }
       preview.contract_details = details;
     }
