@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { X, Upload, FileSpreadsheet, Loader2, CheckCircle2, AlertCircle, FileText } from 'lucide-react';
+import { X, Upload, FileSpreadsheet, Loader2, CheckCircle2, AlertCircle, FileText, Layers } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
@@ -54,9 +54,10 @@ export default function AFPUploadModal({ job, onClose }) {
         source_file_name: file?.name || '',
       });
       const data = res.data || res;
+      const afpsCreated = data.afps_created || 1;
       toast({
-        title: 'AFP Imported',
-        description: `${data.line_item_count || 0} line items, ${data.variation_count || 0} variations, £${Number(data.total_claimed || 0).toLocaleString()} total claimed.`,
+        title: afpsCreated > 1 ? `${afpsCreated} AFPs Imported` : 'AFP Imported',
+        description: `${data.total_line_items || data.line_item_count || 0} line items across ${afpsCreated} AFP${afpsCreated > 1 ? 's' : ''}, ${data.variation_count || 0} variations, £${Number(data.total_claimed || 0).toLocaleString()} total claimed.`,
       });
       queryClient.invalidateQueries({ queryKey: ['afp', job.id] });
       queryClient.invalidateQueries({ queryKey: ['cvr-portfolio'] });

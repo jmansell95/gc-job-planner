@@ -51,9 +51,33 @@ export default async function(req: Request): Promise<Response> {
     // Auto-create next AFP if period_end_date is set
     let nextAfp = null;
     if (afp.period_end_date) {
-      const nextStart = new Date(afp.period_end_date);
-      nextStart.setDate(nextStart.getDate() + 1);
-      const nextStartStr = nextStart.toISOString().slice(0, 10);
+      // Default: day after the submitted AFP's period end
+      const defaultStart = new Date(afp.period_end_date);
+      defaultStart.setDate(defaultStart.getDate() + 1);
+      let nextStartStr = defaultStart.toISOString().slice(0, 10);
+
+      // PRD: set the new AFP start date to the last date items were recorded.
+      // Query field data for the job and find the most recent date AFTER the
+      // current AFP's period end — the new AFP starts from where the data is.
+      try {
+        const periodEnd = afp.period_end_date;
+        const [logs, timesheets, deliveries, subcons, costs] = await Promise.all([
+          base44.entities.InvestigationLog.filter({ job_id: afp.job_id }, '-date', 100),
+          base44.entities.Timesheet.filter({ job_id: afp.job_id }, '-date', 100),
+          base44.entities.DeliveryLog.filter({ job_id: afp.job_id }, '-scheduled_date', 100),
+          base44.entities.SubcontractorLog.filter({ job_id: afp.job_id }, '-date', 100),
+          base44.entities.DailyCost.filter({ job_id: afp.job_id }, '-date', 100),
+        ]);
+        const allDates: string[] = [];
+        for (const r of [...logs, ...timesheets, ...deliveries, ...subcons, ...costs]) {
+          const d = (r.date || r.shift_date || r.scheduled_date || r.delivery_date || '').slice(0, 10);
+          if (d && d > periodEnd) allDates.push(d);
+        }
+        if (allDates.length > 0) {
+          allDates.sort();
+          nextStartStr = allDates[allDates.length - 1];
+        }
+      } catch (_) { /* fall back to default */ }
 
       // Determine next AFP number
       const allAfps = await base44.entities.AFP.filter({ job_id: afp.job_id });

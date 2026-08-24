@@ -45,6 +45,11 @@ function colIdx(headerRow, exact, includes) {
 function parseDateHeader(val): string | null {
   if (!val) return null;
   if (val instanceof Date) return val.toISOString().slice(0, 10);
+  // Excel serial date number (raw: true without cellDates returns these)
+  if (typeof val === 'number' && val > 20000 && val < 80000) {
+    const d = new Date(Date.UTC(1899, 11, 30) + val * 86400000);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  }
   const s = String(val).trim();
   // ISO date
   const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -78,7 +83,7 @@ export default async function(req: Request): Promise<Response> {
     const fileRes = await fetch(file_url);
     if (!fileRes.ok) return Response.json({ error: 'Could not download AFP file' }, { status: 422 });
     const fileBuf = await fileRes.arrayBuffer();
-    const workbook = XLSX.read(new Uint8Array(fileBuf), { type: 'array' });
+    const workbook = XLSX.read(new Uint8Array(fileBuf), { type: 'array', cellDates: true });
 
     const preview: any = {
       contract_details: {},
