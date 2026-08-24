@@ -94,7 +94,7 @@ export default function AFPDatesEditor({ afp, onSave, onRegenerate, onClose, sav
           />
           <DateField
             icon={PoundSterling}
-            label="Final Payment Notice"
+            label="Final Date for Payment"
             hint="Last date the client can pay. Auto = Period End + 30 days. Accounts issues a default invoice after this."
             value={form.final_payment_notice_date}
             onChange={v => { setField('final_payment_notice_date', v); setAutoFinal(false); }}

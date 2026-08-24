@@ -24,7 +24,7 @@ export default function JobFinancialsTab({ job, canSeeCosts }) {
       <SubTabNav
         tabs={[
           { id: 'afp-builder', label: 'AFP Builder', icon: FileBarChart },
-          { id: 'variations', label: 'Variations', icon: GitBranch },
+          { id: 'variations', label: 'Measured Works', icon: GitBranch },
           { id: 'rate-card', label: 'Rate Card', icon: Receipt },
           { id: 'controls', label: 'Controls', icon: Shield },
           { id: 'cvr', label: 'CVR', icon: TrendingUp },

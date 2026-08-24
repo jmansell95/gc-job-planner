@@ -135,8 +135,8 @@ export default function AFPVariationsTab({ job }) {
               <GitBranch className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Variations</h3>
-              <p className="text-xs text-slate-500">Overruns against the original Measured Works BOQ — review and approve before billing</p>
+              <h3 className="text-sm font-bold text-slate-900">Measured Works</h3>
+              <p className="text-xs text-slate-500">Overruns against the original contracted BOQ — review and approve before billing</p>
             </div>
           </div>
           <button

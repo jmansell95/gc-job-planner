@@ -49,6 +49,10 @@
       "type": "boolean",
       "default": false,
       "description": "System-managed lists are seeded automatically and can have options added/removed, but the list itself cannot be deleted."
+    },
+    "last_edited_by": {
+      "type": "string",
+      "description": "Name of the admin who last edited this dropdown's options. Set on every save in the Dropdown Manager so the history row is accurate."
     }
   },
   "required": [
