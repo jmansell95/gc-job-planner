@@ -1,9 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { TrendingUp, TrendingDown, PoundSterling, FileBarChart, Calculator, Target, Calendar, RefreshCw, Loader2, Download } from 'lucide-react';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+const STATUS_META = {
+  draft: { label: 'Draft', color: 'text-slate-600', bg: 'bg-slate-100', dot: 'bg-slate-400' },
+  pending_review: { label: 'Pending Review', color: 'text-amber-700', bg: 'bg-amber-100', dot: 'bg-amber-500' },
+  submitted: { label: 'Submitted', color: 'text-blue-700', bg: 'bg-blue-100', dot: 'bg-blue-500' },
+  approved: { label: 'Approved', color: 'text-emerald-700', bg: 'bg-emerald-100', dot: 'bg-emerald-500' },
+  invoiced: { label: 'Invoiced', color: 'text-violet-700', bg: 'bg-violet-100', dot: 'bg-violet-500' },
+};
+
+const DISPUTE_META = {
+  none: { label: 'None', color: 'text-slate-500', bg: 'bg-slate-100' },
+  active: { label: 'Active', color: 'text-amber-700', bg: 'bg-amber-100' },
+  resolved: { label: 'Resolved', color: 'text-emerald-700', bg: 'bg-emerald-100' },
+};
+
 const fmtPct = (n) => {
   const v = Number(n || 0);
   if (isNaN(v) || !isFinite(v)) return '—';
@@ -15,7 +31,7 @@ const fmtPct = (n) => {
  * agreed AFP totals + actual costs. No manual uploads — this view surfaces
  * the auto-generated CVR that pushAFPToCVR creates/updates.
  */
-export default function AFPCVRView({ job }) {
+export default function AFPCVRView({ job, onSelectAfp }) {
   const [exporting, setExporting] = useState(false);
 
   const handleDownloadExcel = async () => {
@@ -45,6 +61,23 @@ export default function AFPCVRView({ job }) {
     queryKey: ['afp', job.id],
     queryFn: () => base44.entities.AFP.filter({ job_id: job.id }, 'afp_number', 50),
   });
+
+  // All line items for the job — grouped by afp_id to compute per-AFP sums
+  const { data: allLineItems = [] } = useQuery({
+    queryKey: ['afp-line-items-job', job.id],
+    queryFn: () => base44.entities.AFPLineItem.filter({ job_id: job.id }, null, 2000),
+  });
+
+  const perAfpSums = useMemo(() => {
+    const sums = {};
+    for (const li of allLineItems) {
+      if (!sums[li.afp_id]) sums[li.afp_id] = { claimed: 0, assessed: 0, agreed: 0 };
+      sums[li.afp_id].claimed += Number(li.applied_in_period) || 0;
+      sums[li.afp_id].assessed += Number(li.assessed_in_period) || 0;
+      sums[li.afp_id].agreed += Number(li.agreed_amount) || 0;
+    }
+    return sums;
+  }, [allLineItems]);
 
   if (isLoading) {
     return <div className="insight-card rounded-2xl p-8 flex items-center justify-center"><Loader2 className="w-6 h-6 text-slate-400 animate-spin" /></div>;
@@ -128,6 +161,79 @@ export default function AFPCVRView({ job }) {
         <StatTile icon={Calculator} label="Total Cost" value={fmt(cvr.total_cost)} subValue={`${fmt(cvr.costs_to_date)} to date`} gradient="stat-gradient-amber" />
         <StatTile icon={Target} label="Budget" value={fmt(cvr.budget)} subValue={cvr.budget > 0 ? `${(((cvr.total_cost || 0) / cvr.budget) * 100).toFixed(0)}% used` : '—'} gradient="stat-gradient-violet" />
       </div>
+
+      {/* Per-AFP chain breakdown */}
+      {afps.length > 0 && (
+        <div className="insight-card rounded-2xl overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-slate-100 flex items-center gap-2">
+            <FileBarChart className="w-4 h-4 text-slate-500" />
+            <p className="text-xs font-bold text-slate-700">AFP Chain — Per-Period Breakdown</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-slate-50/80">
+                <tr className="text-slate-500 uppercase tracking-wide text-[10px]">
+                  <th className="text-left px-3 py-2 font-semibold">AFP</th>
+                  <th className="text-left px-3 py-2 font-semibold">Period</th>
+                  <th className="text-left px-3 py-2 font-semibold">Status</th>
+                  <th className="text-right px-3 py-2 font-semibold">Claimed</th>
+                  <th className="text-right px-3 py-2 font-semibold">Assessed</th>
+                  <th className="text-right px-3 py-2 font-semibold">Agreed</th>
+                  <th className="text-center px-3 py-2 font-semibold">Disputes</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {afps.map(afp => {
+                  const sums = perAfpSums[afp.id] || { claimed: 0, assessed: 0, agreed: 0 };
+                  const statusMeta = STATUS_META[afp.status] || STATUS_META.draft;
+                  const disputeMeta = DISPUTE_META[afp.dispute_status] || DISPUTE_META.none;
+                  return (
+                    <tr
+                      key={afp.id}
+                      onClick={() => onSelectAfp?.(afp.id)}
+                      className="hover:bg-slate-50/60 cursor-pointer transition group"
+                    >
+                      <td className="px-3 py-2.5 font-bold text-slate-700">
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
+                          AFP {afp.afp_number}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-500">
+                        {afp.period_start_date || afp.period_end_date
+                          ? `${fmtDate(afp.period_start_date)} → ${fmtDate(afp.period_end_date)}`
+                          : '—'}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${statusMeta.bg} ${statusMeta.color}`}>
+                          {statusMeta.label}
+                        </span>
+                      </td>
+                      <td className="text-right px-3 py-2.5 text-slate-600 tabular-nums">{fmt(sums.claimed || afp.total_claimed || 0)}</td>
+                      <td className="text-right px-3 py-2.5 text-slate-600 tabular-nums">{fmt(sums.assessed)}</td>
+                      <td className="text-right px-3 py-2.5 font-bold text-emerald-700 tabular-nums">{fmt(sums.agreed || afp.agreed_total || 0)}</td>
+                      <td className="text-center px-3 py-2.5">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${disputeMeta.bg} ${disputeMeta.color}`}>
+                          {disputeMeta.label}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot className="bg-slate-50/80 border-t-2 border-slate-200">
+                <tr className="font-bold text-slate-800">
+                  <td colSpan={3} className="px-3 py-2.5">Totals</td>
+                  <td className="text-right px-3 py-2.5 tabular-nums">{fmt(afps.reduce((s, a) => s + ((perAfpSums[a.id]?.claimed) || a.total_claimed || 0), 0))}</td>
+                  <td className="text-right px-3 py-2.5 tabular-nums">{fmt(afps.reduce((s, a) => s + (perAfpSums[a.id]?.assessed || 0), 0))}</td>
+                  <td className="text-right px-3 py-2.5 tabular-nums text-emerald-700">{fmt(afps.reduce((s, a) => s + ((perAfpSums[a.id]?.agreed) || a.agreed_total || 0), 0))}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* AFP chain summary */}
       {afps.length > 0 && (
