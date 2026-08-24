@@ -45,6 +45,10 @@
       "default": "staff",
       "description": "Where this log originated. 'staff' = manually entered by a crew member in the app; 'ags_import' = ingested from a KeyLogBook AGS file (borehole/strata/SPT/sample data, read-only); 'keylogbook_remarks' = parsed from the driller's time-stamped daily remarks via the KeyLogBook webhook. These are the professionalised Site Logs that feed the timesheet on manager approval."
     },
+    "external_klb_id": {
+      "type": "string",
+      "description": "External KeyLogBook record ID used for idempotent upsert during pull sync. Set to 'klb_bh_<id>' for borehole records and 'klb_rem_<id>_<index>' for parsed remark activities. When present, re-running the pull sync updates the existing record in place instead of creating a duplicate. Blank for manually-entered logs and webhook-imported logs (webhook data uses overwrite mode via job+date+source deletion instead)."
+    },
     "start_time": {
       "type": "string",
       "description": "Start time of this activity in HH:MM format"

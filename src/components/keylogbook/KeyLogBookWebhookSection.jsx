@@ -8,6 +8,7 @@ import {
   CheckCircle2, AlertCircle, Loader2, Copy, RefreshCw, Power, ServerCog,
 } from 'lucide-react';
 import KeyLogBookSyncButton from './KeyLogBookSyncButton';
+import KeyLogBookPullSync from './KeyLogBookPullSync';
 
 export default function KeyLogBookWebhookSection() {
   const { toast } = useToast();
@@ -253,6 +254,15 @@ export default function KeyLogBookWebhookSection() {
           <h4 className="text-sm font-bold text-slate-900">Test Sync</h4>
         </div>
         <KeyLogBookSyncButton config={config} />
+      </div>
+
+      {/* Pull Sync — backfill + scheduled sync from the KeyLogBook API */}
+      <div className="border-t border-slate-100 pt-4">
+        <div className="flex items-center gap-2 mb-3">
+          <RefreshCw className="w-4 h-4 text-[#2E5A1A]" />
+          <h4 className="text-sm font-bold text-slate-900">Pull Sync (Backfill)</h4>
+        </div>
+        <KeyLogBookPullSync config={config} />
       </div>
 
       {/* Save button */}
