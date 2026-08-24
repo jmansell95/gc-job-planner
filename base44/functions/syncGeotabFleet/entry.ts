@@ -145,6 +145,29 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ ok: true, message: `Connected to Geotab (${cfg.database}) as ${creds.userName}. Session active.` });
     }
 
+    // ── Diagnostic mode — returns raw API responses to find where driver
+    //    assignments are stored in the Geotab account ──
+    if (action === 'diagnose') {
+      async function rawGet(typeName: string, search?: any, limit = 5): Promise<any> {
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ method: 'Get', params: { typeName, credentials: creds, search, resultsLimit: limit } }),
+        }).catch(() => null);
+        if (!res) return { error: 'Network error' };
+        const json = await res.json().catch(() => null);
+        if (json?.error) return { error: json.error.message || JSON.stringify(json.error) };
+        return { count: Array.isArray(json?.result) ? json.result.length : 0, samples: (json?.result || []).slice(0, 3) };
+      }
+      const [driverRaw, statusRaw, tripRaw, deviceRaw] = await Promise.all([
+        rawGet('User', undefined, 10),
+        rawGet('DeviceStatusInfo', undefined, 5),
+        rawGet('Trip', { fromDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() }, 5),
+        rawGet('Device', undefined, 3),
+      ]);
+      return Response.json({ ok: true, diagnose: { driver: driverRaw, deviceStatusInfo: statusRaw, trip: tripRaw, device: deviceRaw } });
+    }
+
     // ── Fetch all data from Geotab in parallel ──
     // All 6 calls are independent (they only need credentials, not each other's
     // results), so we fire them all at once via Promise.all. This cuts total sync
@@ -177,8 +200,22 @@ export default async function(req: Request): Promise<Response> {
       geotabGet('Trip', { fromDate: tripFromDate }, 2000),
       geotabGet('ExceptionEvent', { fromDate: safetyFromDate }, 10000),
       geotabGet('Rule', undefined, 2000),
-      geotabGet('Driver', undefined, 1000),
+      geotabGet('User', undefined, 1000),
     ]);
+
+    // Build driver name lookup + keeper map from User entities.
+    // Geotab uses 'User' (not 'Driver') — the API rejects typeName 'Driver'.
+    // User.defaultDevice links a driver to their primary vehicle (the keeper).
+    // driverNameById resolves the driver ID objects in DeviceStatusInfo/Trip
+    // to human-readable names.
+    const driverNameById: Record<string, string> = {};
+    const keeperByDevice: Record<string, string> = {};
+    for (const user of driverList) {
+      const name = user.name || [user.firstName, user.lastName].filter(Boolean).join(' ') || '';
+      if (user.id && name) driverNameById[user.id] = name;
+      const devId = user.defaultDevice?.id;
+      if (devId && name) keeperByDevice[devId] = name;
+    }
 
     // Filter devices by group membership (client-side — Geotab's groupSearch is unreliable)
     let devices: any[];
@@ -210,7 +247,13 @@ export default async function(req: Request): Promise<Response> {
           if (!isNaN(odo)) latestOdometerByDevice[devId] = odo;
         }
         latestTripStartByDevice[devId] = tripStart;
-        const tripDriver = trip.driver?.name || '';
+        const tripDriverRaw: any = trip.driver;
+        let tripDriver = '';
+        if (typeof tripDriverRaw === 'string' && tripDriverRaw !== 'UnknownDriverId') {
+          tripDriver = tripDriverRaw;
+        } else if (tripDriverRaw?.id) {
+          tripDriver = driverNameById[tripDriverRaw.id] || '';
+        }
         if (tripDriver) latestDriverByDevice[devId] = tripDriver;
       }
     }
@@ -219,16 +262,6 @@ export default async function(req: Request): Promise<Response> {
     const ruleMap: Record<string, any> = {};
     for (const r of ruleList) {
       ruleMap[r.id] = r;
-    }
-
-    // Build map: device_id → keeper driver name from the Geotab Driver entity.
-    // Driver.defaultDevice links a driver to their primary vehicle — this is the
-    // FIXED keeper assignment that shows as "Assigned: <name>" on vehicle cards.
-    const keeperByDevice: Record<string, string> = {};
-    for (const driver of driverList) {
-      const devId = driver.defaultDevice?.id;
-      const name = driver.name || [driver.firstName, driver.lastName].filter(Boolean).join(' ');
-      if (devId && name) keeperByDevice[devId] = name;
     }
 
     // Load staff for best-effort keeper → Staff record name matching
@@ -262,8 +295,15 @@ export default async function(req: Request): Promise<Response> {
       else if (ruleName.includes('speed')) stats.speeding++;
       else if (ruleName.includes('accel')) stats.harsh_accel++;
       else if (ruleName.includes('corner') || ruleName.includes('turn')) stats.harsh_cornering++;
-      // Capture driver name from the exception if available
-      if (ex.driver?.name && !stats.driver_name) stats.driver_name = ex.driver.name;
+      // Capture driver name from the exception if available (resolve ID to name)
+      if (!stats.driver_name) {
+        const exDriver = ex.driver;
+        if (typeof exDriver === 'string' && exDriver !== 'UnknownDriverId') {
+          stats.driver_name = exDriver;
+        } else if (exDriver?.id && driverNameById[exDriver.id]) {
+          stats.driver_name = driverNameById[exDriver.id];
+        }
+      }
     }
 
     // ── Load local vehicles and build lookup maps ──
@@ -557,14 +597,24 @@ export default async function(req: Request): Promise<Response> {
         heading: Number(st.bearing ?? st.heading) || 0,
         ignition_on: st.isDriving || st.ignitionOn || false,
         odometer_km: odometerKm,
-        driver_name: st.driver?.name || st.driverName || '',
+        driver_name: (() => {
+          const d = st.driver;
+          if (typeof d === 'string') return d !== 'UnknownDriverId' ? d : '';
+          if (d?.id) return driverNameById[d.id] || '';
+          return st.driverName || '';
+        })(),
         timestamp: st.dateTime || now,
         source: 'geotab_sync',
         geotab_device_id: deviceId || '',
       });
 
       // Update current_mileage + live driver on the vehicle record
-      const liveDriver = st.driver?.name || st.driverName || '';
+      const liveDriver = (() => {
+        const d = st.driver;
+        if (typeof d === 'string') return d !== 'UnknownDriverId' ? d : '';
+        if (d?.id) return driverNameById[d.id] || '';
+        return st.driverName || '';
+      })();
       const mileageUpdate: any = {};
       if (odometerKm > 0) mileageUpdate.current_mileage = Math.round(odometerKm * 0.621371);
       if (liveDriver) mileageUpdate.geotab_driver_name = liveDriver;
