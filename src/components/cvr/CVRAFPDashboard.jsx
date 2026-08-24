@@ -11,6 +11,7 @@ import CVRLineItemsTable from './CVRLineItemsTable';
 import CVRVariationsTab from './CVRVariationsTab';
 import CVRCashFlowChart from './CVRCashFlowChart';
 import CVRUploadModal from './CVRUploadModal';
+import AFPUploadModal from './AFPUploadModal';
 
 /**
  * CVRAFPDashboard — the full job-level CVR/AFP dashboard. Shown as a new
@@ -20,6 +21,7 @@ import CVRUploadModal from './CVRUploadModal';
 export default function CVRAFPDashboard({ job }) {
   const [subTab, setSubTab] = useState('summary');
   const [showCVRUpload, setShowCVRUpload] = useState(false);
+  const [showAFPUpload, setShowAFPUpload] = useState(false);
 
   const { data: cvrs = [] } = useQuery({
     queryKey: ['cvr', job.id],
@@ -54,6 +56,12 @@ export default function CVRAFPDashboard({ job }) {
           className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white rounded-xl text-xs font-bold transition active:scale-95 shadow-sm"
         >
           <Upload className="w-3.5 h-3.5" /> Upload CVR
+        </button>
+        <button
+          onClick={() => setShowAFPUpload(true)}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-xl text-xs font-bold transition active:scale-95 shadow-sm"
+        >
+          <Upload className="w-3.5 h-3.5" /> Upload AFP
         </button>
         {cvr?.source_file_url && (
           <a
@@ -102,6 +110,7 @@ export default function CVRAFPDashboard({ job }) {
 
       {/* Upload modals */}
       {showCVRUpload && <CVRUploadModal job={job} onClose={() => setShowCVRUpload(false)} />}
+      {showAFPUpload && <AFPUploadModal job={job} onClose={() => setShowAFPUpload(false)} />}
     </div>
   );
 }
