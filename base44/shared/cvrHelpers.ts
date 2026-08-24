@@ -7,6 +7,7 @@
 // ── Number parsing ──────────────────────────────────────────────────────
 export function toNum(val): number {
   if (val == null || val === '') return 0;
+  if (val instanceof Date) return 0; // dates in numeric columns are parsing errors
   if (typeof val === 'number') return isNaN(val) ? 0 : val;
   const cleaned = String(val).replace(/[^0-9.\-]/g, '');
   const n = parseFloat(cleaned);

@@ -139,19 +139,24 @@ export default async function(req: Request): Promise<Response> {
         // ── Measured Works lines (with dual-side from Field Sheet daily data) ──
         for (const mw of measuredWorks) {
           const key = mw.item_ref || mw.item || '';
+          const rate = toNum(mw.rate);
           // Find matching field sheet activity
           const matchingActivity = fieldActivities.find(act => matchActivityToMeasuredWork(act, [mw]) !== null);
 
           // Sum daily quantities in this period
           let periodQty = 0;
+          let periodAmount = 0;
           if (matchingActivity && matchingActivity.daily) {
             for (const [d, q] of Object.entries(matchingActivity.daily)) {
               if (d.slice(0, 7) === periodMonth) periodQty += toNum(q);
             }
+            periodAmount = periodQty * rate;
           }
-          // Fallback: if the MW sheet already has applied_in_period and this is AFP 1, use it
-          if (periodQty === 0 && i === 0 && toNum(mw.applied_in_period) > 0) {
-            periodQty = toNum(mw.applied_in_period);
+          // Fallback: if no Field Sheet data and this is AFP 1, use the MW sheet's
+          // applied_in_period (already an AMOUNT, not a quantity) directly.
+          if (periodAmount === 0 && i === 0 && toNum(mw.applied_in_period) > 0) {
+            periodAmount = toNum(mw.applied_in_period);
+            periodQty = rate > 0 ? periodAmount / rate : 0;
           }
 
           const previousApplied = cumulativeApplied[key] || toNum(mw.previous_applied);
@@ -161,12 +166,12 @@ export default async function(req: Request): Promise<Response> {
           const contractedQty = toNum(mw.qty);
           const contractedAmount = toNum(mw.amount);
           const balanceQty = Math.max(0, contractedQty - grossApplied);
-          const balanceValue = Math.max(0, contractedAmount - (grossApplied * toNum(mw.rate)));
+          const balanceValue = Math.max(0, contractedAmount - (grossApplied * rate));
 
           // Client assessment side (from the Excel if present, else 0)
-          const assessedInPeriod = toNum(mw.assessed_in_period);
-          const previousAssessed = toNum(mw.previous_assessed);
-          const grossAssessed = previousAssessed + assessedInPeriod;
+          const assessedInPeriodAmount = toNum(mw.assessed_in_period);
+          const previousAssessedAmount = toNum(mw.previous_assessed);
+          const grossAssessedAmount = previousAssessedAmount + assessedInPeriodAmount;
 
           lineItems.push({
             afp_id: afpId,
@@ -177,25 +182,25 @@ export default async function(req: Request): Promise<Response> {
             item: mw.item || mw.item_ref || '',
             unit: mw.unit || '',
             qty: contractedQty,
-            rate: toNum(mw.rate),
+            rate,
             amount: contractedAmount,
-            unit_price: toNum(mw.rate),
+            unit_price: rate,
             qty_complete: grossApplied,
-            gross_applied: grossApplied * toNum(mw.rate),
-            previous_applied: previousApplied * toNum(mw.rate),
-            applied_in_period: periodQty * toNum(mw.rate),
-            assessed_qty: toNum(mw.assessed_qty) || grossAssessed,
-            gross_assessed: grossAssessed * toNum(mw.rate),
-            previous_assessed: previousAssessed * toNum(mw.rate),
-            assessed_in_period: assessedInPeriod * toNum(mw.rate),
+            gross_applied: grossApplied * rate,
+            previous_applied: previousApplied * rate,
+            applied_in_period: periodAmount,
+            assessed_qty: toNum(mw.assessed_qty) || (rate > 0 ? grossAssessedAmount / rate : 0),
+            gross_assessed: grossAssessedAmount,
+            previous_assessed: previousAssessedAmount,
+            assessed_in_period: assessedInPeriodAmount,
             balance_qty: balanceQty,
             balance_value: balanceValue,
             source: 'afp_upload',
             source_date: periodStart,
             is_manual: false,
             dispute_status: 'none',
-            original_amount: periodQty * toNum(mw.rate),
-            agreed_amount: assessedInPeriod > 0 ? assessedInPeriod * toNum(mw.rate) : periodQty * toNum(mw.rate),
+            original_amount: periodAmount,
+            agreed_amount: assessedInPeriodAmount > 0 ? assessedInPeriodAmount : periodAmount,
             sort_order: sortOrder++,
           });
         }

@@ -281,11 +281,23 @@ export default async function(req: Request): Promise<Response> {
         const rateCol = colIdx(headerRow, ['rate'], ['rate']);
         const amountsCol = colIdx(headerRow, ['amounts'], ['amounts']);
 
-        // Identify date columns (any header that parses to a date)
+        // Identify date columns — scan the header row AND all rows above it
+        // (Lump Sum Field Sheets have a two-row header: dates in row 0, column
+        // names in the header row).
         const dateCols: { col: number; date: string }[] = [];
+        const seen = new Set<number>();
         for (let c = 0; c < headerRow.length; c++) {
           const d = parseDateHeader(headerRow[c]);
-          if (d) dateCols.push({ col: c, date: d });
+          if (d && !seen.has(c)) { dateCols.push({ col: c, date: d }); seen.add(c); }
+        }
+        for (let r = 0; r < headerIdx && dateCols.length === 0; r++) {
+          const row0 = rows[r];
+          if (!row0) continue;
+          for (let c = 0; c < row0.length; c++) {
+            if (seen.has(c)) continue;
+            const d = parseDateHeader(row0[c]);
+            if (d) { dateCols.push({ col: c, date: d }); seen.add(c); }
+          }
         }
 
         for (let r = headerIdx + 1; r < rows.length; r++) {
@@ -336,9 +348,19 @@ export default async function(req: Request): Promise<Response> {
       const amountsCol = colIdx(headerRow, ['amounts'], ['amounts']);
 
       const dateCols: { col: number; date: string }[] = [];
+      const seen = new Set<number>();
       for (let c = 0; c < headerRow.length; c++) {
         const d = parseDateHeader(headerRow[c]);
-        if (d) dateCols.push({ col: c, date: d });
+        if (d && !seen.has(c)) { dateCols.push({ col: c, date: d }); seen.add(c); }
+      }
+      for (let r = 0; r < headerIdx && dateCols.length === 0; r++) {
+        const row0 = rows[r];
+        if (!row0) continue;
+        for (let c = 0; c < row0.length; c++) {
+          if (seen.has(c)) continue;
+          const d = parseDateHeader(row0[c]);
+          if (d) { dateCols.push({ col: c, date: d }); seen.add(c); }
+        }
       }
 
       for (let r = headerIdx + 1; r < rows.length; r++) {
