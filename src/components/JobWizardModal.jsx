@@ -5,11 +5,12 @@ import {
   X, ChevronLeft, ChevronRight, Check, Briefcase, CalendarDays, Users, MapPin,
   FileText, Sparkles, Loader2, FolderOpen, PoundSterling, Target, AlertTriangle,
   HardHat, Receipt, Percent, Building2, Phone, Ruler, FileCheck2, ArrowRightLeft, LayoutTemplate, Plus, Settings,
-  Upload, Eye, Download, RefreshCw,
+  Upload, Eye, Download, RefreshCw, ClipboardList,
 } from 'lucide-react';
 import SubcontractorAssignments from '@/components/SubcontractorAssignments';
 import DisciplineBuilder from '@/components/disciplines/DisciplineBuilder';
 import JobTypeManager from '@/components/jobs/JobTypeManager';
+import BOQWizardStep from '@/components/jobs/BOQWizardStep';
 import { getJobDisciplines, getDisciplineSubcategories } from '@/utils/jobDisciplines';
 import { getJobTypeColor, isDrillingJobType } from '@/utils/jobTeams';
 import { useDivision } from '@/contexts/DivisionContext';
@@ -20,8 +21,9 @@ const STEPS = [
   { id: 1, label: 'Identity', icon: Briefcase },
   { id: 2, label: 'Schedule & Contacts', icon: CalendarDays },
   { id: 3, label: 'Billing', icon: Receipt },
-  { id: 4, label: 'Subcontractors', icon: Building2 },
-  { id: 5, label: 'Review', icon: Check },
+  { id: 4, label: 'BOQ', icon: ClipboardList },
+  { id: 5, label: 'Subcontractors', icon: Building2 },
+  { id: 6, label: 'Review', icon: Check },
 ];
 
 const REVENUE_METHODS = [
@@ -62,6 +64,8 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
   const [error, setError] = useState('');
   const [subAssignments, setSubAssignments] = useState([]);
   const [originalSubIds, setOriginalSubIds] = useState([]);
+  const [boqLines, setBoqLines] = useState([]);
+  const [originalBoqIds, setOriginalBoqIds] = useState([]);
   const [managerOpen, setManagerOpen] = useState(false);
   const queryClient = useQueryClient();
   const { activeDivisionId, isSuperAdmin } = useDivision();
@@ -76,8 +80,27 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
       setError('');
       setSubAssignments([]);
       setOriginalSubIds([]);
+      setBoqLines([]);
+      setOriginalBoqIds([]);
       setForm(editingJob ? { ...emptyForm, ...editingJob, disciplines: getJobDisciplines(editingJob) } : emptyForm);
       if (editingJob?.id) {
+        base44.entities.JobBillOfQuantities.filter({ job_id: editingJob.id }, 'sort_order', 500).then(lines => {
+          const mapped = lines.map(l => ({
+            id: l.id,
+            rate_card_item_id: l.rate_card_item_id || '',
+            sor_ref: l.sor_ref || '',
+            description: l.description || '',
+            category: l.category || 'labour',
+            subcategory: l.subcategory || '',
+            unit: l.unit || 'nr',
+            agreed_quantity: Number(l.agreed_quantity) || 0,
+            agreed_unit_price: Number(l.agreed_unit_price) || 0,
+            agreed_line_total: Number(l.agreed_line_total) || 0,
+            sort_order: l.sort_order || 0,
+          }));
+          setBoqLines(mapped);
+          setOriginalBoqIds(lines.map(l => l.id));
+        }).catch(() => {});
         base44.entities.SubcontractorLog.filter({ job_id: editingJob.id }, '-date', 200).then(logs => {
           const mapped = logs.map(l => ({
             id: l.id,
@@ -141,7 +164,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
       if (form.revenue_method === 'unit_rate' && !form.unit_price) return false;
       return true;
     }
-    // Subcontractors & Review are always valid
+    // BOQ, Subcontractors & Review are always valid (BOQ is optional)
     return true;
   };
 
@@ -274,9 +297,46 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
         }
       }
 
+      // Save Bill of Quantities lines (create new, update kept, delete removed)
+      const keptBoqIds = new Set();
+      for (const line of boqLines) {
+        const payload = {
+          job_id: jobId,
+          project_id: form.project_id || null,
+          rate_card_item_id: line.rate_card_item_id || null,
+          sor_ref: line.sor_ref || '',
+          description: line.description,
+          category: line.category || 'labour',
+          subcategory: line.subcategory || '',
+          unit: line.unit || 'nr',
+          agreed_quantity: Number(line.agreed_quantity) || 0,
+          agreed_unit_price: Number(line.agreed_unit_price) || 0,
+          agreed_line_total: Math.round((Number(line.agreed_quantity) || 0) * (Number(line.agreed_unit_price) || 0) * 100) / 100,
+          actual_quantity: line.actual_quantity != null ? Number(line.actual_quantity) : 0,
+          remaining_quantity: Math.round(((Number(line.agreed_quantity) || 0) - (Number(line.actual_quantity) || 0)) * 100) / 100,
+          variation_quantity: 0,
+          status: line.status || 'not_started',
+          is_variation: false,
+          sort_order: line.sort_order || 0,
+        };
+        if (line.id) {
+          await base44.entities.JobBillOfQuantities.update(line.id, payload);
+          keptBoqIds.add(line.id);
+        } else {
+          const created = await base44.entities.JobBillOfQuantities.create(payload);
+          keptBoqIds.add(created.id);
+        }
+      }
+      for (const oldBoqId of originalBoqIds) {
+        if (!keptBoqIds.has(oldBoqId)) {
+          await base44.entities.JobBillOfQuantities.delete(oldBoqId);
+        }
+      }
+
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['auto-job-financials', jobId] });
       queryClient.invalidateQueries({ queryKey: ['subcon-logs', jobId] });
+      queryClient.invalidateQueries({ queryKey: ['boq-lines', jobId] });
       onCreated?.(saved);
     } catch (e) {
       setError(e?.message || 'Could not save the job. Check all required fields.');
@@ -658,8 +718,13 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                 </div>
               )}
 
-              {/* STEP 4 — Subcontractors */}
+              {/* STEP 4 — BOQ (Bill of Quantities shopping list) */}
               {step === 4 && (
+                <BOQWizardStep boqLines={boqLines} onChange={setBoqLines} />
+              )}
+
+              {/* STEP 5 — Subcontractors */}
+              {step === 5 && (
                 <SubcontractorAssignments
                   assignments={subAssignments}
                   onChange={setSubAssignments}
@@ -667,8 +732,8 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                 />
               )}
 
-              {/* STEP 5 — Review */}
-              {step === 5 && (
+              {/* STEP 6 — Review */}
+              {step === 6 && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-[#2E5A1A]">
                     <Sparkles className="w-4 h-4" />
@@ -694,6 +759,13 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                     {form.revenue_method === 'none' && <ReviewRow label="Markup" value={form.markup_percentage ? `${form.markup_percentage}%` : '0%'} />}
                     <ReviewRow label="VAT Rate" value={`${form.vat_rate || 20}%`} />
                     <ReviewRow label="Budget" value={form.budget_amount ? `£${form.budget_amount}` : '—'} />
+                    {boqLines.length > 0 && (
+                      <ReviewRow
+                        label="BOQ"
+                        value={`${boqLines.length} line${boqLines.length !== 1 ? 's' : ''} · £${boqLines.reduce((s, l) => s + (Number(l.agreed_line_total) || 0), 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        highlight
+                      />
+                    )}
                   </div>
                   {/* Subcontractor summary */}
                   {subAssignments.filter(a => a.subcontractor_id).length > 0 && (
@@ -746,7 +818,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
               <ChevronLeft className="w-4 h-4" /> Back
             </button>
           )}
-          {step < 5 ? (
+          {step < 6 ? (
             <button type="button" onClick={() => stepValid() && setStep(step + 1)} disabled={!stepValid()} className="flex-1 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] transition disabled:opacity-40 flex items-center justify-center gap-1.5">
               Continue <ChevronRight className="w-4 h-4" />
             </button>
