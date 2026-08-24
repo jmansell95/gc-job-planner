@@ -205,6 +205,30 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
           )}
         </div>
 
+        {/* Key stats: engine hours + mileage — prominent display */}
+        {(vehicle.engine_hours != null || vehicle.current_mileage != null) && (
+          <div className="flex items-center gap-2 mb-2">
+            {vehicle.engine_hours != null && (
+              <div className="flex items-center gap-1.5 bg-blue-50 rounded-lg px-2.5 py-1.5 border border-blue-100 flex-1">
+                <Clock className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[9px] font-semibold text-blue-400 uppercase leading-none">Engine Hours</p>
+                  <p className="text-sm font-bold text-blue-700 tabular-nums leading-tight">{Math.round(Number(vehicle.engine_hours)).toLocaleString()}h</p>
+                </div>
+              </div>
+            )}
+            {vehicle.current_mileage != null && (
+              <div className="flex items-center gap-1.5 bg-emerald-50 rounded-lg px-2.5 py-1.5 border border-emerald-100 flex-1">
+                <Gauge className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[9px] font-semibold text-emerald-400 uppercase leading-none">Mileage</p>
+                  <p className="text-sm font-bold text-emerald-700 tabular-nums leading-tight">{Number(vehicle.current_mileage).toLocaleString()} mi</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Geotab driver — keeper (fixed assignment) or last detected driver from trips */}
         <div className="flex items-center gap-1.5 mb-2 flex-wrap">
           {vehicle.geotab_keeper_name ? (

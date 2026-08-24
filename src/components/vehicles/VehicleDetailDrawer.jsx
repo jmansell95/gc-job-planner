@@ -287,7 +287,11 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
         {activeTab === 'live' && (
           <div className="px-5 py-4 space-y-4">
             {/* Quick stats strip */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-2.5 border border-blue-200">
+                <p className="text-[10px] uppercase text-blue-600 font-semibold flex items-center gap-1"><Clock className="w-3 h-3" /> Engine Hours</p>
+                <p className="text-base font-bold text-blue-700 tabular-nums mt-0.5">{vehicle.engine_hours != null ? Math.round(Number(vehicle.engine_hours)).toLocaleString() : '—'} <span className="text-[10px] font-normal">h</span></p>
+              </div>
               <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-2.5 border border-cyan-200">
                 <p className="text-[10px] uppercase text-cyan-600 font-semibold flex items-center gap-1"><Gauge className="w-3 h-3" /> Mileage</p>
                 <p className="text-base font-bold text-cyan-700 tabular-nums mt-0.5">{vehicle.current_mileage ? Number(vehicle.current_mileage).toLocaleString() : '—'} <span className="text-[10px] font-normal">mi</span></p>

@@ -160,6 +160,10 @@
       "type": "number",
       "description": "Latest odometer reading in miles, pulled from Holman fleet data, Geotab odometer readings, or the latest DVLA MOT test."
     },
+    "engine_hours": {
+      "type": "number",
+      "description": "Total engine operating hours, pulled from Geotab DeviceStatusInfo during sync. Shows how long the vehicle's engine has been running \u2014 used for utilisation tracking and service scheduling."
+    },
     "holman_sync_status": {
       "type": "string",
       "enum": [

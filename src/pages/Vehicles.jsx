@@ -78,8 +78,8 @@ export default function Vehicles() {
       const res = await base44.functions.invoke('getVehicleLocationHistory', { mode: 'live_fast', limit: 500 });
       return res?.data ?? res;
     },
-    refetchInterval: 60000,
-    staleTime: 30000,
+    refetchInterval: 30000,
+    staleTime: 15000,
   });
 
   const liveLocations = liveData?.vehicles || [];

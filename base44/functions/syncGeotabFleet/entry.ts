@@ -145,6 +145,26 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ ok: true, message: `Connected to Geotab (${cfg.database}) as ${creds.userName}. Session active.` });
     }
 
+    // ── List Geotab groups — used by the settings UI to pick which group to sync ──
+    if (action === 'list_groups') {
+      const groupRes = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: 'Get',
+          params: { typeName: 'Group', credentials: creds, resultsLimit: 500 },
+        }),
+      }).catch(() => null);
+      const groupJson = groupRes ? await groupRes.json().catch(() => null) : null;
+      const groups: any[] = Array.isArray(groupJson?.result) ? groupJson.result : [];
+      return Response.json({
+        ok: true,
+        groups: groups.map((g: any) => ({ id: g.id, name: g.name, color: g.color || '' }))
+          .filter((g: any) => g.name)
+          .sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')),
+      });
+    }
+
     // ── Diagnostic mode — returns raw API responses to find where driver
     //    assignments are stored in the Geotab account ──
     if (action === 'diagnose') {
@@ -193,14 +213,17 @@ export default async function(req: Request): Promise<Response> {
       return Array.isArray(json?.result) ? json.result : [];
     }
 
-    const [allDevices, vehicleTypeList, statuses, allTrips, exceptions, ruleList, driverList] = await Promise.all([
+    // Trimmed from 7 calls to 6: dropped Rule (categorise exceptions by name
+    // from the ExceptionEvent's embedded rule name), reduced Trip to 500 and
+    // ExceptionEvent to 2000 for faster sync. Added Group for Drilling auto-detection.
+    const [allDevices, vehicleTypeList, statuses, allTrips, exceptions, driverList, allGroups] = await Promise.all([
       geotabGet('Device', undefined, 1000),
       geotabGet('VehicleType', undefined, 1000),
       geotabGet('DeviceStatusInfo', undefined, 1000),
-      geotabGet('Trip', { fromDate: tripFromDate }, 2000),
-      geotabGet('ExceptionEvent', { fromDate: safetyFromDate }, 10000),
-      geotabGet('Rule', undefined, 2000),
+      geotabGet('Trip', { fromDate: tripFromDate }, 500),
+      geotabGet('ExceptionEvent', { fromDate: safetyFromDate }, 2000),
       geotabGet('User', undefined, 1000),
+      geotabGet('Group', undefined, 500),
     ]);
 
     // Build driver name lookup + keeper map from User entities.
@@ -229,11 +252,34 @@ export default async function(req: Request): Promise<Response> {
       if (devId && name) keeperByDevice[devId] = name;
     }
 
-    // Filter devices by group membership (client-side — Geotab's groupSearch is unreliable)
+    // ── Auto-detect the Drilling group ──
+    // Fetch all Geotab Group entities and find the one whose name matches
+    // "drilling" (case-insensitive). Only devices in this group are synced.
+    // The detected group ID is persisted to config so future syncs skip detection.
+    let drillingGroupId = '';
+    let drillingGroupName = '';
+    const drillingGroup = allGroups.find((g: any) => /drilling/i.test(g.name || ''));
+    if (drillingGroup) {
+      drillingGroupId = drillingGroup.id;
+      drillingGroupName = drillingGroup.name;
+      // Persist the detected group so future syncs use it directly
+      if (settings[0]) {
+        try {
+          await base44.asServiceRole.entities.AppSetting.update(settings[0].id, {
+            value: { ...cfg, group_filter_id: drillingGroupId, group_filter_ids: [drillingGroupId], drilling_group_name: drillingGroupName },
+          });
+        } catch (_) {}
+      }
+    } else if (groupFilterIds.length > 0) {
+      // Fall back to manually configured group filter
+      drillingGroupId = groupFilterIds[0];
+    }
+
+    // Filter devices to only the Drilling group
     let devices: any[];
-    if (groupFilterIds.length > 0) {
+    if (drillingGroupId) {
       devices = allDevices.filter((d: any) =>
-        (d.groups || []).some((g: any) => groupFilterIds.includes(g.id || g))
+        (d.groups || []).some((g: any) => (g.id || g) === drillingGroupId)
       );
     } else {
       devices = allDevices;
@@ -270,11 +316,8 @@ export default async function(req: Request): Promise<Response> {
       }
     }
 
-    // Build rule lookup map for categorizing exceptions
-    const ruleMap: Record<string, any> = {};
-    for (const r of ruleList) {
-      ruleMap[r.id] = r;
-    }
+    // Rule lookup removed — ExceptionEvent.rule includes the rule name directly
+    // in most Geotab accounts, so we categorise by name without a separate Rule fetch.
 
     // Load staff for best-effort keeper → Staff record name matching
     const allStaff = await base44.asServiceRole.entities.Staff.list('-created_date', 500);
@@ -301,8 +344,7 @@ export default async function(req: Request): Promise<Response> {
       }
       const stats = safetyByDevice[devId];
       stats.total++;
-      const rule = ex.rule?.id ? ruleMap[ex.rule.id] : null;
-      const ruleName = (rule?.name || ex.rule?.name || '').toLowerCase();
+      const ruleName = (ex.rule?.name || '').toLowerCase();
       if (ruleName.includes('brak')) stats.harsh_braking++;
       else if (ruleName.includes('speed')) stats.speeding++;
       else if (ruleName.includes('accel')) stats.harsh_accel++;
@@ -315,6 +357,17 @@ export default async function(req: Request): Promise<Response> {
         } else if (exDriver?.id && driverNameById[exDriver.id]) {
           stats.driver_name = driverNameById[exDriver.id];
         }
+      }
+    }
+
+    // Build engine hours map from DeviceStatusInfo (workTimeHours field)
+    const engineHoursByDevice: Record<string, number> = {};
+    for (const st of statuses) {
+      const devId = st.device?.id || st.deviceId;
+      if (!devId) continue;
+      if (st.workTimeHours != null) {
+        const hrs = Number(st.workTimeHours);
+        if (!isNaN(hrs) && hrs > 0) engineHoursByDevice[devId] = Math.round(hrs * 10) / 10;
       }
     }
 
@@ -390,6 +443,10 @@ export default async function(req: Request): Promise<Response> {
         }
       }
       if (vin) detailUpdate.vin = vin;
+      // Engine hours from DeviceStatusInfo
+      if (engineHoursByDevice[deviceId] != null) {
+        detailUpdate.engine_hours = engineHoursByDevice[deviceId];
+      }
 
       // Fallback: decode make and year from the VIN WMI (manufacturer) and
       // 10th-character year code. Only fill if the vehicle doesn't already
@@ -564,6 +621,27 @@ export default async function(req: Request): Promise<Response> {
       } catch (_) {}
     }
 
+    // ── Cleanup: delete Vehicle records not in the Drilling group ──
+    // The user wants ONLY Drilling group vehicles. Any local Vehicle whose
+    // geotab_device_id is not in the Drilling device set is deleted, along
+    // with non-Geotab vehicles (no geotab_device_id).
+    let vehiclesDeleted = 0;
+    if (drillingGroupId && devices.length > 0) {
+      const drillingDeviceIds = new Set(devices.map((d: any) => d.id));
+      for (const v of vehicles) {
+        // Skip vehicles that were just created/updated in this sync
+        if (v.geotab_device_id && deviceVehicleMap[v.geotab_device_id]) continue;
+        // Delete if the Geotab device is not in the Drilling group
+        if (v.geotab_device_id && !drillingDeviceIds.has(v.geotab_device_id)) {
+          try { await base44.asServiceRole.entities.Vehicle.delete(v.id); vehiclesDeleted++; } catch (_) {}
+        }
+        // Delete non-Geotab vehicles (user wants only Drilling group)
+        else if (!v.geotab_device_id) {
+          try { await base44.asServiceRole.entities.Vehicle.delete(v.id); vehiclesDeleted++; } catch (_) {}
+        }
+      }
+    }
+
     // ── Store live location logs ──
     let stored = 0;
     let unmatched = 0;
@@ -706,14 +784,16 @@ export default async function(req: Request): Promise<Response> {
 
     return Response.json({
       ok: true,
-      message: `Synced ${stored} location${stored === 1 ? '' : 's'} from Geotab · ${vehiclesCreated} new vehicle${vehiclesCreated === 1 ? '' : 's'} created · ${vehiclesUpdated} updated.`,
+      message: `Synced ${stored} location${stored === 1 ? '' : 's'} from Geotab · ${vehiclesCreated} new vehicle${vehiclesCreated === 1 ? '' : 's'} created · ${vehiclesUpdated} updated${vehiclesDeleted > 0 ? ` · ${vehiclesDeleted} removed (not in Drilling group)` : ''}.`,
       synced: stored,
       unmatched,
       vehicles_created: vehiclesCreated,
       vehicles_updated: vehiclesUpdated,
+      vehicles_deleted: vehiclesDeleted,
       total_devices: devices.length,
       total_statuses: statuses.length,
       total_drivers: driverList.length,
+      drilling_group: drillingGroupId ? { id: drillingGroupId, name: drillingGroupName } : null,
       keepers_found: Object.keys(keeperByDevice).length,
       trip_drivers_found: Object.keys(latestDriverByDevice).length,
       vehicle_type_count: Object.keys(vehicleTypeMap).length,
