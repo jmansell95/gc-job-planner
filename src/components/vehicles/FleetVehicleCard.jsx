@@ -205,14 +205,27 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
           )}
         </div>
 
-        {/* Assigned keeper — FIXED assignment from Geotab (Driver.defaultDevice) */}
-        {(vehicle.geotab_keeper_name || vehicle.assigned_staff_id) && (
-          <div className="flex items-center gap-1.5 mb-2">
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200" title="Fixed vehicle keeper — synced from Geotab">
-              <User className="w-3 h-3" /> Assigned: {vehicle.geotab_keeper_name || driverName || '—'}
+        {/* Geotab keeper — FIXED assignment from Geotab (Driver.defaultDevice) */}
+        <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+          {vehicle.geotab_keeper_name ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200" title="Geotab assigned keeper (Driver.defaultDevice)">
+              <Satellite className="w-3 h-3" /> Keeper: {vehicle.geotab_keeper_name}
             </span>
-          </div>
-        )}
+          ) : geotabLive ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full bg-slate-50 text-slate-400 border border-slate-200 border-dashed" title="No Geotab keeper set — assign a default device to this driver in Geotab">
+              <Satellite className="w-3 h-3" /> No Geotab keeper
+            </span>
+          ) : driverName ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200" title="Manually assigned driver">
+              <User className="w-3 h-3" /> Assigned: {driverName}
+            </span>
+          ) : null}
+          {vehicle.geotab_driver_name && vehicle.geotab_driver_name !== vehicle.geotab_keeper_name && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200" title="Last detected driver (differs from keeper)">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" /> Driving: {vehicle.geotab_driver_name}
+            </span>
+          )}
+        </div>
 
         {/* Driving Now — LIVE operator from active DeliveryLog task */}
         {vehicle.current_operator_name && (

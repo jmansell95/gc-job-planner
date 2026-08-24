@@ -196,18 +196,22 @@ export default async function(req: Request): Promise<Response> {
       vehicleTypeMap[vt.id] = vt;
     }
 
-    // Build map: device_id → latest odometer (meters) from the most recent trip
+    // Build map: device_id → latest odometer + last driver from the most recent trip
     const latestOdometerByDevice: Record<string, number> = {};
     const latestTripStartByDevice: Record<string, string> = {};
+    const latestDriverByDevice: Record<string, string> = {};
     for (const trip of allTrips) {
       const devId = trip.device?.id;
-      if (!devId || trip.odometer == null) continue;
-      const odo = Number(trip.odometer);
-      if (isNaN(odo)) continue;
+      if (!devId) continue;
       const tripStart = trip.start || '';
-      if (!latestOdometerByDevice[devId] || tripStart > latestTripStartByDevice[devId]) {
-        latestOdometerByDevice[devId] = odo;
+      if (!latestTripStartByDevice[devId] || tripStart > latestTripStartByDevice[devId]) {
+        if (trip.odometer != null) {
+          const odo = Number(trip.odometer);
+          if (!isNaN(odo)) latestOdometerByDevice[devId] = odo;
+        }
         latestTripStartByDevice[devId] = tripStart;
+        const tripDriver = trip.driver?.name || '';
+        if (tripDriver) latestDriverByDevice[devId] = tripDriver;
       }
     }
 
@@ -400,6 +404,10 @@ export default async function(req: Request): Promise<Response> {
         detailUpdate.safety_events_last_sync = now;
         if (safety.driver_name) detailUpdate.geotab_driver_name = safety.driver_name;
       }
+      // Fallback: set geotab_driver_name from the most recent trip driver
+      if (!detailUpdate.geotab_driver_name && latestDriverByDevice[deviceId]) {
+        detailUpdate.geotab_driver_name = latestDriverByDevice[deviceId];
+      }
 
       if (!vehicle) {
         // Auto-create a new Vehicle record from this Geotab device
@@ -494,6 +502,10 @@ export default async function(req: Request): Promise<Response> {
         safetyUpdate.driver_risk_score = 100;
         safetyUpdate.safety_events_last_sync = now;
       }
+      // Fallback: set geotab_driver_name from the most recent trip driver
+      if (!safetyUpdate.geotab_driver_name && latestDriverByDevice[v.geotab_device_id]) {
+        safetyUpdate.geotab_driver_name = latestDriverByDevice[v.geotab_device_id];
+      }
       try {
         await base44.asServiceRole.entities.Vehicle.update(v.id, safetyUpdate);
         vehiclesUpdated++;
@@ -551,12 +563,14 @@ export default async function(req: Request): Promise<Response> {
         geotab_device_id: deviceId || '',
       });
 
-      // Update current_mileage on the vehicle record (km → miles)
-      if (odometerKm > 0) {
+      // Update current_mileage + live driver on the vehicle record
+      const liveDriver = st.driver?.name || st.driverName || '';
+      const mileageUpdate: any = {};
+      if (odometerKm > 0) mileageUpdate.current_mileage = Math.round(odometerKm * 0.621371);
+      if (liveDriver) mileageUpdate.geotab_driver_name = liveDriver;
+      if (Object.keys(mileageUpdate).length > 0) {
         try {
-          await base44.asServiceRole.entities.Vehicle.update(vehicle.id, {
-            current_mileage: Math.round(odometerKm * 0.621371),
-          });
+          await base44.asServiceRole.entities.Vehicle.update(vehicle.id, mileageUpdate);
         } catch (_) {}
       }
 
@@ -620,6 +634,14 @@ export default async function(req: Request): Promise<Response> {
       };
     });
 
+    // Driver diagnostics — show what Geotab returned for Driver entities
+    const driverDiag = driverList.slice(0, 5).map((d: any) => ({
+      id: d.id,
+      name: d.name || [d.firstName, d.lastName].filter(Boolean).join(' '),
+      has_default_device: !!d.defaultDevice?.id,
+      default_device_id: d.defaultDevice?.id || null,
+    }));
+
     return Response.json({
       ok: true,
       message: `Synced ${stored} location${stored === 1 ? '' : 's'} from Geotab · ${vehiclesCreated} new vehicle${vehiclesCreated === 1 ? '' : 's'} created · ${vehiclesUpdated} updated.`,
@@ -629,6 +651,9 @@ export default async function(req: Request): Promise<Response> {
       vehicles_updated: vehiclesUpdated,
       total_devices: devices.length,
       total_statuses: statuses.length,
+      total_drivers: driverList.length,
+      keepers_found: Object.keys(keeperByDevice).length,
+      trip_drivers_found: Object.keys(latestDriverByDevice).length,
       vehicle_type_count: Object.keys(vehicleTypeMap).length,
       geofence: {
         arrivals: totalGeofenceArrivals,
@@ -636,6 +661,7 @@ export default async function(req: Request): Promise<Response> {
         auto_arrivals: totalAutoArrivals,
       },
       diagnostics: vtDiag,
+      driver_diagnostics: driverDiag,
     });
   } catch (error) {
     const msg = (error && typeof error === 'object' && error.message) ? error.message : String(error);
