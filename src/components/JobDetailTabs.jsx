@@ -22,7 +22,6 @@ import JobHazardMap from '@/components/JobHazardMap';
 import JobContextView from '@/components/JobContextView';
 import GeotechDataTab from '@/components/geotech/GeotechDataTab';
 import TabStatRibbon from '@/components/TabStatRibbon';
-import JobSiteManager from '@/components/jobs/JobSiteManager';
 import JobFinancialsTab from '@/components/afp/JobFinancialsTab';
 
 /**
@@ -107,7 +106,6 @@ export default function JobDetailTabs({
               jobTypes={jobTypes}
               subTab="overview"
             />
-            <JobSiteManager job={job} />
           </>
         ) : (
           <JobContextView

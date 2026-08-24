@@ -4,15 +4,15 @@
   "properties": {
     "name": {
       "type": "string",
-      "description": "Job name"
+      "description": "Project name"
     },
     "division_id": {
       "type": "string",
-      "description": "The division this job belongs to. Set automatically from the active division when the job is created, or assigned via the migration. Drives division-scoped filtering on the dashboard and hubs."
+      "description": "The division this project belongs to. Set automatically from the active division when the project is created, or assigned via the migration. Drives division-scoped filtering on the dashboard and hubs."
     },
     "job_reference": {
       "type": "string",
-      "description": "Internal job reference or PO number"
+      "description": "Project reference or PO number. New projects are auto-prefixed with 'PRJ-' on creation."
     },
     "depends_on_job_ids": {
       "type": "array",
@@ -20,7 +20,7 @@
         "type": "string"
       },
       "default": [],
-      "description": "IDs of prerequisite jobs that must be completed (or cancelled) before this job can start. Used for job sequencing \u2014 the Job Dependency Manager shows a warning banner on the job detail when any dependency is not yet complete."
+      "description": "IDs of prerequisite projects that must be completed (or cancelled) before this project can start. Used for project sequencing \u2014 the Dependency Manager shows a warning banner on the project detail when any dependency is not yet complete."
     },
     "location": {
       "type": "string",
@@ -28,98 +28,39 @@
     },
     "site_lat": {
       "type": "number",
-      "description": "Job site latitude (for Geotab GPS geofencing \u2014 auto-detects arrival/departure times for timesheets). Set manually or via the geocode button on the job form."
+      "description": "Project site latitude (for Geotab GPS geofencing \u2014 auto-detects arrival/departure times for timesheets). Set manually or via the geocode button on the project form."
     },
     "site_lng": {
       "type": "number",
-      "description": "Job site longitude (for Geotab GPS geofencing \u2014 auto-detects arrival/departure times for timesheets). Set manually or via the geocode button on the job form."
+      "description": "Project site longitude (for Geotab GPS geofencing \u2014 auto-detects arrival/departure times for timesheets). Set manually or via the geocode button on the project form."
     },
     "geofence_radius_override": {
       "type": "number",
-      "description": "Per-job geofence radius override (metres). When set, this radius is used instead of the global default from the geofence config. Useful for large sites that need a wider zone, or compact sites that need a tighter one."
+      "description": "Per-project geofence radius override (metres). When set, this radius is used instead of the global default from the geofence config. Useful for large sites that need a wider zone, or compact sites that need a tighter one."
     },
     "what3words": {
       "type": "string",
-      "description": "what3words address for the primary site location (e.g. 'filled.count.soap'). A 3-word address separated by dots that pinpoints a 3m \u00d7 3m square. Used heavily by field crews for precise site finding \u2014 shown on job cards and the job detail hero."
+      "description": "what3words address for the site location (e.g. 'filled.count.soap'). A 3-word address separated by dots that pinpoints a 3m \u00d7 3m square. Used heavily by field crews for precise site finding \u2014 shown on project cards and the project detail hero."
     },
     "weather_temp_min": {
       "type": "number",
-      "description": "Per-job override for the minimum safe working temperature (\u00b0C). When blank, the global default from Settings \u2192 Weather Thresholds applies. The job detail weather card flags 'do not work' when the live temperature drops below this."
+      "description": "Per-project override for the minimum safe working temperature (\u00b0C). When blank, the global default from Settings \u2192 Weather Thresholds applies. The project detail weather card flags 'do not work' when the live temperature drops below this."
     },
     "weather_temp_max": {
       "type": "number",
-      "description": "Per-job override for the maximum safe working temperature (\u00b0C). When blank, the global default applies. The job detail weather card flags 'do not work' when the live temperature exceeds this."
+      "description": "Per-project override for the maximum safe working temperature (\u00b0C). When blank, the global default applies. The project detail weather card flags 'do not work' when the live temperature exceeds this."
     },
     "weather_wind_max_mph": {
       "type": "number",
-      "description": "Per-job override for the maximum safe wind gust speed (mph). When blank, the global default applies. The job detail weather card flags 'do not work' when live gusts exceed this."
+      "description": "Per-project override for the maximum safe wind gust speed (mph). When blank, the global default applies. The project detail weather card flags 'do not work' when live gusts exceed this."
     },
     "weather_rain_max_mm": {
       "type": "number",
-      "description": "Per-job override for the maximum safe rainfall (mm). When blank, the global default applies. The job detail weather card flags 'do not work' when live precipitation exceeds this."
+      "description": "Per-project override for the maximum safe rainfall (mm). When blank, the global default applies. The project detail weather card flags 'do not work' when live precipitation exceeds this."
     },
     "weather_lightning_block": {
       "type": "boolean",
-      "description": "Per-job override for whether thunderstorms block work. When blank, the global default applies. When true, any thunderstorm (weather code \u2265 95) flags 'do not work' due to lightning risk."
-    },
-    "sites": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Site name or reference (e.g. 'Site A', 'North Field', 'Plot 3')"
-          },
-          "location": {
-            "type": "string",
-            "description": "Site address or location description"
-          },
-          "lat": {
-            "type": "number",
-            "description": "Site latitude for geofencing, maps and weather lookups"
-          },
-          "lng": {
-            "type": "number",
-            "description": "Site longitude for geofencing, maps and weather lookups"
-          },
-          "what3words": {
-            "type": "string",
-            "description": "what3words address for this site (e.g. 'filled.count.soap'). A 3-word address separated by dots that pinpoints a 3m \u00d7 3m square anywhere in the world. Used alongside lat/lng for precise site finding."
-          },
-          "geofence_radius_override": {
-            "type": "number",
-            "description": "Per-site geofence radius override (metres). When set, this radius is used instead of the job-level or global default."
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "planning",
-              "active",
-              "completed",
-              "on_hold"
-            ],
-            "default": "planning",
-            "description": "Site-specific status. Each site within a job tracks its own lifecycle independently \u2014 Site A may be completed while Site B is still active."
-          },
-          "start_date": {
-            "type": "string",
-            "format": "date",
-            "description": "Site-specific start date. Allows staggered starts across sites within the same job."
-          },
-          "end_date": {
-            "type": "string",
-            "format": "date",
-            "description": "Site-specific end date."
-          },
-          "notes": {
-            "type": "string",
-            "description": "Site-specific notes (access arrangements, hazards, special requirements)"
-          }
-        }
-      },
-      "default": [],
-      "description": "Multiple sites within this job. A single job can span one or more sites \u2014 each with its own location, coordinates, status and dates. The legacy location/site_lat/site_lng fields represent the primary site for backward compatibility; entries here are additional sites managed within the same job."
+      "description": "Per-project override for whether thunderstorms block work. When blank, the global default applies. When true, any thunderstorm (weather code \u2265 95) flags 'do not work' due to lightning risk."
     },
     "disciplines": {
       "type": "array",
@@ -133,7 +74,7 @@
               "groundworks",
               "depot"
             ],
-            "description": "Discipline type key. Simplified to three tracks: 'drilling' (with a CP/Rotary sub-choice via drilling_method), 'groundworks' (covers all groundworks crews \u2014 enabling, coring, trial pit, etc.), and 'depot' (for jobs based at the yard). Legacy types (enabling, enabling_works, supervisor, coring, trial_pit) are migrated to drilling or groundworks."
+            "description": "Discipline type key. Simplified to three tracks: 'drilling' (with a CP/Rotary sub-choice via drilling_method), 'groundworks' (covers all groundworks crews \u2014 enabling, coring, trial pit, etc.), and 'depot' (for projects based at the yard). Legacy types (enabling, enabling_works, supervisor, coring, trial_pit) are migrated to drilling or groundworks."
           },
           "status": {
             "type": "string",
@@ -201,15 +142,15 @@
         }
       },
       "default": [],
-      "description": "Multi-discipline array \u2014 tracks each discipline (drilling, groundworks, depot) as a separate entry with its own status, dates, revenue method, and required teams. A job with both drilling and groundworks will have two entries here, each independently managed. The legacy single-type fields (job_type, drilling_method, required_team_ids, revenue_method) are kept for backward compatibility and mirror the primary discipline."
+      "description": "Multi-discipline array \u2014 tracks each discipline (drilling, groundworks, depot) as a separate entry with its own status, dates, revenue method, and required teams. A project with both drilling and groundworks will have two entries here, each independently managed. The legacy single-type fields (job_type, drilling_method, required_team_ids, revenue_method) are kept for backward compatibility and mirror the primary discipline."
     },
     "primary_discipline": {
       "type": "string",
-      "description": "The key of the primary discipline (the main driver of the job). Points to a discipline type in the disciplines array. Used for dashboard color-coding and default filtering."
+      "description": "The key of the primary discipline (the main driver of the project). Points to a discipline type in the disciplines array. Used for dashboard color-coding and default filtering."
     },
     "job_type": {
       "type": "string",
-      "description": "Legacy primary job type key \u2014 mirrors the primary discipline's type for backward compatibility. Managed via Settings \u2192 Job Types. Falls back to the first discipline's type when not set."
+      "description": "Legacy primary project type key \u2014 mirrors the primary discipline's type for backward compatibility. Managed via Settings \u2192 Project Types. Falls back to the first discipline's type when not set."
     },
     "required_team_ids": {
       "type": "array",
@@ -229,19 +170,19 @@
         "cancelled"
       ],
       "default": "planning",
-      "description": "Job status. New jobs start in 'planning', automatically move to 'in_progress' when the rota is published, then to 'decommissioning' when work finishes and equipment is being collected, and finally 'completed' once all items are returned and the site is cleared."
+      "description": "Project status. New projects start in 'planning', automatically move to 'in_progress' when the rota is published, then to 'decommissioning' when work finishes and equipment is being collected, and finally 'completed' once all items are returned and the site is cleared."
     },
     "decommissioning_started_at": {
       "type": "string",
-      "description": "ISO timestamp when the job was moved to 'decommissioning' status. Set when the 'Finish Job' action is triggered \u2014 kicks off the logistics collection sweep."
+      "description": "ISO timestamp when the project was moved to 'decommissioning' status. Set when the 'Finish Project' action is triggered \u2014 kicks off the logistics collection sweep."
     },
     "decommissioning_completed_at": {
       "type": "string",
-      "description": "ISO timestamp when all assets were confirmed returned and the job moved to 'completed'."
+      "description": "ISO timestamp when all assets were confirmed returned and the project moved to 'completed'."
     },
     "decommissioning_checklist": {
       "type": "object",
-      "description": "Final inspection checklist completed during the decommissioning phase before the job can be marked completed.",
+      "description": "Final inspection checklist completed during the decommissioning phase before the project can be marked completed.",
       "properties": {
         "photos_uploaded": {
           "type": "boolean",
@@ -275,7 +216,7 @@
     },
     "status_reason": {
       "type": "string",
-      "description": "Reason recorded when a job is put on hold or cancelled"
+      "description": "Reason recorded when a project is put on hold or cancelled"
     },
     "status_changed_at": {
       "type": "string",
@@ -284,12 +225,12 @@
     "start_date": {
       "type": "string",
       "format": "date",
-      "description": "Job start date (overall \u2014 earliest of all discipline start dates)"
+      "description": "Project start date (overall \u2014 earliest of all discipline start dates)"
     },
     "end_date": {
       "type": "string",
       "format": "date",
-      "description": "Job end date (overall \u2014 latest of all discipline end dates)"
+      "description": "Project end date (overall \u2014 latest of all discipline end dates)"
     },
     "client_id": {
       "type": "string",
@@ -301,7 +242,7 @@
     },
     "project_manager": {
       "type": "string",
-      "description": "Project manager responsible for the job"
+      "description": "Project manager responsible for the project"
     },
     "site_contact_name": {
       "type": "string",
@@ -313,7 +254,7 @@
     },
     "notes": {
       "type": "string",
-      "description": "Job notes and details"
+      "description": "Project notes and details"
     },
     "requisition_list_url": {
       "type": "string",
@@ -330,7 +271,7 @@
     "portal_enabled": {
       "type": "boolean",
       "default": false,
-      "description": "Whether client portal access is enabled for this job"
+      "description": "Whether client portal access is enabled for this project"
     },
     "portal_sections": {
       "type": "object",
@@ -388,7 +329,7 @@
     },
     "budget_amount": {
       "type": "number",
-      "description": "Job budget in GBP for cost tracking"
+      "description": "Project budget in GBP for cost tracking"
     },
     "actual_cost": {
       "type": "number",
@@ -396,7 +337,7 @@
     },
     "meterage": {
       "type": "number",
-      "description": "Total meters drilled for drilling jobs (CP / rotary); overrides shift-level meterage for costing when set"
+      "description": "Total meters drilled for drilling projects (CP / rotary); overrides shift-level meterage for costing when set"
     },
     "meterage_rate": {
       "type": "number",
@@ -479,7 +420,7 @@
           "end_date": {
             "type": "string",
             "format": "date",
-            "description": "Date the recurring assignment ends. Blank = until the job ends."
+            "description": "Date the recurring assignment ends. Blank = until the project ends."
           }
         },
         "required": [
@@ -488,7 +429,7 @@
         ]
       },
       "default": [],
-      "description": "Permanent recurring crew \u2014 staff assigned to repeat on a weekly pattern (e.g. Mon\u2013Fri) for the job's duration. When the job's end date is extended, the syncPermanentCrew automation auto-generates RotaAssignment rows for any new working days in the pattern so the crew stays assigned without re-assigning each week."
+      "description": "Permanent recurring crew \u2014 staff assigned to repeat on a weekly pattern (e.g. Mon\u2013Fri) for the project's duration. When the project's end date is extended, the syncPermanentCrew automation auto-generates RotaAssignment rows for any new working days in the pattern so the crew stays assigned without re-assigning each week."
     }
   },
   "required": [

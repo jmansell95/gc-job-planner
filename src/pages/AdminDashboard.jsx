@@ -24,8 +24,8 @@ import { useReadiness } from '@/hooks/useReadiness';
 
 const SECTION_LABELS = {
   overview: 'Dashboard',
-  'job-detail': 'Job Detail',
-  jobs: 'Jobs Hub',
+  'job-detail': 'Project Detail',
+  jobs: 'Projects Hub',
   scheduling: 'Scheduling Hub',
   rota: 'Scheduling Hub',
   calendar: 'Calendar',

@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useScopedEntity } from '@/hooks/useScopedEntity';
-import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, FolderOpen, Copy, LayoutGrid, BarChart3, Users, Truck, PoundSterling, Calendar } from 'lucide-react';
+import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, FolderOpen, Copy, LayoutGrid, BarChart3, Users, Truck, PoundSterling, Calendar, GitBranch } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { EmptyState, ErrorState, CardGridSkeleton } from '@/components/StateViews';
 import JobDetail from '@/components/JobDetail';
 import JobWizardModal from '@/components/JobWizardModal';
+import SplitMultiSiteProjectsModal from '@/components/jobs/SplitMultiSiteProjectsModal';
 import PrintReportButton from '@/components/PrintReportButton';
 import JobCreatedModal from '@/components/JobCreatedModal';
 import JobKanbanBoard from '@/components/dashboard/JobKanbanBoard';
@@ -86,6 +87,7 @@ export default function JobManager({ onNavigateRota }) {
   const [createdJob, setCreatedJob] = useState(null);
   const [view, setView] = useState('jobs'); // 'jobs' | 'projects'
   const [layoutView, setLayoutView] = useState('grid'); // 'grid' | 'kanban'
+  const [showSplitModal, setShowSplitModal] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -210,9 +212,9 @@ export default function JobManager({ onNavigateRota }) {
   return (
     <div>
       <PageHeader
-        title="Manage Jobs"
+        title="Manage Projects"
         icon={Briefcase}
-        subtitle={`${jobs.length} job${jobs.length === 1 ? '' : 's'} in total`}
+        subtitle={`${jobs.length} project${jobs.length === 1 ? '' : 's'} in total`}
         actions={
           <>
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
@@ -223,12 +225,19 @@ export default function JobManager({ onNavigateRota }) {
                 <BarChart3 className="w-3.5 h-3.5" /> Kanban
               </button>
             </div>
-            <PrintReportButton buildHtml={buildJobsPrintHtml} label="Print Jobs List" />
+            <PrintReportButton buildHtml={buildJobsPrintHtml} label="Print Projects List" />
+            <button
+              onClick={() => setShowSplitModal(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-white text-violet-600 border border-violet-200 rounded-lg hover:bg-violet-50 transition text-sm font-semibold shadow-sm"
+              title="Split existing multi-site jobs into standalone projects"
+            >
+              <GitBranch className="w-4 h-4" /> Split Multi-Site
+            </button>
             <button
               onClick={() => { setEditingJob(null); setShowWizard(true); }}
               className="inline-flex items-center gap-2 px-3.5 py-2 bg-white text-[#2E5A1A] rounded-lg hover:bg-[#2E5A1A] hover:text-white transition text-sm font-semibold shadow-sm"
             >
-              <Plus className="w-4 h-4" /> Add Job
+              <Plus className="w-4 h-4" /> Add Project
             </button>
           </>
         }
@@ -240,6 +249,13 @@ export default function JobManager({ onNavigateRota }) {
           onClose={() => { setShowWizard(false); setEditingJob(null); }}
           onCreated={handleWizardCreated}
           editingJob={editingJob}
+        />
+      )}
+
+      {showSplitModal && (
+        <SplitMultiSiteProjectsModal
+          open={showSplitModal}
+          onClose={() => setShowSplitModal(false)}
         />
       )}
 
@@ -267,7 +283,7 @@ export default function JobManager({ onNavigateRota }) {
         return (
           <div className="mb-4">
             <HubStatsBar tiles={[
-              { icon: Briefcase, label: 'Total Jobs', value: jobs.length, sublabel: `${active} active`, color: 'brand' },
+              { icon: Briefcase, label: 'Total Projects', value: jobs.length, sublabel: `${active} active`, color: 'brand' },
               { icon: BarChart3, label: 'In Progress', value: inProgress, sublabel: 'On site now', color: 'emerald' },
               { icon: Users, label: 'Crew Deployed', value: totalCrew, sublabel: 'Across all jobs', color: 'blue' },
               { icon: Truck, label: 'Rigs In Use', value: totalRigs, sublabel: 'Active drilling', color: 'amber' },

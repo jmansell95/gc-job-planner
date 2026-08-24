@@ -69,6 +69,16 @@ export function getShiftLabel(jobType, count) {
 }
 
 /**
+ * UI labels for the "Job" entity — displayed as "Project" throughout the app.
+ * The internal entity name stays as "Job" to preserve data, imports and
+ * integrations; only user-facing text uses these labels.
+ */
+export const PROJECT_LABEL = 'Project';
+export const PROJECT_LABEL_PLURAL = 'Projects';
+export const PROJECT_LABEL_LOWER = 'project';
+export const PROJECT_LABEL_LOWER_PLURAL = 'projects';
+
+/**
  * Returns a human-friendly work activity label for the job type.
  * e.g. drilling → "drilling", groundworks → "groundworks", enabling → "enabling works"
  */
