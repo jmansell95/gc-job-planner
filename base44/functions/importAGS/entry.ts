@@ -518,6 +518,26 @@ Deno.serve(async (req) => {
     const hasCustomAuth = !!(agsSyncConfig?.ags_webhook_custom_header_name && req.headers.get(agsSyncConfig.ags_webhook_custom_header_name));
     isExternalPush = hasAuthHeader || hasCustomAuth || !!sigHeader || isKlbWebhook;
 
+    // The platform forwards the logged-in user's JWT in the Authorization
+    // header when the app UI calls functions.invoke('importAGS', ...). That
+    // Bearer token is the user's login session, NOT a KeyLogBook webhook
+    // secret — so it won't match ags_sync_secret. Before rejecting it as an
+    // invalid external push, try auth.me(): if it resolves a valid platform
+    // user, the call came from inside the app (manual upload) and should be
+    // allowed through without webhook validation. Only genuine external
+    // callers (KeyLogBook server with the correct secret, or unknown tokens)
+    // are subject to the webhook auth checks below.
+    if (isExternalPush && hasAuthHeader && authHeader.startsWith('Bearer ') && !isKlbWebhook) {
+      const bearerToken = authHeader.slice(7).trim();
+      const storedSecret = (agsSyncConfig?.ags_sync_secret || '').trim();
+      if (bearerToken !== storedSecret) {
+        try {
+          const me = await base44.auth.me();
+          if (me && me.id) isExternalPush = false; // internal app call — skip webhook validation
+        } catch (e) { /* neither KLB secret nor valid user — leave isExternalPush true to reject below */ }
+      }
+    }
+
     if (isExternalPush) {
       if (!agsSyncConfig || !agsSyncConfig.ags_sync_enabled) {
         return Response.json({ error: 'KeyLogBook AGS sync is not enabled.' }, { status: 403 });
