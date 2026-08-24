@@ -72,16 +72,19 @@ export default function JobDetailHero({
               )}
             </div>
           </div>
-          {/* Date + duration chip */}
+          {/* Date + duration chip + weather chip */}
           <div className="flex flex-col gap-2 md:items-end flex-shrink-0">
-            {startDate && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/15">
-                <Calendar className="w-4 h-4 text-white/70" />
-                <span className="text-xs font-medium text-white/90">
-                  {format(startDate, 'dd MMM')} → {endDate ? format(endDate, 'dd MMM') : 'TBC'}
-                </span>
-              </div>
-            )}
+            <div className="flex items-center gap-2 flex-wrap md:justify-end">
+              {startDate && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/15">
+                  <Calendar className="w-4 h-4 text-white/70" />
+                  <span className="text-xs font-medium text-white/90">
+                    {format(startDate, 'dd MMM')} → {endDate ? format(endDate, 'dd MMM') : 'TBC'}
+                  </span>
+                </div>
+              )}
+              <JobWeatherChip job={job} isDrillingJob={isDrillingJob} />
+            </div>
             {dayCount > 0 && (
               <div className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/15">
                 <CalendarClock className="w-4 h-4 text-[#8DC63F]" />

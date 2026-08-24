@@ -252,7 +252,8 @@ function DayForecastCard({ day, index, isToday, rigType }) {
  * - Hourly breakdown for today
  * - Visual color-coded days
  */
-export default function DrillingWeatherWidget({ lat, lng, locationName, compact, rigType }) {
+export default function DrillingWeatherWidget({
+  lat, lng, locationName, rigType, compact = false }) {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
