@@ -310,6 +310,7 @@ export default function AssetHub() {
               onOpenRig={(rig) => navigate(`/assets/${rig.id}`)}
               onOpenEquip={(equip) => navigate(`/assets/${equip.id}`)}
               onCertVault={setCertVaultRig}
+              onUploadCert={(a) => setRecertAsset(a)}
             />
           ) : view === 'deployments' ? (
             <ErrorBoundary><AssetDeploymentsPanel assets={assets} /></ErrorBoundary>

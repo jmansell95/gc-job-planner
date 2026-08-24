@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Cog, Wrench, Package, Truck, Anchor, Plug,
   ShieldCheck, ShieldAlert, ShieldX, HelpCircle,
-  ArrowLeft, Pencil, RefreshCw, QrCode, Hash, Weight,
+  ArrowLeft, Pencil, RefreshCw, QrCode, Hash, Weight, Upload,
 } from 'lucide-react';
 import { COMPLIANCE_META, ASSET_TYPE_META } from '@/utils/rigRollup';
 
@@ -45,8 +45,8 @@ export default function AssetDetailHero({ asset, onBack, onEdit, onRecert, onQR,
             </button>
           )}
           {onRecert && (
-            <button onClick={onRecert} className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-400/80 hover:bg-amber-400 text-amber-950 rounded-lg text-xs font-semibold transition">
-              <RefreshCw className="w-3.5 h-3.5" /> Recert
+            <button onClick={onRecert} className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white text-[#2E5A1A] hover:bg-white/90 rounded-lg text-xs font-bold transition shadow-sm">
+              <Upload className="w-3.5 h-3.5" /> Upload Cert
             </button>
           )}
           {onQR && (

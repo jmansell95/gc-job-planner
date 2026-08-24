@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, X, Save, FileText, ShieldCheck, Wrench, AlertTriangle, CalendarClock, Upload, ExternalLink, ClipboardCheck, Plug } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { safeFormat } from '@/utils/format';
+import { closeOpenRecertTasks } from '@/utils/recertTasks';
 
 const RECORD_TYPES = [
   { value: 'loler_inspection', label: 'LOLER Inspection', icon: ShieldCheck, tint: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
@@ -128,7 +129,12 @@ export default function ServiceHistoryPanel({ assetId, assetName, assetType }) {
           service_notes: form.notes ? `${form.tested_by ? 'Tested by ' + form.tested_by + ': ' : ''}${form.notes}` : '',
           ...(reactivating ? { is_active: true } : {}),
         });
+        // Close any open auto-created recert task when a passing statutory inspection is logged
+        if (form.result === 'pass' && ['loler_inspection', 'puwer_inspection', 'pat_inspection'].includes(form.record_type)) {
+          await closeOpenRecertTasks(assetId);
+        }
         queryClient.invalidateQueries({ queryKey: ['site-assets'] });
+        queryClient.invalidateQueries({ queryKey: ['open-recert-tasks'] });
       }
       queryClient.invalidateQueries({ queryKey: ['service-records', assetId] });
       toast({ title: 'Service record added', description: `${typeMeta(form.record_type).label} logged for ${assetName}.` });

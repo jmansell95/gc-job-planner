@@ -1,0 +1,124 @@
+{
+  "name": "ComplianceTask",
+  "type": "object",
+  "properties": {
+    "site_asset_id": {
+      "type": "string",
+      "description": "The SiteAsset this recert task is for."
+    },
+    "asset_name": {
+      "type": "string",
+      "description": "Asset name (denormalised for display in the recert queue)."
+    },
+    "division_id": {
+      "type": "string",
+      "description": "The division this task belongs to (denormalised from the asset). Drives division-scoped filtering so each business stream's compliance team only sees its own recert tasks."
+    },
+    "task_type": {
+      "type": "string",
+      "enum": [
+        "recert"
+      ],
+      "default": "recert",
+      "description": "Type of compliance task. 'recert' = statutory re-certification needed (LOLER/PUWER/PAT)."
+    },
+    "record_type": {
+      "type": "string",
+      "enum": [
+        "loler_inspection",
+        "puwer_inspection",
+        "pat_inspection",
+        "service",
+        "calibration"
+      ],
+      "default": "loler_inspection",
+      "description": "The kind of inspection this task is asking for, derived from the asset type."
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "The compliance expiry date that triggered this task. The date by which the new inspection must be logged."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "in_progress",
+        "done",
+        "cancelled"
+      ],
+      "default": "open",
+      "description": "Task lifecycle. 'open' = auto-created, awaiting action; 'in_progress' = being worked; 'done' = closed (passing inspection logged); 'cancelled' = no longer needed."
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "Who the task is assigned to \u2014 the asset's responsible person or 'Compliance Team' for the shared queue."
+    },
+    "alert_stage": {
+      "type": "string",
+      "enum": [
+        "none",
+        "30d",
+        "7d",
+        "expired"
+      ],
+      "default": "none",
+      "description": "Highest alert stage sent so far \u2014 prevents duplicate alerts. Advances none\u219230d\u21927d\u2192expired as the cert approaches/passes expiry."
+    },
+    "closed_at": {
+      "type": "string",
+      "description": "ISO timestamp when the task was closed."
+    },
+    "closed_reason": {
+      "type": "string",
+      "description": "How the task was closed (e.g. 'passing_inspection_logged', 'cancelled')."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Auto-generated context note (e.g. 'Auto-created on expiry')."
+    }
+  },
+  "required": [
+    "site_asset_id",
+    "task_type"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.division_id": "{{user.data.division_id}}"
+        },
+        {
+          "data.division_id": {
+            "$in": "{{user.data.managed_division_ids}}"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "is_enterprise_admin": true
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

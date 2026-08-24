@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { X, Save, Upload, ShieldCheck, ClipboardCheck, Plug, Wrench, CalendarClock, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { safeFormat } from '@/utils/format';
+import { closeOpenRecertTasks } from '@/utils/recertTasks';
 
 const RECORD_TYPES = [
   { value: 'loler_inspection', label: 'LOLER Inspection', icon: ShieldCheck, tint: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
@@ -104,11 +105,16 @@ export default function RecertActionModal({ asset, onClose, onSaved }) {
           ...(reactivating ? { is_active: true } : {}),
         });
       }
+      // Close any open auto-created recert task now that a passing inspection is logged
+      if (form.result === 'pass') {
+        await closeOpenRecertTasks(asset.id);
+      }
       queryClient.invalidateQueries({ queryKey: ['site-assets'] });
       queryClient.invalidateQueries({ queryKey: ['service-records', asset.id] });
       queryClient.invalidateQueries({ queryKey: ['cert-vault'] });
       queryClient.invalidateQueries({ queryKey: ['master-cert-vault'] });
       queryClient.invalidateQueries({ queryKey: ['recert-pipeline'] });
+      queryClient.invalidateQueries({ queryKey: ['open-recert-tasks'] });
       toast({ title: 'Re-cert logged', description: `${asset.name} marked ${form.result === 'fail' ? 'failed' : 'compliant'} · next due ${expiryDate ? safeFormat(expiryDate, 'dd MMM yyyy') : 'n/a'}${form.result === 'pass' && asset.is_active === false ? ' · reactivated' : ''}.` });
       onSaved?.();
       onClose();

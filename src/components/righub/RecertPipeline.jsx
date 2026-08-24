@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ShieldX, ShieldAlert, CalendarClock, AlertTriangle, HelpCircle, Cog, Wrench,
-  Package, Truck, Anchor, Plug, ChevronRight, Link2, RefreshCw, Filter,
+  Package, Truck, Anchor, Plug, ChevronRight, Link2, RefreshCw, Filter, Upload, ClipboardList,
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { safeFormat } from '@/utils/format';
@@ -22,6 +22,11 @@ export default function RecertPipeline({ assets = [], onRecert, onOpenAsset }) {
     queryKey: ['recert-pipeline'],
     queryFn: () => base44.entities.ServiceRecord.list('-date', 200),
   });
+  const { data: openTasks = [] } = useQuery({
+    queryKey: ['open-recert-tasks'],
+    queryFn: () => base44.entities.ComplianceTask.filter({ status: 'open' }),
+  });
+  const openTaskCount = (openTasks || []).length;
 
   const rigs = useMemo(() => assets.filter(a => a.asset_type === 'rig'), [assets]);
 
@@ -93,6 +98,11 @@ export default function RecertPipeline({ assets = [], onRecert, onOpenAsset }) {
             <RefreshCw className="w-4 h-4 text-emerald-600" />
             <p className="text-sm font-semibold text-slate-800">Re-certification Queue</p>
             <span className="text-xs text-slate-400">{filtered.length} item{filtered.length !== 1 ? 's' : ''}</span>
+            {openTaskCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200" title="Auto-created recert tasks assigned to the compliance team">
+                <ClipboardList className="w-3 h-3" /> {openTaskCount} open task{openTaskCount !== 1 ? 's' : ''}
+              </span>
+            )}
           </div>
           {group !== 'all' && (
             <button onClick={() => setGroup('all')} className="text-xs text-emerald-700 font-medium hover:underline flex items-center gap-1">
@@ -141,7 +151,7 @@ export default function RecertPipeline({ assets = [], onRecert, onOpenAsset }) {
                   </div>
                   <button onClick={() => onRecert?.(asset)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white rounded-lg text-xs font-semibold hover:brightness-110 transition flex-shrink-0">
-                    <RefreshCw className="w-3.5 h-3.5" /> Re-cert
+                    <Upload className="w-3.5 h-3.5" /> Upload Cert
                   </button>
                 </div>
               );

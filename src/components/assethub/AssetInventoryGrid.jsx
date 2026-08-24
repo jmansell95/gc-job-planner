@@ -3,7 +3,7 @@ import {
   Cog, Wrench, Package, Truck, Anchor, Plug, ShieldCheck, ShieldAlert, ShieldX,
   HelpCircle, ChevronRight, Link2, Lock, ScanLine, Check, CheckSquare, Database, CircleDot,
   Warehouse, MapPin, CalendarClock, AlertTriangle, Boxes, Hash, Ruler, Gauge, Clock,
-  TrendingDown, PoundSterling, Activity, Weight,
+  TrendingDown, PoundSterling, Activity, Weight, Upload,
 } from 'lucide-react';
 import { rollupCompliance, derivedComplianceStatus, COMPLIANCE_META, ASSET_TYPE_META, findParentRig, daysUntil } from '@/utils/rigRollup';
 import RigUtilizationSparkline from '@/components/righub/RigUtilizationSparkline';
@@ -210,7 +210,7 @@ function StatPill({ icon: Icon, label, value, tone }) {
 export default function AssetInventoryGrid({
   assets, rigs, category, search, compFilter, sourceFilter = 'all', depotOnly = false,
   selectionMode, selected, setSelected,
-  onOpenRig, onOpenEquip, onCertVault,
+  onOpenRig, onOpenEquip, onCertVault, onUploadCert,
 }) {
   const q = search.toLowerCase().trim();
 
@@ -380,9 +380,14 @@ export default function AssetInventoryGrid({
                     })()}
                     <RigUtilizationSparkline rigId={rig.id} />
                     {rig.next_service_date && <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1"><ScanLine className="w-3 h-3" /> Next service {safeFmt(rig.next_service_date)}</p>}
-                    <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); onCertVault(rig); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onCertVault(rig); } }} className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[#2E5A1A]/10 hover:bg-[#2E5A1A]/20 text-[#2E5A1A] rounded-lg text-[11px] font-semibold transition w-full justify-center">
-                      <Lock className="w-3.5 h-3.5" /> View Certificates
-                    </span>
+                    <div className="mt-2 flex gap-1.5">
+                      <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); onCertVault(rig); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onCertVault(rig); } }} className="flex-1 inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[#2E5A1A]/10 hover:bg-[#2E5A1A]/20 text-[#2E5A1A] rounded-lg text-[11px] font-semibold transition justify-center">
+                        <Lock className="w-3.5 h-3.5" /> Certs
+                      </span>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); onUploadCert?.(rig); }} className="flex-1 inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[#2E5A1A] hover:bg-[#244715] text-white rounded-lg text-[11px] font-semibold transition justify-center">
+                        <Upload className="w-3.5 h-3.5" /> Upload Cert
+                      </button>
+                    </div>
                   </div>
                 </button>
               );
@@ -495,6 +500,11 @@ export default function AssetInventoryGrid({
                       <p className={`text-[10px] font-medium mt-1.5 flex items-center gap-1 ${d < 0 ? 'text-red-600' : d <= 30 ? 'text-amber-600' : 'text-slate-400'}`}>
                         <CalendarClock className="w-3 h-3" /> {d < 0 ? 'Expired' : `${d}d left`} · {safeFmt(equip.compliance_expiry_date)}
                       </p>
+                    )}
+                    {!selectionMode && (
+                      <button type="button" onClick={(e) => { e.stopPropagation(); onUploadCert?.(equip); }} className="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-[#2E5A1A] hover:bg-[#244715] text-white rounded-lg text-[11px] font-semibold transition">
+                        <Upload className="w-3.5 h-3.5" /> Upload Cert
+                      </button>
                     )}
                   </div>
                 </div>

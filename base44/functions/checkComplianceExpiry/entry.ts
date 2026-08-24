@@ -32,100 +32,221 @@ function parseDate(str) {
   return new Date(str + 'T00:00:00');
 }
 
+// Whole days from now until a YYYY-MM-DD date (negative = past).
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return null;
+  return Math.floor((d.getTime() - Date.now()) / 86400000);
+}
+
+// Derive the most likely statutory inspection type from the asset type.
+function recordTypeForAsset(assetType) {
+  if (assetType === 'portable_appliance') return 'pat_inspection';
+  if (assetType === 'rig' || assetType === 'lifting') return 'loler_inspection';
+  return 'puwer_inspection';
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    const settings = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'compliance_expiry' });
-    const cfg = settings[0];
-    if (!cfg || cfg.enabled === false) {
-      return Response.json({ skipped: true, reason: 'Alert disabled or not configured' });
-    }
-    if (!cfg.template) {
-      return Response.json({ skipped: true, reason: 'No template configured for compliance expiry' });
-    }
-    const daysBefore = (cfg && cfg.days_before_warning) ? cfg.days_before_warning : 30;
+    // ── Part 1: ComplianceItem (staff / vehicle / company) expiry alerts ──
+    let ciResult = { sent: false, alertCount: 0, notifiedRecipients: 0, skipped: null };
+    try {
+      const settings = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'compliance_expiry' });
+      const cfg = settings[0];
+      if (!cfg || cfg.enabled === false) {
+        ciResult.skipped = 'Alert disabled or not configured';
+      } else if (!cfg.template) {
+        ciResult.skipped = 'No template configured for compliance expiry';
+      } else {
+        const daysBefore = (cfg && cfg.days_before_warning) ? cfg.days_before_warning : 30;
+        const complianceItems = await base44.asServiceRole.entities.ComplianceItem.list('-created_date', 500);
+        const staff = await base44.asServiceRole.entities.Staff.list();
+        const users = await base44.asServiceRole.entities.User.list();
+        const admins = users.filter(u => u.role === 'admin');
 
-    const complianceItems = await base44.asServiceRole.entities.ComplianceItem.list('-created_date', 500);
-    const staff = await base44.asServiceRole.entities.Staff.list();
-    const users = await base44.asServiceRole.entities.User.list();
-    const admins = users.filter(u => u.role === 'admin');
+        let recipients = [];
+        if (cfg && cfg.recipient_emails) {
+          recipients = cfg.recipient_emails.split(',').map(s => s.trim()).filter(Boolean);
+        } else {
+          recipients = admins.map(u => u.email).filter(Boolean);
+        }
 
-    let recipients = [];
-    if (cfg && cfg.recipient_emails) {
-      recipients = cfg.recipient_emails.split(',').map(s => s.trim()).filter(Boolean);
-    } else {
-      recipients = admins.map(u => u.email);
-    }
-    if (recipients.length === 0) {
-      return Response.json({ skipped: true, reason: 'No recipients configured' });
-    }
+        const now = new Date();
+        const cutoff = new Date(now.getTime() + daysBefore * 24 * 60 * 60 * 1000);
 
-    const now = new Date();
-    const cutoff = new Date(now.getTime() + daysBefore * 24 * 60 * 60 * 1000);
-
-    const alerts = [];
-    complianceItems.forEach(c => {
-      if (c.status_override === 'not_required' || c.status_override === 'missing') return;
-      if (!c.expiry_date) return;
-      const expiry = parseDate(c.expiry_date);
-      if (!expiry || isNaN(expiry.getTime())) return;
-
-      let status = null;
-      if (expiry < now) {
-        status = 'EXPIRED';
-      } else if (expiry <= cutoff) {
-        status = 'Expiring soon';
-      }
-
-      if (status) {
-        const staffMember = staff.find(s => s.id === c.reference_id || s.name === c.reference_name);
-        alerts.push({
-          title: c.title,
-          category: c.category,
-          referenceName: c.reference_name || staffMember?.name || 'Unknown',
-          expiryDate: c.expiry_date,
-          status
+        const alerts = [];
+        complianceItems.forEach(c => {
+          if (c.status_override === 'not_required' || c.status_override === 'missing') return;
+          if (!c.expiry_date) return;
+          const expiry = parseDate(c.expiry_date);
+          if (!expiry || isNaN(expiry.getTime())) return;
+          let status = null;
+          if (expiry < now) status = 'EXPIRED';
+          else if (expiry <= cutoff) status = 'Expiring soon';
+          if (status) {
+            const staffMember = staff.find(s => s.id === c.reference_id || s.name === c.reference_name);
+            alerts.push({
+              title: c.title,
+              category: c.category,
+              referenceName: c.reference_name || staffMember?.name || 'Unknown',
+              expiryDate: c.expiry_date,
+              status
+            });
+          }
         });
+
+        if (alerts.length > 0 && recipients.length > 0) {
+          alerts.sort((a, b) => {
+            if (a.status === 'EXPIRED' && b.status !== 'EXPIRED') return -1;
+            if (b.status === 'EXPIRED' && a.status !== 'EXPIRED') return 1;
+            return a.expiryDate.localeCompare(b.expiryDate);
+          });
+          let alertList = '';
+          alerts.forEach(a => {
+            alertList += a.referenceName + ' — ' + a.title + ' (' + a.category + '):\n';
+            alertList += '  ' + a.status + ' (expiry: ' + a.expiryDate + ')\n';
+          });
+          const subject = cfg.subject
+            ? cfg.subject.replace(/\{alert_count\}/g, String(alerts.length))
+            : 'Compliance Expiry Alert - ' + alerts.length + ' item(s) need attention';
+          const text = cfg.template
+            .replace(/\{alert_count\}/g, String(alerts.length))
+            .replace(/\{alert_list\}/g, alertList);
+          const baseUrl = await getAppBaseUrl(base44);
+          const bodyHtml = escapeHtml(text).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/admin', 'Open planner');
+          for (const to of recipients) {
+            await base44.asServiceRole.integrations.Core.SendEmail({ to, subject, body: styledHtml(bodyHtml, cfg) });
+          }
+          ciResult = { sent: true, alertCount: alerts.length, notifiedRecipients: recipients.length };
+        } else {
+          ciResult = { sent: false, alertCount: 0, checked: complianceItems.length };
+        }
       }
-    });
+    } catch (e) { ciResult = { error: e.message }; }
 
-    if (alerts.length === 0) {
-      return Response.json({ sent: false, reason: 'No compliance alerts', checked: complianceItems.length });
-    }
+    // ── Part 2: SiteAsset certificate expiry — alerts, recert tasks, deactivation ──
+    let assetResult = { checked: 0, alertsSent: 0, tasksCreated: 0, tasksUpdated: 0, deactivated: 0 };
+    try {
+      const assets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 2000);
+      const staff = await base44.asServiceRole.entities.Staff.list();
+      const users = await base44.asServiceRole.entities.User.list();
+      const admins = users.filter(u => u.role === 'admin');
+      const existingTasks = await base44.asServiceRole.entities.ComplianceTask.list('-created_date', 500);
+      const recentRecords = await base44.asServiceRole.entities.ServiceRecord.list('-date', 1000);
+      const baseUrl = await getAppBaseUrl(base44);
+      const assetsPath = baseUrl ? baseUrl.replace(/\/+$/, '') + '/assets' : '';
 
-    // Sort: expired first, then by expiry date
-    alerts.sort((a, b) => {
-      if (a.status === 'EXPIRED' && b.status !== 'EXPIRED') return -1;
-      if (b.status === 'EXPIRED' && a.status !== 'EXPIRED') return 1;
-      return a.expiryDate.localeCompare(b.expiryDate);
-    });
+      const stageRank = { none: 0, '30d': 1, '7d': 2, expired: 3 };
 
-    let alertList = '';
-    alerts.forEach(a => {
-      alertList += a.referenceName + ' — ' + a.title + ' (' + a.category + '):\n';
-      alertList += '  ' + a.status + ' (expiry: ' + a.expiryDate + ')\n';
-    });
+      for (const asset of assets) {
+        const days = daysUntil(asset.compliance_expiry_date);
+        if (days === null) continue;
+        assetResult.checked++;
 
-    const subject = cfg.subject
-      ? cfg.subject.replace(/\{alert_count\}/g, String(alerts.length))
-      : 'Compliance Expiry Alert - ' + alerts.length + ' item(s) need attention';
-    const text = cfg.template
-      .replace(/\{alert_count\}/g, String(alerts.length))
-      .replace(/\{alert_list\}/g, alertList);
+        let stage = null;
+        if (days < 0) stage = 'expired';
+        else if (days <= 7) stage = '7d';
+        else if (days <= 30) stage = '30d';
+        if (!stage) continue;
 
-    const baseUrl = await getAppBaseUrl(base44);
-    const bodyHtml = escapeHtml(text).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/admin', 'Open planner');
+        // Find existing open task for this asset
+        const task = existingTasks.find(t => t.site_asset_id === asset.id && t.status === 'open');
+        const currentStage = task?.alert_stage || 'none';
+        const shouldAlert = stageRank[stage] > stageRank[currentStage];
 
-    for (const to of recipients) {
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to,
-        subject,
-        body: styledHtml(bodyHtml, cfg)
-      });
-    }
+        // Resolve recipients: compliance team (division admins) + responsible person (best-effort email)
+        const divAdmins = asset.division_id ? admins.filter(u => u.division_id === asset.division_id) : admins;
+        const complianceEmails = divAdmins.map(u => u.email).filter(Boolean);
+        let respEmail = null;
+        if (asset.responsible_person) {
+          const s = staff.find(st => st.name === asset.responsible_person);
+          if (s && s.email) respEmail = s.email;
+        }
+        const recipients = [...new Set([...complianceEmails, ...(respEmail ? [respEmail] : [])])];
 
-    return Response.json({ sent: true, alertCount: alerts.length, notifiedRecipients: recipients.length, alerts });
+        if (shouldAlert && recipients.length > 0) {
+          const subj = stage === 'expired'
+            ? `OVERDUE: ${asset.name} certificate has expired`
+            : `Action needed: ${asset.name} certificate ${stage === '7d' ? 'expires in 7 days' : 'expires in 30 days'}`;
+          const expiryStr = asset.compliance_expiry_date;
+          let bodyText = `The ${asset.asset_type || 'asset'} "${asset.name}"${asset.fleet_number ? ` (FAA ${asset.fleet_number})` : ''} has a compliance certificate ${stage === 'expired' ? 'that EXPIRED on' : 'expiring on'} ${expiryStr}.\n\n`;
+          bodyText += stage === 'expired'
+            ? `This asset has been deactivated and cannot be assigned to jobs until a new passing inspection is logged.\n`
+            : `Please arrange re-certification before this date to keep the asset available.\n`;
+          if (asset.responsible_person) bodyText += `\nResponsible person: ${asset.responsible_person}\n`;
+          bodyText += `\nOpen the Assets Hub to log the new inspection.`;
+          const bodyHtml = styledHtml(escapeHtml(bodyText).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/assets', 'Open Assets Hub'), null);
+          for (const to of recipients) {
+            try { await base44.asServiceRole.integrations.Core.SendEmail({ to, subject: subj, body: bodyHtml }); } catch (e) {}
+          }
+          // Push to compliance team admins (best-effort — requires native mobile build)
+          for (const u of divAdmins) {
+            try {
+              await base44.asServiceRole.integrations.Core.SendPushNotification({
+                user_id: u.id,
+                title: subj,
+                content: bodyText.slice(0, 200),
+                action_url: assetsPath || undefined,
+              });
+            } catch (e) {}
+          }
+          assetResult.alertsSent++;
+        }
+
+        // Create / update the recert task
+        const recordType = recordTypeForAsset(asset.asset_type);
+        if (!task) {
+          try {
+            await base44.asServiceRole.entities.ComplianceTask.create({
+              site_asset_id: asset.id,
+              asset_name: asset.name,
+              division_id: asset.division_id || undefined,
+              task_type: 'recert',
+              record_type: recordType,
+              due_date: asset.compliance_expiry_date,
+              status: 'open',
+              assigned_to: asset.responsible_person || 'Compliance Team',
+              alert_stage: stage,
+              notes: stage === 'expired' ? 'Auto-created on expiry' : 'Auto-created on upcoming expiry',
+            });
+            assetResult.tasksCreated++;
+          } catch (e) {}
+        } else if (shouldAlert) {
+          try {
+            await base44.asServiceRole.entities.ComplianceTask.update(task.id, {
+              alert_stage: stage,
+              due_date: asset.compliance_expiry_date,
+            });
+            assetResult.tasksUpdated++;
+          } catch (e) {}
+        }
+
+        // Auto-deactivate expired assets with no passing inspection since the expiry date
+        if (days < 0 && asset.is_active !== false) {
+          const recerted = recentRecords.some(r =>
+            r.site_asset_id === asset.id &&
+            ['loler_inspection', 'puwer_inspection', 'pat_inspection'].includes(r.record_type) &&
+            r.result === 'pass' &&
+            r.date && new Date(r.date + 'T00:00:00') >= new Date(asset.compliance_expiry_date + 'T00:00:00')
+          );
+          if (!recerted) {
+            try {
+              await base44.asServiceRole.entities.SiteAsset.update(asset.id, {
+                is_active: false,
+                compliance_status: 'expired',
+                compliance_last_checked: new Date().toISOString(),
+              });
+              assetResult.deactivated++;
+            } catch (e) {}
+          }
+        }
+      }
+    } catch (e) { assetResult = { ...assetResult, error: e.message }; }
+
+    return Response.json({ complianceItems: ciResult, assets: assetResult });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
