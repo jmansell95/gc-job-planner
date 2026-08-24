@@ -23,6 +23,7 @@ const SOURCE_MAP: Record<string, string> = {
   DailyCost: 'cost',
   JobAssetAssignment: 'asset_assignment',
   JobCostItem: 'job_cost_item',
+  JobBillOfQuantities: 'boq_variation',
   Timesheet: 'timesheet',
 };
 

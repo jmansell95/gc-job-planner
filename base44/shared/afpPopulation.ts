@@ -119,6 +119,26 @@ export function buildFromDailyCost(afpId: string, jobId: string, cost: any): any
   };
 }
 
+export function buildFromBOQVariation(afpId: string, jobId: string, variation: any): any | null {
+  // Only approved variations (status='complete', is_variation=true) are billable.
+  if (!variation.is_variation || variation.status !== 'complete') return null;
+  const qty = toNum(variation.agreed_quantity);
+  const rate = toNum(variation.agreed_unit_price);
+  const amount = Math.round(qty * rate * 100) / 100;
+  if (amount <= 0) return null;
+  return {
+    afp_id: afpId, job_id: jobId, sheet_name: 'variations',
+    category: variation.category || 'other',
+    item: variation.description || 'Variation',
+    unit: variation.unit || 'nr', qty, rate, amount,
+    source: 'job_cost_item',
+    source_date: variation.approved_at ? String(variation.approved_at).slice(0, 10) : new Date().toISOString().slice(0, 10),
+    source_id: `boqvar_${variation.id}`,
+    is_manual: false, dispute_status: 'none',
+    original_amount: amount, agreed_amount: amount,
+  };
+}
+
 export function buildFromJobCostItem(afpId: string, jobId: string, item: any): any | null {
   // Exclude contractor/client-supplied (non-billable — no cost or charge to us)
   if (item.category === 'contractor_supplied' || item.category === 'client_supplied') return null;
@@ -301,6 +321,7 @@ export async function syncSourceRecordToAFP(base44: any, sourceType: string, rec
     else if (sourceType === 'delivery') line = buildFromDeliveryLog(afp.id, jobId, record);
     else if (sourceType === 'cost') line = buildFromDailyCost(afp.id, jobId, record);
     else if (sourceType === 'job_cost_item') line = buildFromJobCostItem(afp.id, jobId, record);
+    else if (sourceType === 'boq_variation') line = buildFromBOQVariation(afp.id, jobId, record);
     if (!line) return { skipped: 'not_billable' };
     await upsertAFPLineItem(base44, afp.id, line);
     result = { action: 'upserted', amount: line.amount };
@@ -322,7 +343,7 @@ export async function bulkPopulateAFP(base44: any, afpId: string, userName: stri
   const startDate = afp.period_start_date || '';
   const endDate = afp.period_end_date || new Date().toISOString().slice(0, 10);
 
-  const [logs, subcons, timesheets, deliveries, costs, assignments, costItems] = await Promise.all([
+  const [logs, subcons, timesheets, deliveries, costs, assignments, costItems, boqVariations] = await Promise.all([
     base44.entities.InvestigationLog.filter({ job_id: afp.job_id }, '-created_date', 500),
     base44.entities.SubcontractorLog.filter({ job_id: afp.job_id }, '-created_date', 500),
     base44.entities.Timesheet.filter({ job_id: afp.job_id }, '-created_date', 500),
@@ -330,6 +351,7 @@ export async function bulkPopulateAFP(base44: any, afpId: string, userName: stri
     base44.entities.DailyCost.filter({ job_id: afp.job_id }, '-created_date', 500),
     base44.entities.JobAssetAssignment.filter({ job_id: afp.job_id }, '-created_date', 500),
     base44.entities.JobCostItem.filter({ job_id: afp.job_id }, '-created_date', 500),
+    base44.entities.JobBillOfQuantities.filter({ job_id: afp.job_id, is_variation: true, status: 'complete' }, '-approved_at', 500),
   ]);
 
   const fLogs = logs.filter((l: any) => inRange(l.date, startDate, endDate));
@@ -368,6 +390,7 @@ export async function bulkPopulateAFP(base44: any, afpId: string, userName: stri
   for (const del of fDeliveries) push(buildFromDeliveryLog(afpId, afp.job_id, del));
   for (const cost of fCosts) push(buildFromDailyCost(afpId, afp.job_id, cost));
   for (const ci of fCostItems) push(buildFromJobCostItem(afpId, afp.job_id, ci));
+  for (const bv of boqVariations) push(buildFromBOQVariation(afpId, afp.job_id, bv));
 
   // Asset assignments (grouped by asset, rate-resolved)
   const assetGroups: Record<string, any[]> = {};
@@ -444,6 +467,7 @@ export async function bulkPopulateAFP(base44: any, afpId: string, userName: stri
       daily_costs: fCosts.length,
       asset_assignments: fAssignments.length,
       job_cost_items: fCostItems.length,
+      boq_variations: boqVariations.length,
     },
     total,
     agreed_total: agreedTotal,
