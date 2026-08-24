@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { TrendingUp, TrendingDown, PoundSterling, FileBarChart, Calculator, Target, Calendar, RefreshCw, Loader2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, PoundSterling, FileBarChart, Calculator, Target, Calendar, RefreshCw, Loader2, Download } from 'lucide-react';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
 const fmtPct = (n) => {
@@ -16,6 +16,25 @@ const fmtPct = (n) => {
  * the auto-generated CVR that pushAFPToCVR creates/updates.
  */
 export default function AFPCVRView({ job }) {
+  const [exporting, setExporting] = useState(false);
+
+  const handleDownloadExcel = async () => {
+    if (!cvr) return;
+    setExporting(true);
+    try {
+      const res = await base44.functions.invoke('exportCVRToExcel', { cvr_id: cvr.id });
+      const data = res.data || res;
+      if (data.error) throw new Error(data.error);
+      const a = document.createElement('a');
+      a.href = data.file_url;
+      a.download = data.file_name || `CVR_${job?.name || 'job'}.xlsx`;
+      a.click();
+    } catch (e) {
+      console.error('CVR Excel export failed:', e);
+    }
+    setExporting(false);
+  };
+
   const { data: cvrs = [], isLoading } = useQuery({
     queryKey: ['cvr', job.id],
     queryFn: () => base44.entities.CVR.filter({ job_id: job.id }),
@@ -53,12 +72,24 @@ export default function AFPCVRView({ job }) {
 
   return (
     <div className="space-y-3">
-      {/* Auto-generated banner */}
-      <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5">
-        <RefreshCw className="w-4 h-4 text-blue-600 flex-shrink-0" />
-        <p className="text-xs text-blue-700 font-semibold">
-          Auto-generated from AFP agreed values — no manual upload required
-        </p>
+      {/* Auto-generated banner + download */}
+      <div className="flex items-center justify-between gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <RefreshCw className="w-4 h-4 text-blue-600 flex-shrink-0" />
+          <p className="text-xs text-blue-700 font-semibold">
+            Auto-generated from AFP agreed values — no manual upload required
+          </p>
+        </div>
+        <button
+          onClick={handleDownloadExcel}
+          disabled={exporting}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold transition active:scale-95 disabled:opacity-50"
+          title="Download CVR as Excel"
+        >
+          {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+          <span className="hidden sm:inline">Download Excel</span>
+          <span className="sm:hidden">Excel</span>
+        </button>
       </div>
 
       {/* P&L Hero Banner */}

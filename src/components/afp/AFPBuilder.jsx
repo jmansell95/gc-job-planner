@@ -6,12 +6,13 @@ import {
   Plus, Loader2, Clock, Receipt, PoundSterling,
   MessageSquare, X, FileBarChart,
   TrendingUp, Zap, CheckSquare, Square, Trash2, Search,
-  ChevronDown, ChevronRight, GitBranch, Package,
+  ChevronDown, ChevronRight, GitBranch, Package, Upload,
 } from 'lucide-react';
 import CreateFirstAFPModal from './CreateFirstAFPModal';
 import AFPDatesEditor from './AFPDatesEditor';
 import AFPDisputeRow from './AFPDisputeRow';
 import AFPExportButtons from './AFPExportButtons';
+import AFPUploadModal from '@/components/cvr/AFPUploadModal';
 import AFPDualSideTable from './AFPDualSideTable';
 import AFPVariationLifecycle from './AFPVariationLifecycle';
 import AFPCompensationItems from './AFPCompensationItems';
@@ -86,6 +87,7 @@ export default function AFPBuilder({ job }) {
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [confirmDeleteAfpId, setConfirmDeleteAfpId] = useState(null);
   const [deletingAfp, setDeletingAfp] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
 
   const { data: afps = [], isLoading: afpsLoading } = useQuery({
     queryKey: ['afp', job.id],
@@ -437,17 +439,26 @@ export default function AFPBuilder({ job }) {
               <TrendingUp className="w-3 h-3" /> CVR auto-generated
             </span>
           </div>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white rounded-xl text-sm font-bold transition active:scale-95 shadow-sm glow-brand"
-          >
-            <Plus className="w-4 h-4" /> Create First AFP
-          </button>
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <button
+              onClick={() => setShowCreate(true)}
+              className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white rounded-xl text-sm font-bold transition active:scale-95 shadow-sm glow-brand"
+            >
+              <Plus className="w-4 h-4" /> Create First AFP
+            </button>
+            <button
+              onClick={() => setShowUpload(true)}
+              className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-xl text-sm font-bold transition active:scale-95 shadow-sm"
+            >
+              <Upload className="w-4 h-4" /> Upload AFP Excel
+            </button>
+          </div>
           <p className="text-[11px] text-slate-400 mt-3">
             Tip: AFPs auto-create when the rota is published and the job goes live.
           </p>
         </div>
         {showCreate && <CreateFirstAFPModal job={job} onClose={() => setShowCreate(false)} onCreated={(id) => { setSelectedAfpId(id); invalidate(); }} />}
+        {showUpload && <AFPUploadModal job={job} onClose={() => setShowUpload(false)} />}
       </>
     );
   }
@@ -575,6 +586,13 @@ export default function AFPBuilder({ job }) {
                 </button>
               )}
               <AFPExportButtons afp={selectedAfp} job={job} />
+              <button
+                onClick={() => setShowUpload(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-xl text-xs font-bold transition active:scale-95 shadow-sm"
+                title="Upload an AFP Excel file to import historical data"
+              >
+                <Upload className="w-3.5 h-3.5" /> Upload AFP
+              </button>
             </div>
           </div>
 
@@ -1251,6 +1269,8 @@ export default function AFPBuilder({ job }) {
           regenerating={regenerating}
         />
       )}
+
+      {showUpload && <AFPUploadModal job={job} onClose={() => setShowUpload(false)} />}
     </div>
   );
 }
