@@ -58,12 +58,6 @@ export default function JobDetailHero({
             <div className="flex items-center gap-2 mt-2 text-white/80 text-sm flex-wrap">
               <MapPin className="w-4 h-4 flex-shrink-0" />
               <span className="truncate">{job.location}</span>
-              {Array.isArray(job.sites) && job.sites.length > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/15 backdrop-blur-sm rounded-full text-[11px] font-bold border border-white/20">
-                  <Layers className="w-3 h-3" />
-                  {job.sites.length} {job.sites.length === 1 ? 'site' : 'sites'}
-                </span>
-              )}
               {job.what3words && (
                 <span className="inline-flex items-center rounded-full font-mono font-semibold bg-white/15 text-white border border-white/20 text-[11px] px-2.5 py-1 gap-1.5" onClick={(e) => e.stopPropagation()}>
                   <MapPin className="w-3 h-3" />

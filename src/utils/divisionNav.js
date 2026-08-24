@@ -17,7 +17,7 @@ export const NAV_ITEM_REGISTRY = {
   schedule:    { id: 'schedule',    label: 'Schedule',  icon: 'Calendar',  path: '/staff-schedule' },
   scan:        { id: 'scan',        label: 'Scan',      icon: 'ScanLine',  path: '/scanner',         highlight: true },
   deliveries:  { id: 'deliveries',  label: 'Driver Hub',icon: 'Truck',     path: '/deliveries' },
-  jobs:        { id: 'jobs',        label: 'Jobs',      icon: 'Briefcase', path: '/admin' },
+  jobs:        { id: 'jobs',        label: 'Projects',  icon: 'Briefcase', path: '/admin' },
   dashboard:   { id: 'dashboard',   label: 'Dashboard', icon: 'Grid3x3',   path: '/admin' },
   compliance:  { id: 'compliance',  label: 'Compliance', icon: 'ShieldCheck', path: '/compliance' },
   assets:      { id: 'assets',      label: 'Assets',    icon: 'Boxes',     path: '/assets' },

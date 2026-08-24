@@ -87,7 +87,7 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
 
   const allNavItems = [
     { id: 'overview', label: 'Dashboard', icon: Grid3x3 },
-    { id: 'jobs', label: 'Jobs Hub', icon: Briefcase },
+    { id: 'jobs', label: 'Projects Hub', icon: Briefcase },
     { id: 'scheduling', label: 'Scheduling Hub', icon: Calendar },
     { id: 'staff', label: 'Staff Hub', icon: Users },
     { id: 'logistics', label: 'Logistics Hub', icon: Truck },

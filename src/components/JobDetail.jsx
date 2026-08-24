@@ -161,7 +161,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
       const shifts = rotas.filter(r => r.staff_id === s.id).length;
       return `<tr><td>${s.name}</td><td>${roleLabels[s.job_role] || s.job_role}</td><td>${s.worker_type?.replace(/_/g,' ')}</td><td>${shifts}</td></tr>`;
     }).join('');
-    return `<!DOCTYPE html><html><head><title>Job Report – ${job.name}</title>
+    return `<!DOCTYPE html><html><head><title>Project Report – ${job.name}</title>
     <style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px;color:#111}h1{font-size:18px;margin-bottom:2px}h2{font-size:13px;margin:16px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px}table{width:100%;border-collapse:collapse}th{background:#1a5c3a;color:white;padding:5px 8px;text-align:left;font-size:11px}td{padding:5px 8px;border-bottom:1px solid #e2e8f0}@media print{body{margin:10mm}}</style></head><body>
     <h1>${job.name}</h1><div style="color:#555;font-size:11px;margin-bottom:14px">${getJobTypeLabel(primaryType, jobTypes)} · ${job.location} · ${job.start_date} → ${job.end_date || 'TBC'}</div>
     ${assignedStaff.length > 0 ? `<h2>Assigned Staff (${assignedStaff.length})</h2><table><thead><tr><th>Name</th><th>Role</th><th>Type</th><th>Shifts</th></tr></thead><tbody>${staffRows}</tbody></table>` : ''}
@@ -187,13 +187,13 @@ export default function JobDetail({ job: initialJob, onBack }) {
           <span className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center group-hover:border-[#2E5A1A]/30 group-hover:bg-[#2E5A1A]/5 transition">
             <ArrowLeft className="w-4 h-4" />
           </span>
-          <span className="hidden sm:inline">Back to Jobs</span>
+          <span className="hidden sm:inline">Back to Projects</span>
         </button>
         <div className="flex items-center gap-1.5">
           {job.status === 'in_progress' && (
             <button onClick={() => setShowFinishModal(true)}
               className="flex items-center gap-2 px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition text-sm font-semibold shadow-sm hover:shadow-md">
-              <AlertTriangle className="w-4 h-4" /> <span className="hidden sm:inline">Finish Job</span>
+              <AlertTriangle className="w-4 h-4" /> <span className="hidden sm:inline">Finish Project</span>
             </button>
           )}
           {job.status === 'decommissioning' && (

@@ -14,7 +14,7 @@ export default function JobCreatedModal({ job, onView, onBuildRota, onLater, onC
           <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-3">
             <CheckCircle2 className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-xl font-bold text-white">Job Created!</h2>
+          <h2 className="text-xl font-bold text-white">Project Created!</h2>
           <p className="text-emerald-100 text-sm mt-1">{job.name}</p>
           {(job.disciplines || []).length > 0 && (
             <div className="mt-2 flex justify-center"><DisciplinePills job={job} size="sm" /></div>
@@ -28,17 +28,17 @@ export default function JobCreatedModal({ job, onView, onBuildRota, onLater, onC
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-900">What's next?</p>
-              <p className="text-sm text-slate-500 mt-0.5">Open the job to assign required teams, build the weekly rota, and publish it to your staff.</p>
+              <p className="text-sm text-slate-500 mt-0.5">Open the project to assign required teams, build the weekly rota, and publish it to your staff.</p>
             </div>
           </div>
 
           <div className="flex flex-col gap-2.5">
             <button onClick={onView} className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm">
-              <Eye className="w-4 h-4" /> View Job & Set Up Now
+              <Eye className="w-4 h-4" /> View Project & Set Up Now
             </button>
             {onBuildRota && (
               <button onClick={onBuildRota} className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm">
-                <CalendarPlus className="w-4 h-4" /> Build Rota for This Job
+                <CalendarPlus className="w-4 h-4" /> Build Rota for This Project
               </button>
             )}
             <button onClick={onLater} className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium text-sm">

@@ -53,7 +53,7 @@ export default function FinishJobModal({ job, onClose, onStarted }) {
             <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
               <AlertTriangle className="w-4 h-4 text-amber-600" />
             </div>
-            <h2 className="text-base font-bold text-slate-900">Finish Job — Start Decommissioning</h2>
+            <h2 className="text-base font-bold text-slate-900">Finish Project — Start Decommissioning</h2>
           </div>
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg transition">
             <X className="w-5 h-5" />
@@ -75,7 +75,7 @@ export default function FinishJobModal({ job, onClose, onStarted }) {
             <ul className="space-y-1.5 text-xs text-amber-700">
               <li className="flex items-start gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                <span>Job status changes to <strong>Decommissioning</strong></span>
+                <span>Project status changes to <strong>Decommissioning</strong></span>
               </li>
               <li className="flex items-start gap-1.5">
                 <Truck className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
@@ -87,7 +87,7 @@ export default function FinishJobModal({ job, onClose, onStarted }) {
               </li>
               <li className="flex items-start gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                <span>Once all items are returned, you can mark the job <strong>Complete</strong></span>
+                <span>Once all items are returned, you can mark the project <strong>Complete</strong></span>
               </li>
             </ul>
           </div>

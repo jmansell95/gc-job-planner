@@ -10,9 +10,9 @@ const STATUS_OPTIONS = [
   { value: 'planning', label: 'Planning', desc: 'Back to planning stage', tone: 'slate' },
   { value: 'in_progress', label: 'In Progress', desc: 'Work is actively underway', tone: 'emerald' },
   { value: 'decommissioning', label: 'Decommissioning', desc: 'Work done — collecting equipment from site', tone: 'amber' },
-  { value: 'completed', label: 'Completed', desc: 'All equipment returned, job finished', tone: 'teal' },
+  { value: 'completed', label: 'Completed', desc: 'All equipment returned, project finished', tone: 'teal' },
   { value: 'on_hold', label: 'On Hold', desc: 'Temporarily paused — reason required', tone: 'amber' },
-  { value: 'cancelled', label: 'Cancelled', desc: 'Job cancelled — reason required', tone: 'red' },
+  { value: 'cancelled', label: 'Cancelled', desc: 'Project cancelled — reason required', tone: 'red' },
 ];
 
 const toneCls = {
