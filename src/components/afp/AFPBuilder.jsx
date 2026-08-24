@@ -29,6 +29,7 @@ const SOURCE_META = {
   subcontractor: { label: 'Subcontractor', icon: FileText, color: 'text-violet-600', bg: 'bg-violet-50' },
   timesheet: { label: 'Timesheet', icon: Clock, color: 'text-emerald-600', bg: 'bg-emerald-50' },
   cost: { label: 'Daily Cost', icon: Receipt, color: 'text-rose-600', bg: 'bg-rose-50' },
+  job_cost_item: { label: 'Job Cost Item', icon: FileText, color: 'text-cyan-600', bg: 'bg-cyan-50' },
   template: { label: 'Template', icon: FileBarChart, color: 'text-slate-600', bg: 'bg-slate-50' },
   manual: { label: 'Manual', icon: Plus, color: 'text-[#2E5A1A]', bg: 'bg-green-50' },
 };

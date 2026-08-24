@@ -70,11 +70,12 @@
         "subcontractor",
         "timesheet",
         "cost",
+        "job_cost_item",
         "template",
         "manual"
       ],
       "default": "manual",
-      "description": "Where this line item came from. 'driller_log' = from InvestigationLog, 'delivery' = from DeliveryLog or JobAssetAssignment, 'subcontractor' = from SubcontractorLog, 'timesheet' = from Timesheet, 'cost' = from DailyCost, 'template' = from the AFP template, 'manual' = manually added by the billing team."
+      "description": "Where this line item came from. 'driller_log' = from InvestigationLog, 'delivery' = from DeliveryLog or JobAssetAssignment, 'subcontractor' = from SubcontractorLog, 'timesheet' = from Timesheet (approved only), 'cost' = from DailyCost, 'job_cost_item' = from JobCostItem (equipment/labour added to the job), 'template' = from the AFP template, 'manual' = manually added by the billing team."
     },
     "source_date": {
       "type": "string",
@@ -83,7 +84,7 @@
     },
     "source_id": {
       "type": "string",
-      "description": "ID of the source record (InvestigationLog ID, SubcontractorLog ID, etc.). Used to prevent duplicate line items when re-populating."
+      "description": "ID of the source record (InvestigationLog ID, SubcontractorLog ID, etc.). Used to prevent duplicate line items when re-populating, and as the upsert key for real-time auto-population. For grouped timesheet lines this is 'ts_<date>'."
     },
     "is_manual": {
       "type": "boolean",
