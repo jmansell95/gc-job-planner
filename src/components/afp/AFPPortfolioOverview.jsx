@@ -120,6 +120,7 @@ export default function AFPPortfolioOverview({ onSelectJob, onUploadTemplate }) 
 
   const statusPills = [
     { id: 'all', label: 'All', count: enrichedAfps.length, color: 'bg-slate-800 text-white' },
+    { id: 'overdue', label: 'Overdue Payment', count: statusCounts.overdue, color: 'bg-rose-600 text-white' },
     { id: 'draft', label: 'Draft', count: statusCounts.draft, color: 'bg-slate-200 text-slate-700' },
     { id: 'submitted', label: 'Submitted', count: statusCounts.submitted, color: 'bg-blue-100 text-blue-700' },
     { id: 'disputed', label: 'Disputed', count: statusCounts.disputed, color: 'bg-amber-100 text-amber-700' },
@@ -130,11 +131,12 @@ export default function AFPPortfolioOverview({ onSelectJob, onUploadTemplate }) 
   return (
     <div className="space-y-3">
       {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
         <KPICard icon={PoundSterling} label="Total Claimed" value={fmt(totals.claimed)} gradient="stat-gradient-brand" />
         <KPICard icon={AlertTriangle} label="In Dispute" value={fmt(totals.disputed)} gradient="stat-gradient-amber" />
         <KPICard icon={CheckCircle2} label="Agreed" value={fmt(totals.agreed)} gradient="stat-gradient-emerald" />
         <KPICard icon={Receipt} label="Invoiced" value={fmt(totals.invoiced)} gradient="stat-gradient-violet" />
+        <KPICard icon={Clock} label="Overdue Payment" value={fmt(overdueTotal)} gradient="stat-gradient-rose" count={statusCounts.overdue} />
       </div>
 
       {/* Action bar */}
@@ -215,6 +217,12 @@ export default function AFPPortfolioOverview({ onSelectJob, onUploadTemplate }) 
                     <span className="text-slate-400">AFP {afp.afp_number || 1} · {afp.period_end_date ? fmtDate(afp.period_end_date) : 'Open'}</span>
                     <span className="font-bold text-emerald-700 tabular-nums">{fmt(afp.agreed_total || 0)}</span>
                   </div>
+                  {afp.is_overdue && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
+                      <Clock className="w-3 h-3 text-rose-500" />
+                      <span className="text-rose-600 font-bold">Payment {afp.days_overdue}d overdue · due {fmtDate(afp.final_payment_notice_date)}</span>
+                    </div>
+                  )}
                   {afp.disputed_total > 0 && (
                     <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
                       <AlertTriangle className="w-3 h-3 text-amber-500" />
@@ -249,6 +257,9 @@ export default function AFPPortfolioOverview({ onSelectJob, onUploadTemplate }) 
                     <th className="text-left px-3 py-2.5 font-semibold cursor-pointer hover:text-slate-700" onClick={() => handleSort('period_end_date')}>
                       Period
                     </th>
+                    <th className="text-left px-3 py-2.5 font-semibold cursor-pointer hover:text-slate-700" onClick={() => handleSort('final_payment_notice_date')}>
+                      Final Payment
+                    </th>
                     <th className="text-center px-3 py-2.5 font-semibold">Status</th>
                     <th className="text-right px-3 py-2.5 font-semibold cursor-pointer hover:text-slate-700" onClick={() => handleSort('total_claimed')}>
                       Claimed
@@ -280,6 +291,17 @@ export default function AFPPortfolioOverview({ onSelectJob, onUploadTemplate }) 
                         <td className="px-3 py-2.5 text-slate-500">
                           {afp.period_end_date ? fmtDate(afp.period_end_date) : 'Open'}
                         </td>
+                        <td className="px-3 py-2.5">
+                          {afp.final_payment_notice_date ? (
+                            <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${afp.is_overdue ? 'text-rose-600' : 'text-slate-500'}`}>
+                              {afp.is_overdue && <Clock className="w-3 h-3" />}
+                              {fmtDate(afp.final_payment_notice_date)}
+                              {afp.is_overdue && <span className="text-rose-500 font-bold">({afp.days_overdue}d)</span>}
+                            </span>
+                          ) : (
+                            <span className="text-slate-300">—</span>
+                          )}
+                        </td>
                         <td className="text-center px-3 py-2.5">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${meta.bg} ${meta.color}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
@@ -304,7 +326,7 @@ export default function AFPPortfolioOverview({ onSelectJob, onUploadTemplate }) 
                 </tbody>
                 <tfoot className="bg-slate-50/80 border-t-2 border-slate-200">
                   <tr className="font-bold text-slate-800">
-                    <td className="px-3 py-2.5" colSpan={4}>Portfolio Total ({filtered.length})</td>
+                    <td className="px-3 py-2.5" colSpan={5}>Portfolio Total ({filtered.length})</td>
                     <td className="text-right px-3 py-2.5 tabular-nums">{fmt(totals.claimed)}</td>
                     <td className="text-right px-3 py-2.5 tabular-nums text-amber-600">{fmt(totals.disputed)}</td>
                     <td className="text-right px-3 py-2.5 tabular-nums text-emerald-700">{fmt(totals.agreed)}</td>
@@ -320,14 +342,19 @@ export default function AFPPortfolioOverview({ onSelectJob, onUploadTemplate }) 
   );
 }
 
-function KPICard({ icon: Icon, label, value, gradient }) {
+function KPICard({ icon: Icon, label, value, gradient, count }) {
   return (
     <div className="insight-card rounded-2xl p-3.5 relative overflow-hidden">
       <div className={`absolute -top-8 -right-8 w-24 h-24 rounded-full ${gradient} opacity-[0.08]`} />
-      <div className={`relative w-9 h-9 rounded-lg ${gradient} flex items-center justify-center mb-2 shadow-sm`}>
-        <Icon className="w-4 h-4 text-white" />
+      <div className="flex items-center justify-between relative">
+        <div className={`w-9 h-9 rounded-lg ${gradient} flex items-center justify-center shadow-sm`}>
+          <Icon className="w-4 h-4 text-white" />
+        </div>
+        {count > 0 && (
+          <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">{count}</span>
+        )}
       </div>
-      <p className="relative text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="relative text-[10px] font-semibold uppercase tracking-wide text-slate-400 mt-2">{label}</p>
       <p className="relative text-lg sm:text-xl font-bold text-slate-900 tabular-nums leading-tight mt-0.5">{value}</p>
     </div>
   );

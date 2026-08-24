@@ -2,6 +2,7 @@ import React from 'react';
 import { MapPin, Calendar, CalendarClock, Users, Clock, Ruler, PoundSterling, Layers } from 'lucide-react';
 import { format } from 'date-fns';
 import What3WordsPill from '@/components/jobs/What3WordsPill';
+import JobWeatherChip from '@/components/jobs/JobWeatherChip';
 
 /**
  * JobDetailHero — modern gradient hero header for the Job Detail page.

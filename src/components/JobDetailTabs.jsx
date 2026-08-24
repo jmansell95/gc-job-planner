@@ -20,15 +20,10 @@ import PermanentCrewCard from '@/components/jobs/PermanentCrewCard';
 import DelayLogManager from '@/components/DelayLogManager';
 import JobHazardMap from '@/components/JobHazardMap';
 import JobContextView from '@/components/JobContextView';
-import JobDependencyManager from '@/components/JobDependencyManager';
-import PredictiveHazardAlerts from '@/components/jobs/PredictiveHazardAlerts';
-import DrillingWeatherWidget from '@/components/DrillingWeatherWidget';
-import FloodRiskWidget from '@/components/jobs/FloodRiskWidget';
 import GeotechDataTab from '@/components/geotech/GeotechDataTab';
 import TabStatRibbon from '@/components/TabStatRibbon';
 import JobSiteManager from '@/components/jobs/JobSiteManager';
 import JobFinancialsTab from '@/components/afp/JobFinancialsTab';
-import WeatherWorkSafeCard from '@/components/WeatherWorkSafeCard';
 
 /**
  * JobDetailTabs — consolidated, progressive-disclosure tab structure.
@@ -113,29 +108,6 @@ export default function JobDetailTabs({
               subTab="overview"
             />
             <JobSiteManager job={job} />
-            <JobDependencyManager job={job} />
-            <PredictiveHazardAlerts job={job} />
-            {(job.site_lat != null && job.site_lng != null) && (
-              <>
-                <WeatherWorkSafeCard job={job} />
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {isDrillingJob && (
-                    <DrillingWeatherWidget
-                      lat={job.site_lat}
-                      lng={job.site_lng}
-                      locationName={job.location}
-                      compact={false}
-                      rigType={job.drilling_method === 'cp' ? 'cp' : job.drilling_method === 'rotary' ? 'rotary' : undefined}
-                    />
-                  )}
-                  <FloodRiskWidget
-                    lat={job.site_lat}
-                    lng={job.site_lng}
-                    locationName={job.location}
-                  />
-                </div>
-              </>
-            )}
           </>
         ) : (
           <JobContextView
