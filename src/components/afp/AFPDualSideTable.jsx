@@ -17,7 +17,7 @@ const fmtQty = (n) => (Number(n || 0)).toLocaleString('en-GB', { maximumFraction
  *
  * Falls back gracefully when dual-side fields are absent (legacy AFPs).
  */
-export default function AFPDualSideTable({ afp, lineItems, canEdit }) {
+export default function AFPDualSideTable({ afp, lineItems, canEdit, onAutoSave }) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(new Set());
 
@@ -51,8 +51,12 @@ export default function AFPDualSideTable({ afp, lineItems, canEdit }) {
       updates.agreed_amount = numVal;
     }
     try {
-      await base44.entities.AFPLineItem.update(li.id, updates);
-      queryClient.invalidateQueries({ queryKey: ['afp-line-items', afp?.id] });
+      if (onAutoSave) {
+        onAutoSave(li.id, updates);
+      } else {
+        await base44.entities.AFPLineItem.update(li.id, updates);
+        queryClient.invalidateQueries({ queryKey: ['afp-line-items', afp?.id] });
+      }
     } catch (e) { console.error(e); }
   };
 

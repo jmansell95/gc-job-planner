@@ -6,8 +6,9 @@ import {
   Plus, Loader2, Clock, Receipt, PoundSterling,
   MessageSquare, X, FileBarChart,
   TrendingUp, Zap, CheckSquare, Square, Trash2, Search,
-  ChevronDown, ChevronRight, GitBranch, Package, Upload,
+  ChevronDown, ChevronRight, GitBranch, Package, Upload, ClipboardCheck, Save,
 } from 'lucide-react';
+import useAutoSave from '@/hooks/useAutoSave';
 import CreateFirstAFPModal from './CreateFirstAFPModal';
 import AFPDatesEditor from './AFPDatesEditor';
 import AFPDisputeRow from './AFPDisputeRow';
@@ -22,6 +23,7 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-dig
 
 const STATUS_META = {
   draft: { label: 'Draft', color: 'text-slate-600', bg: 'bg-slate-100', dot: 'bg-slate-400' },
+  pending_review: { label: 'Pending Review', color: 'text-amber-700', bg: 'bg-amber-100', dot: 'bg-amber-500' },
   submitted: { label: 'Submitted', color: 'text-blue-700', bg: 'bg-blue-100', dot: 'bg-blue-500' },
   approved: { label: 'Approved', color: 'text-emerald-700', bg: 'bg-emerald-100', dot: 'bg-emerald-500' },
   invoiced: { label: 'Invoiced', color: 'text-violet-700', bg: 'bg-violet-100', dot: 'bg-violet-500' },
@@ -88,6 +90,16 @@ export default function AFPBuilder({ job }) {
   const [confirmDeleteAfpId, setConfirmDeleteAfpId] = useState(null);
   const [deletingAfp, setDeletingAfp] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [approving, setApproving] = useState(false);
+
+  // Auto-save hook — debounced saves on every edit + flush on AFP switch
+  const lineItemsQueryKey = ['afp-line-items', selectedAfp?.id];
+  const { saveStatus, scheduleSave, flushPending } = useAutoSave(
+    base44.entities.AFPLineItem,
+    queryClient,
+    lineItemsQueryKey
+  );
 
   const { data: afps = [], isLoading: afpsLoading } = useQuery({
     queryKey: ['afp', job.id],
@@ -241,11 +253,53 @@ export default function AFPBuilder({ job }) {
     setRepricing(false);
   };
 
-  const handleLineItemUpdate = async (id, updates) => {
+  // Auto-save wrapper: line item edits go through the debounced auto-save
+  const handleLineItemUpdate = (id, updates) => {
+    scheduleSave(id, updates);
+  };
+
+  const handleSubmitForReview = async () => {
+    if (!selectedAfp) return;
+    // Flush any pending auto-saves first so the review file has the latest figures
+    await flushPending();
+    setSubmittingReview(true);
     try {
-      await base44.entities.AFPLineItem.update(id, updates);
-      queryClient.invalidateQueries({ queryKey: ['afp-line-items', selectedAfp?.id] });
+      const user = await base44.auth.me();
+      await base44.entities.AFP.update(selectedAfp.id, {
+        status: 'pending_review',
+        review_submitted_at: new Date().toISOString(),
+        review_submitted_by: user?.full_name || user?.email || '',
+      });
+      // Generate the Excel review file and attach it
+      try {
+        const exportRes = await base44.functions.invoke('exportAFPToExcel', { afp_id: selectedAfp.id });
+        const exportData = exportRes.data || exportRes;
+        if (exportData.file_url) {
+          await base44.entities.AFP.update(selectedAfp.id, {
+            source_file_url: exportData.file_url,
+            source_file_name: exportData.file_name,
+          });
+        }
+      } catch (exportErr) { console.error('Excel export during review submit failed:', exportErr); }
+      invalidate();
     } catch (e) { console.error(e); }
+    setSubmittingReview(false);
+  };
+
+  const handleApprove = async () => {
+    if (!selectedAfp) return;
+    setApproving(true);
+    try {
+      const user = await base44.auth.me();
+      await base44.entities.AFP.update(selectedAfp.id, {
+        status: 'approved',
+        approved_at: new Date().toISOString(),
+        approved_by: user?.full_name || user?.email || '',
+        dispute_status: 'resolved',
+      });
+      invalidate();
+    } catch (e) { console.error(e); }
+    setApproving(false);
   };
 
   const handleAddManual = async () => {
@@ -468,7 +522,7 @@ export default function AFPBuilder({ job }) {
   }
 
   const statusMeta = selectedAfp ? STATUS_META[selectedAfp.status] : STATUS_META.draft;
-  const canSelect = selectedAfp?.status === 'submitted' || selectedAfp?.status === 'draft';
+  const canSelect = selectedAfp?.status === 'submitted' || selectedAfp?.status === 'draft' || selectedAfp?.status === 'pending_review';
 
   return (
     <div className="space-y-3">
@@ -481,7 +535,7 @@ export default function AFPBuilder({ job }) {
             return (
               <div key={afp.id} className="flex-shrink-0 flex items-center gap-1 group">
                 <button
-                  onClick={() => { setSelectedAfpId(afp.id); clearSelection(); }}
+                  onClick={async () => { await flushPending(); setSelectedAfpId(afp.id); clearSelection(); }}
                   className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition active:scale-95 ${
                     isActive ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
@@ -567,12 +621,22 @@ export default function AFPBuilder({ job }) {
               )}
               {selectedAfp.status === 'draft' && (
                 <button
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-xl text-xs font-bold transition active:scale-95 shadow-sm disabled:opacity-50"
+                  onClick={handleSubmitForReview}
+                  disabled={submittingReview}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-br from-amber-500 to-amber-700 text-white rounded-xl text-xs font-bold transition active:scale-95 shadow-sm disabled:opacity-50"
                 >
-                  {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                  Submit to Client
+                  {submittingReview ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardCheck className="w-3.5 h-3.5" />}
+                  Submit for Review
+                </button>
+              )}
+              {selectedAfp.status === 'pending_review' && (
+                <button
+                  onClick={handleApprove}
+                  disabled={approving}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-br from-emerald-600 to-emerald-800 text-white rounded-xl text-xs font-bold transition active:scale-95 shadow-sm disabled:opacity-50"
+                >
+                  {approving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                  Approve
                 </button>
               )}
               {selectedAfp.status === 'approved' && (
@@ -631,8 +695,17 @@ export default function AFPBuilder({ job }) {
             </div>
           </div>
 
-          {/* Data freshness */}
+          {/* Data freshness + auto-save indicator */}
           <div className="px-4 py-2 border-t border-slate-100 flex items-center gap-3 flex-wrap">
+            {/* Auto-save status */}
+            {saveStatus !== 'idle' && (
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                saveStatus === 'saving' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
+              }`}>
+                {saveStatus === 'saving' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                {saveStatus === 'saving' ? 'Saving…' : 'Saved'}
+              </span>
+            )}
             <span className="text-[10px] text-slate-400 uppercase font-semibold">Data Sources:</span>
             {Object.entries(SOURCE_META).map(([key, meta]) => {
               const count = freshness[key] || 0;
@@ -759,7 +832,7 @@ export default function AFPBuilder({ job }) {
             </button>
           </div>
           <div className="flex items-center gap-1.5 flex-wrap">
-            {selectedAfp?.status === 'submitted' && (
+            {(selectedAfp?.status === 'pending_review' || selectedAfp?.status === 'submitted') && (
               <>
                 <button
                   onClick={() => handleBulkDisputeAction('agreed')}
@@ -942,7 +1015,7 @@ export default function AFPBuilder({ job }) {
       {/* ── Sheets view (dual-side Measured Works + Variation lifecycle + Compensation Items + Materials) ── */}
       {viewMode === 'sheets' && (
         <div className="space-y-3">
-          <AFPDualSideTable afp={selectedAfp} lineItems={lineItems} canEdit={selectedAfp?.status === 'draft' || selectedAfp?.status === 'submitted'} />
+          <AFPDualSideTable afp={selectedAfp} lineItems={lineItems} canEdit={selectedAfp?.status === 'draft' || selectedAfp?.status === 'pending_review'} onAutoSave={scheduleSave} />
           {/* Variations with cost-agreement lifecycle */}
           {lineItems.filter(li => li.sheet_name === 'variations').length > 0 && (
             <div className="insight-card rounded-2xl overflow-hidden">
@@ -961,7 +1034,7 @@ export default function AFPBuilder({ job }) {
                       </div>
                       <span className="text-xs font-bold text-slate-700 tabular-nums flex-shrink-0">{fmt(li.amount)}</span>
                     </div>
-                    <AFPVariationLifecycle item={li} canEdit={selectedAfp?.status === 'draft' || selectedAfp?.status === 'submitted'} />
+                    <AFPVariationLifecycle item={li} canEdit={selectedAfp?.status === 'draft' || selectedAfp?.status === 'pending_review'} onAutoSave={scheduleSave} />
                   </div>
                 ))}
               </div>
@@ -1029,13 +1102,14 @@ export default function AFPBuilder({ job }) {
                           item={li}
                           mobile
                           canEdit={selectedAfp.status === 'draft'}
-                          canDispute={selectedAfp.status === 'submitted'}
+                          canDispute={selectedAfp.status === 'pending_review' || selectedAfp.status === 'submitted'}
                           canSelect={canSelect}
                           selected={selectedItems.has(li.id)}
                           onSelect={() => toggleItemSelection(li.id)}
                           expanded={expandedDisputes.has(li.id)}
                           onToggleDispute={() => toggleDispute(li.id)}
                           onUpdate={(updates) => handleLineItemUpdate(li.id, updates)}
+                          onAutoSave={scheduleSave}
                           onDelete={() => handleDeleteItem(li.id)}
                         />
                       ))}
@@ -1083,13 +1157,14 @@ export default function AFPBuilder({ job }) {
                       item={li}
                       mobile
                       canEdit={selectedAfp.status === 'draft'}
-                      canDispute={selectedAfp.status === 'submitted'}
+                      canDispute={selectedAfp.status === 'pending_review' || selectedAfp.status === 'submitted'}
                       canSelect={canSelect}
                       selected={selectedItems.has(li.id)}
                       onSelect={() => toggleItemSelection(li.id)}
                       expanded={expandedDisputes.has(li.id)}
                       onToggleDispute={() => toggleDispute(li.id)}
                       onUpdate={(updates) => handleLineItemUpdate(li.id, updates)}
+                      onAutoSave={scheduleSave}
                       onDelete={() => handleDeleteItem(li.id)}
                     />
                   ))}
@@ -1154,13 +1229,14 @@ export default function AFPBuilder({ job }) {
                           key={li.id}
                           item={li}
                           canEdit={selectedAfp.status === 'draft'}
-                          canDispute={selectedAfp.status === 'submitted'}
+                          canDispute={selectedAfp.status === 'pending_review' || selectedAfp.status === 'submitted'}
                           canSelect={canSelect}
                           selected={selectedItems.has(li.id)}
                           onSelect={() => toggleItemSelection(li.id)}
                           expanded={expandedDisputes.has(li.id)}
                           onToggleDispute={() => toggleDispute(li.id)}
                           onUpdate={(updates) => handleLineItemUpdate(li.id, updates)}
+                          onAutoSave={scheduleSave}
                           onDelete={() => handleDeleteItem(li.id)}
                         />
                       ))}
@@ -1206,19 +1282,14 @@ export default function AFPBuilder({ job }) {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-400 hidden sm:inline">{lineItems.length} items</span>
-          {selectedAfp?.status === 'submitted' && (
+          {selectedAfp?.status === 'pending_review' && (
             <button
-              onClick={async () => {
-                const hasUnresolved = lineItems.some(li => li.dispute_status === 'disputed' || li.dispute_status === 'counter_offered');
-                if (hasUnresolved) return;
-                try {
-                  await base44.entities.AFP.update(selectedAfp.id, { status: 'approved', dispute_status: 'resolved' });
-                  invalidate();
-                } catch (e) { console.error(e); }
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold transition active:scale-95 shadow-sm"
+              onClick={handleApprove}
+              disabled={approving}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold transition active:scale-95 shadow-sm disabled:opacity-50"
             >
-              <CheckCircle2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Mark Approved</span><span className="sm:hidden">Approve</span>
+              {approving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">Approve</span><span className="sm:hidden">Approve</span>
             </button>
           )}
         </div>

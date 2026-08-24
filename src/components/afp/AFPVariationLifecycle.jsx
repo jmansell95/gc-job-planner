@@ -16,7 +16,7 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-dig
  * Working-day periods are computed client-side (excluding weekends; bank
  * holidays are approximated as the backend does the precise calc).
  */
-export default function AFPVariationLifecycle({ item, canEdit }) {
+export default function AFPVariationLifecycle({ item, canEdit, onAutoSave }) {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
 
@@ -48,8 +48,12 @@ export default function AFPVariationLifecycle({ item, canEdit }) {
     try {
       const updates = { [field]: value || '' };
       if (field === 'cost_agreed_date' && value) updates.dispute_status = 'agreed';
-      await base44.entities.AFPLineItem.update(item.id, updates);
-      queryClient.invalidateQueries({ queryKey: ['afp-line-items'] });
+      if (onAutoSave) {
+        onAutoSave(item.id, updates);
+      } else {
+        await base44.entities.AFPLineItem.update(item.id, updates);
+        queryClient.invalidateQueries({ queryKey: ['afp-line-items'] });
+      }
     } catch (e) { console.error(e); }
     setSaving(false);
   };

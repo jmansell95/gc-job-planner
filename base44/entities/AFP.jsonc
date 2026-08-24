@@ -102,12 +102,29 @@
       "type": "string",
       "enum": [
         "draft",
+        "pending_review",
         "submitted",
         "approved",
         "invoiced"
       ],
       "default": "draft",
-      "description": "AFP lifecycle. 'draft' = being prepared/populated with live field data; 'submitted' = sent to client for approval (disputes can occur); 'approved' = client approved all items; 'invoiced' = pushed to CVR and converted to formal invoice."
+      "description": "AFP lifecycle. 'draft' = being prepared/populated with live field data; 'pending_review' = submitted for manager review (Excel generated, awaiting approval); 'submitted' = sent to client for approval (disputes can occur); 'approved' = manager/client approved all items; 'invoiced' = pushed to CVR and converted to formal invoice."
+    },
+    "review_submitted_at": {
+      "type": "string",
+      "description": "ISO timestamp when the AFP was submitted for manager review."
+    },
+    "review_submitted_by": {
+      "type": "string",
+      "description": "Name of the user who submitted the AFP for manager review."
+    },
+    "approved_at": {
+      "type": "string",
+      "description": "ISO timestamp when the AFP was approved by a manager."
+    },
+    "approved_by": {
+      "type": "string",
+      "description": "Name of the manager who approved the AFP."
     },
     "client_facing_pdf_url": {
       "type": "string",

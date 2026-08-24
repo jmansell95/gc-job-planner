@@ -30,7 +30,7 @@ const SOURCE_META = {
  * Supports inline editing (draft), dispute status changes (submitted),
  * bulk selection checkboxes, and expandable dispute history.
  */
-export default function AFPDisputeRow({ item, canEdit, canDispute, canSelect, selected, onSelect, expanded, onToggleDispute, onUpdate, onDelete, mobile }) {
+export default function AFPDisputeRow({ item, canEdit, canDispute, canSelect, selected, onSelect, expanded, onToggleDispute, onUpdate, onAutoSave, onDelete, mobile }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ qty: item.qty, rate: item.rate });
   const [disputeNote, setDisputeNote] = useState(item.dispute_note || '');
@@ -43,7 +43,12 @@ export default function AFPDisputeRow({ item, canEdit, canDispute, canSelect, se
     const qty = Number(draft.qty) || 0;
     const rate = Number(draft.rate) || 0;
     const amount = qty * rate;
-    await onUpdate({ qty, rate, amount, agreed_amount: amount });
+    // Use auto-save (debounced) if available, else immediate update
+    if (onAutoSave) {
+      onAutoSave(item.id, { qty, rate, amount, agreed_amount: amount });
+    } else {
+      await onUpdate({ qty, rate, amount, agreed_amount: amount });
+    }
     setEditing(false);
   };
 
