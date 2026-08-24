@@ -93,14 +93,6 @@ export default function AFPBuilder({ job }) {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [approving, setApproving] = useState(false);
 
-  // Auto-save hook — debounced saves on every edit + flush on AFP switch
-  const lineItemsQueryKey = ['afp-line-items', selectedAfp?.id];
-  const { saveStatus, scheduleSave, flushPending } = useAutoSave(
-    base44.entities.AFPLineItem,
-    queryClient,
-    lineItemsQueryKey
-  );
-
   const { data: afps = [], isLoading: afpsLoading } = useQuery({
     queryKey: ['afp', job.id],
     queryFn: () => base44.entities.AFP.filter({ job_id: job.id }, 'afp_number', 50),
@@ -110,6 +102,15 @@ export default function AFPBuilder({ job }) {
     if (!afps.length) return null;
     return afps.find(a => a.id === selectedAfpId) || afps[0];
   }, [afps, selectedAfpId]);
+
+  // Auto-save hook — debounced saves on every edit + flush on AFP switch.
+  // Must be called AFTER selectedAfp is defined (it depends on selectedAfp.id).
+  const lineItemsQueryKey = ['afp-line-items', selectedAfp?.id];
+  const { saveStatus, scheduleSave, flushPending } = useAutoSave(
+    base44.entities.AFPLineItem,
+    queryClient,
+    lineItemsQueryKey
+  );
 
   const { data: lineItems = [], isLoading: itemsLoading } = useQuery({
     queryKey: ['afp-line-items', selectedAfp?.id],
