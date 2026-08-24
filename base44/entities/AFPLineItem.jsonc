@@ -18,10 +18,11 @@
         "rates",
         "measured_works",
         "variations",
-        "materials"
+        "materials",
+        "compensation_item"
       ],
       "default": "measured_works",
-      "description": "Which AFP sheet this line item belongs to. Lump Sum format: 'measured_works' = Measured Works sheet (main line items), 'variations' = Variation Summary sheet, 'materials' = Materials On site sheet. Legacy format (kept for backward compat): 'drilling', 'plant_hire', 'rates'."
+      "description": "Which AFP sheet this line item belongs to. Lump Sum format: 'measured_works' = Measured Works sheet (main line items), 'variations' = Variation Summary sheet, 'materials' = Materials On site sheet, 'compensation_item' = CI01-03 compensation item sheets. Legacy format (kept for backward compat): 'drilling', 'plant_hire', 'rates'."
     },
     "category": {
       "type": "string",
@@ -38,6 +39,10 @@
       "default": "other",
       "description": "Billing category for this line item. Used to group items in the AFP Builder and for rate card matching. 'drilling' = meterage/rig items, 'plant_hire' = equipment hire, 'labour' = crew/time, 'subcontractor' = sub-contracted work, 'materials' = consumables, 'mobilisation' = site setup, 'delivery' = transport."
     },
+    "item_ref": {
+      "type": "string",
+      "description": "The original Item Ref from the AFP Excel (e.g. 'MW-01', 'VO-03'). Separate from the item description so both the reference and the description are preserved exactly as they appear in the spreadsheet."
+    },
     "item": {
       "type": "string",
       "description": "Item description (e.g. 'Mobilise cable Percussion Rig to site - GC', 'Coreliners')."
@@ -52,7 +57,7 @@
     },
     "qty": {
       "type": "number",
-      "description": "Quantity for this line item. Auto-populated from field data (e.g. metres drilled, days hired, hours worked)."
+      "description": "Contracted quantity for this line item (the total agreed qty from the BOQ / Measured Works sheet). For dual-side AFPs this is the contracted total; applied quantities are tracked in qty_complete / gross_applied / previous_applied / applied_in_period."
     },
     "rate": {
       "type": "number",
@@ -60,7 +65,85 @@
     },
     "amount": {
       "type": "number",
-      "description": "Total amount for this line item = qty \u00d7 rate (or unit_price \u00d7 qty). Auto-calculated."
+      "description": "Contracted total amount for this line item = qty \u00d7 rate (the full contract value of the line). For dual-side AFPs, the per-period claimed amount is tracked in applied_in_period."
+    },
+    "qty_complete": {
+      "type": "number",
+      "description": "Our claim side \u2014 total quantity completed to date (cumulative across all AFPs). Equals gross_applied for quantity. Pulled from the Measured Works 'Qty Complete' column."
+    },
+    "gross_applied": {
+      "type": "number",
+      "description": "Our claim side \u2014 cumulative gross amount applied to date across all AFPs (including this period). Pulled from the Measured Works 'Gross Applied' column."
+    },
+    "previous_applied": {
+      "type": "number",
+      "description": "Our claim side \u2014 cumulative amount applied in all PRIOR AFPs (excludes this period). Pulled from the Measured Works 'Previous Applied' column. applied_in_period = gross_applied - previous_applied."
+    },
+    "applied_in_period": {
+      "type": "number",
+      "description": "Our claim side \u2014 the amount being claimed in THIS AFP period. Auto-calculated as gross_applied - previous_applied, or summed from the Field Sheet's daily quantities for this period. This is the value that rolls up into the AFP's total_claimed."
+    },
+    "assessed_qty": {
+      "type": "number",
+      "description": "Client assessment side \u2014 total quantity the client has assessed/agreed to date (cumulative). Pulled from the Measured Works 'Assessed Measure' column."
+    },
+    "gross_assessed": {
+      "type": "number",
+      "description": "Client assessment side \u2014 cumulative gross amount the client has assessed to date (including this period). Pulled from the Measured Works 'Gross Assessed' column."
+    },
+    "previous_assessed": {
+      "type": "number",
+      "description": "Client assessment side \u2014 cumulative amount the client assessed in all PRIOR AFPs (excludes this period). Pulled from the Measured Works 'Previous Assessed' column."
+    },
+    "assessed_in_period": {
+      "type": "number",
+      "description": "Client assessment side \u2014 the amount the client has agreed to pay for THIS AFP period. Entered by the billing team when the client responds. Rolls up into the AFP's agreed_total."
+    },
+    "balance_qty": {
+      "type": "number",
+      "description": "Balance Remaining \u2014 quantity still to be applied on this line = contracted qty - qty_complete (or gross_applied qty). Auto-calculated."
+    },
+    "balance_value": {
+      "type": "number",
+      "description": "Balance Remaining \u2014 value still to be claimed on this line = contracted amount - gross_applied (or contracted amount - gross_assessed). Auto-calculated. Shown in the Balance Remaining column group."
+    },
+    "vo_ref": {
+      "type": "string",
+      "description": "Variation order reference (e.g. 'VO-01'). Only set on variation line items (sheet_name='variations'). Pulled from the Variation Summary 'VO Ref' column."
+    },
+    "vo_date": {
+      "type": "string",
+      "format": "date",
+      "description": "The date the variation was instructed/raised. Only set on variation line items. Pulled from the Variation Summary 'Date' column. Used to assign the VO to the correct AFP period."
+    },
+    "time_impact": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this variation has a programme/time impact. Pulled from the Variation Summary 'Time Impact (Yes/No)' column."
+    },
+    "time_impact_days": {
+      "type": "number",
+      "description": "Number of programme days impacted by this variation. Pulled from the Variation Summary 'Days' column."
+    },
+    "budget_cost_issue_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Variation cost-agreement lifecycle \u2014 the date the budget cost was issued to the client. Stage 1 of 4 in the VO cost-agreement workflow."
+    },
+    "firm_cost_issue_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Variation cost-agreement lifecycle \u2014 the date the firm cost was issued. Stage 2 of 4."
+    },
+    "client_assessment_issue_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Variation cost-agreement lifecycle \u2014 the date the client issued their assessment. Stage 3 of 4."
+    },
+    "cost_agreed_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Variation cost-agreement lifecycle \u2014 the date the cost was formally agreed. Stage 4 of 4. When set, the VO is fully agreed."
     },
     "source": {
       "type": "string",
@@ -72,10 +155,11 @@
         "cost",
         "job_cost_item",
         "template",
-        "manual"
+        "manual",
+        "afp_upload"
       ],
       "default": "manual",
-      "description": "Where this line item came from. 'driller_log' = from InvestigationLog, 'delivery' = from DeliveryLog or JobAssetAssignment, 'subcontractor' = from SubcontractorLog, 'timesheet' = from Timesheet (approved only), 'cost' = from DailyCost, 'job_cost_item' = from JobCostItem (equipment/labour added to the job), 'template' = from the AFP template, 'manual' = manually added by the billing team."
+      "description": "Where this line item came from. 'driller_log' = from InvestigationLog, 'delivery' = from DeliveryLog or JobAssetAssignment, 'subcontractor' = from SubcontractorLog, 'timesheet' = from Timesheet (approved only), 'cost' = from DailyCost, 'job_cost_item' = from JobCostItem (equipment/labour added to the job), 'template' = from the AFP template, 'manual' = manually added by the billing team, 'afp_upload' = imported from an AFP Excel upload."
     },
     "source_date": {
       "type": "string",
@@ -113,7 +197,7 @@
     },
     "agreed_amount": {
       "type": "number",
-      "description": "The final agreed amount after dispute resolution. Equals 'amount' for undisputed items. For disputed items, this is the counter-offered or agreed amount. Used to calculate the AFP's agreed_total."
+      "description": "The final agreed amount after dispute resolution. Equals 'amount' for undisputed items. For dual-side AFPs, this mirrors assessed_in_period. Used to calculate the AFP's agreed_total."
     },
     "dispute_history": {
       "type": "array",
