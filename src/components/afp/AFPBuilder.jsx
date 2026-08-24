@@ -79,6 +79,8 @@ export default function AFPBuilder({ job }) {
   const [savingDates, setSavingDates] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [confirmDeleteAfpId, setConfirmDeleteAfpId] = useState(null);
+  const [deletingAfp, setDeletingAfp] = useState(false);
 
   const { data: afps = [], isLoading: afpsLoading } = useQuery({
     queryKey: ['afp', job.id],
@@ -273,6 +275,26 @@ export default function AFPBuilder({ job }) {
     } catch (e) { console.error(e); }
   };
 
+  const handleDeleteAfp = async () => {
+    if (!confirmDeleteAfpId) return;
+    setDeletingAfp(true);
+    try {
+      // Delete all line items belonging to this AFP, then the AFP itself
+      const items = await base44.entities.AFPLineItem.filter({ afp_id: confirmDeleteAfpId }, null, 1000);
+      if (items.length > 0) {
+        await Promise.all(items.map(li => base44.entities.AFPLineItem.delete(li.id)));
+      }
+      await base44.entities.AFP.delete(confirmDeleteAfpId);
+      // Clear the chain link from any AFP that pointed to the deleted one
+      const chainLinks = await base44.entities.AFP.filter({ next_afp_id: confirmDeleteAfpId }, null, 50);
+      await Promise.all(chainLinks.map(a => base44.entities.AFP.update(a.id, { next_afp_id: '' })));
+      if (selectedAfpId === confirmDeleteAfpId) setSelectedAfpId(null);
+      setConfirmDeleteAfpId(null);
+      invalidate();
+    } catch (e) { console.error(e); }
+    setDeletingAfp(false);
+  };
+
   const toggleDispute = (id) => {
     setExpandedDisputes(prev => {
       const next = new Set(prev);
@@ -441,19 +463,27 @@ export default function AFPBuilder({ job }) {
             const meta = STATUS_META[afp.status];
             const isActive = selectedAfp?.id === afp.id;
             return (
-              <button
-                key={afp.id}
-                onClick={() => { setSelectedAfpId(afp.id); clearSelection(); }}
-                className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition active:scale-95 ${
-                  isActive ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                <span className={`w-2 h-2 rounded-full ${meta.dot}`} />
-                AFP {afp.afp_number}
-                <span className={`text-[10px] ${isActive ? 'text-white/60' : 'text-slate-400'}`}>
-                  {afp.period_end_date ? fmtDate(afp.period_end_date) : 'Open'}
-                </span>
-              </button>
+              <div key={afp.id} className="flex-shrink-0 flex items-center gap-1 group">
+                <button
+                  onClick={() => { setSelectedAfpId(afp.id); clearSelection(); }}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition active:scale-95 ${
+                    isActive ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${meta.dot}`} />
+                  AFP {afp.afp_number}
+                  <span className={`text-[10px] ${isActive ? 'text-white/60' : 'text-slate-400'}`}>
+                    {afp.period_end_date ? fmtDate(afp.period_end_date) : 'Open'}
+                  </span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteAfpId(afp.id); }}
+                  className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition active:scale-90"
+                  title="Remove AFP"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
             );
           })}
           <button
@@ -1067,6 +1097,40 @@ export default function AFPBuilder({ job }) {
       </div>
 
       {showCreate && <CreateFirstAFPModal job={job} onClose={() => setShowCreate(false)} onCreated={(id) => { setSelectedAfpId(id); invalidate(); }} />}
+
+      {confirmDeleteAfpId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4" onClick={() => !deletingAfp && setConfirmDeleteAfpId(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-5 animate-pop-in" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Remove AFP?</h3>
+                <p className="text-xs text-slate-500 mt-0.5">This permanently deletes the AFP and all its line items.</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={() => setConfirmDeleteAfpId(null)}
+                disabled={deletingAfp}
+                className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAfp}
+                disabled={deletingAfp}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-600 text-white rounded-lg text-xs font-bold transition active:scale-95 disabled:opacity-50"
+              >
+                {deletingAfp ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                Remove AFP
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showDatesEditor && selectedAfp && (
         <AFPDatesEditor
           afp={selectedAfp}
