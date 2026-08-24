@@ -6,12 +6,15 @@ import {
   Plus, Loader2, Clock, Receipt, PoundSterling,
   MessageSquare, X, FileBarChart,
   TrendingUp, Zap, CheckSquare, Square, Trash2, Search,
-  ChevronDown, ChevronRight,
+  ChevronDown, ChevronRight, GitBranch, Package,
 } from 'lucide-react';
 import CreateFirstAFPModal from './CreateFirstAFPModal';
 import AFPDatesEditor from './AFPDatesEditor';
 import AFPDisputeRow from './AFPDisputeRow';
 import AFPExportButtons from './AFPExportButtons';
+import AFPDualSideTable from './AFPDualSideTable';
+import AFPVariationLifecycle from './AFPVariationLifecycle';
+import AFPCompensationItems from './AFPCompensationItems';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -74,6 +77,7 @@ export default function AFPBuilder({ job }) {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [groupBy, setGroupBy] = useState('category');
+  const [viewMode, setViewMode] = useState('list');
   const [collapsedCats, setCollapsedCats] = useState(new Set());
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [showDatesEditor, setShowDatesEditor] = useState(false);
@@ -670,6 +674,21 @@ export default function AFPBuilder({ job }) {
           </div>
           <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
             <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${viewMode === 'list' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}
+            >
+              List
+            </button>
+            <button
+              onClick={() => setViewMode('sheets')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${viewMode === 'sheets' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}
+            >
+              Sheets
+            </button>
+          </div>
+          {viewMode === 'list' && (
+          <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
+            <button
               onClick={() => setGroupBy('category')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${groupBy === 'category' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}
             >
@@ -682,6 +701,7 @@ export default function AFPBuilder({ job }) {
               By Time
             </button>
           </div>
+          )}
           {groupBy === 'time' && (
             <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
               {['day', 'week', 'month'].map(g => (
@@ -901,8 +921,61 @@ export default function AFPBuilder({ job }) {
         </div>
       )}
 
+      {/* ── Sheets view (dual-side Measured Works + Variation lifecycle + Compensation Items + Materials) ── */}
+      {viewMode === 'sheets' && (
+        <div className="space-y-3">
+          <AFPDualSideTable afp={selectedAfp} lineItems={lineItems} canEdit={selectedAfp?.status === 'draft' || selectedAfp?.status === 'submitted'} />
+          {/* Variations with cost-agreement lifecycle */}
+          {lineItems.filter(li => li.sheet_name === 'variations').length > 0 && (
+            <div className="insight-card rounded-2xl overflow-hidden">
+              <div className="px-4 py-2.5 bg-slate-50/80 border-b border-slate-200 flex items-center gap-2">
+                <GitBranch className="w-4 h-4 text-violet-600" />
+                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">Variations</h3>
+                <span className="text-[10px] text-slate-400">({lineItems.filter(li => li.sheet_name === 'variations').length} lines)</span>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {lineItems.filter(li => li.sheet_name === 'variations').map((li) => (
+                  <div key={li.id}>
+                    <div className="px-3 py-2 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {li.vo_ref && <span className="px-1.5 py-0.5 bg-violet-100 text-violet-700 rounded text-[10px] font-mono font-bold flex-shrink-0">{li.vo_ref}</span>}
+                        <span className="text-xs font-medium text-slate-700 truncate">{li.item}</span>
+                      </div>
+                      <span className="text-xs font-bold text-slate-700 tabular-nums flex-shrink-0">{fmt(li.amount)}</span>
+                    </div>
+                    <AFPVariationLifecycle item={li} canEdit={selectedAfp?.status === 'draft' || selectedAfp?.status === 'submitted'} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <AFPCompensationItems lineItems={lineItems} />
+          {/* Materials */}
+          {lineItems.filter(li => li.sheet_name === 'materials').length > 0 && (
+            <div className="insight-card rounded-2xl overflow-hidden">
+              <div className="px-4 py-2.5 bg-slate-50/80 border-b border-slate-200 flex items-center gap-2">
+                <Package className="w-4 h-4 text-amber-600" />
+                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">Materials On Site</h3>
+                <span className="text-[10px] text-slate-400">({lineItems.filter(li => li.sheet_name === 'materials').length} lines)</span>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {lineItems.filter(li => li.sheet_name === 'materials').map((li) => (
+                  <div key={li.id} className="px-3 py-2 flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-slate-700 truncate">{li.item}</p>
+                      <p className="text-[10px] text-slate-400">{li.qty} {li.unit} @ {fmt(li.rate)}</p>
+                    </div>
+                    <span className="text-xs font-bold text-slate-700 tabular-nums flex-shrink-0">{fmt(li.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Category-grouped view (collapsible sections with subtotals) ── */}
-      {groupBy === 'category' && (
+      {viewMode === 'list' && groupBy === 'category' && (
         <div className="space-y-2.5">
           {categoryGroupedItems.length === 0 ? (
             <div className="insight-card rounded-2xl p-6 text-center">
@@ -958,7 +1031,7 @@ export default function AFPBuilder({ job }) {
       )}
 
       {/* ── Line Items — Mobile card view (time-grouped) ── */}
-      {groupBy === 'time' && (
+      {viewMode === 'list' && groupBy === 'time' && (
       <div className="sm:hidden space-y-3">
         {groupedItems.length === 0 ? (
           <div className="insight-card rounded-2xl p-6 text-center">
@@ -1012,7 +1085,7 @@ export default function AFPBuilder({ job }) {
       )}
 
       {/* ── Line Items Table (grouped by time bucket) — Desktop only ── */}
-      {groupBy === 'time' && (
+      {viewMode === 'list' && groupBy === 'time' && (
       <div className="insight-card rounded-2xl overflow-hidden hidden sm:block">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">

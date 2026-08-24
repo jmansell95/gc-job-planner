@@ -136,6 +136,40 @@ export default function AFPUploadModal({ job, onClose }) {
                 <CountTile label="Materials" count={preview.materials?.length || 0} />
               </div>
 
+              {(preview.compensation_items?.length || 0) > 0 && (
+                <div className="grid grid-cols-2 gap-2.5">
+                  <CountTile label="Compensation Items" count={preview.compensation_items?.length || 0} />
+                  <CountTile label="Field Activities" count={preview.field_sheet_activities?.length || 0} />
+                </div>
+              )}
+
+              {/* Multi-AFP split preview */}
+              {preview.afp_split?.length > 0 && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50/50 overflow-hidden">
+                  <div className="px-4 py-2 bg-blue-100/60 border-b border-blue-200 flex items-center gap-2">
+                    <Layers className="w-3.5 h-3.5 text-blue-600" />
+                    <p className="text-xs font-bold text-blue-700">
+                      {preview.afp_split.length} AFP{preview.afp_split.length > 1 ? 's' : ''} will be created from historical data
+                    </p>
+                  </div>
+                  <div className="divide-y divide-blue-100">
+                    {preview.afp_split.map((period) => (
+                      <div key={period.afp_number} className="px-4 py-2 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="px-1.5 py-0.5 rounded-full bg-blue-600 text-white text-[10px] font-bold">AFP {period.afp_number}</span>
+                          <span className="text-slate-600 font-medium">
+                            {new Date(period.period_start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} → {new Date(period.period_end).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                          </span>
+                        </div>
+                        <span className="text-slate-400 text-[10px]">
+                          {period.measured_works_lines} MW · {period.variation_lines} VO · {period.compensation_item_lines} CI
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {preview.measured_works?.length > 0 && (
                 <div className="rounded-xl border border-slate-200 overflow-hidden">
                   <div className="px-4 py-2 bg-slate-50 border-b border-slate-200">
