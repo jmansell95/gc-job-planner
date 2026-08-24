@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, ShieldCheck, ShieldAlert, ShieldX, Gauge, Wrench, Link2, Link2Off, AlertTriangle, Weight, Ruler } from 'lucide-react';
+import { Truck, ShieldCheck, ShieldAlert, ShieldX, Gauge, Wrench, Link2, Link2Off, AlertTriangle, Weight, Ruler, Satellite } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
 
 function getStatus(vehicle) {
@@ -86,6 +86,16 @@ export default function VehicleCard({ vehicle, staff, team, onClick }) {
         <div className="flex items-center gap-2 flex-wrap">
           {teamName && <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{teamName}</span>}
           {assignedStaff ? <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">{assignedStaff.name}</span> : <span className="text-slate-300">Unassigned</span>}
+          {vehicle.geotab_keeper_name && (
+            <span className="inline-flex items-center gap-1 bg-cyan-50 text-cyan-700 px-2 py-0.5 rounded-full font-medium" title="Geotab assigned keeper">
+              <Satellite className="w-3 h-3" /> {vehicle.geotab_keeper_name}
+            </span>
+          )}
+          {vehicle.geotab_driver_name && vehicle.geotab_driver_name !== vehicle.geotab_keeper_name && (
+            <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full font-medium" title="Currently driving (differs from keeper)">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" /> {vehicle.geotab_driver_name}
+            </span>
+          )}
           {vehicle.spec_lookup_confidence === 'low' && (
             <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full font-medium" title="Spec lookup returned partial data — review make/model manually">
               <AlertTriangle className="w-3 h-3" /> Review spec

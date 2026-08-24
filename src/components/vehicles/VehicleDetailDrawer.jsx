@@ -222,6 +222,16 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
                 <Satellite className="w-3.5 h-3.5" /> Geotab
               </span>
             )}
+            {vehicle.geotab_keeper_name && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-cyan-100 text-cyan-800 border border-cyan-300">
+                <User className="w-3.5 h-3.5" /> Assigned: {vehicle.geotab_keeper_name}
+              </span>
+            )}
+            {vehicle.geotab_driver_name && vehicle.geotab_driver_name !== vehicle.geotab_keeper_name && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
+                <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" /> Driving: {vehicle.geotab_driver_name}
+              </span>
+            )}
             {vehicle.holman_sync_status === 'synced' && (
               <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                 <Link2 className="w-3.5 h-3.5" /> Holman
@@ -389,7 +399,7 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
                 <SpecTile icon={Palette} label="Colour" value={vehicle.color || '—'} color="bg-slate-50 border-slate-200" />
                 <SpecTile icon={Truck} label="Type" value={vehicle.vehicle_type || '—'} source={specSource(vehicle.vehicle_type)} color="bg-slate-50 border-slate-200" />
                 <SpecTile icon={Hash} label="VIN" value={vehicle.vin || '—'} source={specSource(vehicle.vin)} color="bg-slate-50 border-slate-200" />
-                <SpecTile icon={User} label="Driver" value={assignedStaff?.name || 'Unassigned'} color="bg-slate-50 border-slate-200" />
+                <SpecTile icon={User} label="Driver" value={vehicle.geotab_keeper_name || assignedStaff?.name || 'Unassigned'} source={vehicle.geotab_keeper_name ? 'Geotab' : null} color="bg-slate-50 border-slate-200" />
                 <SpecTile icon={Users} label="Team" value={team?.name || '—'} color="bg-slate-50 border-slate-200" />
                 <SpecTile icon={Weight} label="Max Payload" value={vehicle.max_weight_kg ? `${Math.round(vehicle.max_weight_kg)} kg` : '—'} color="bg-blue-50 border-blue-200" />
                 <SpecTile icon={Ruler} label="Height" value={vehicle.height_m ? `${vehicle.height_m} m` : '—'} color="bg-violet-50 border-violet-200" />
