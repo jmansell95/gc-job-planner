@@ -840,22 +840,15 @@ function GeocodeButton({ address, onResult }) {
     setLoading(true);
     setError('');
     try {
-      const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `Return the GPS latitude and longitude of this UK site address as a JSON object: "${address}". Use only valid numeric coordinates. If the address is ambiguous, return the most likely match for the UK.`,
-        add_context_from_internet: true,
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            lat: { type: 'number' },
-            lng: { type: 'number' }
-          },
-          required: ['lat', 'lng']
-        }
-      });
-      if (res && typeof res.lat === 'number' && typeof res.lng === 'number') {
-        onResult(res.lat, res.lng);
+      // Accurate UK postcode geocoding via Postcodes.io (+ Nominatim fallback).
+      // Replaces the old AI-based geocoder which returned rough area centroids,
+      // causing distinct addresses to share identical map pins.
+      const res = await base44.functions.invoke('geocodeJobAddress', { address });
+      const data = res.data;
+      if (data && typeof data.lat === 'number' && typeof data.lng === 'number') {
+        onResult(data.lat, data.lng);
       } else {
-        setError('Could not geocode this address');
+        setError(data?.error || 'Could not geocode this address');
       }
     } catch (e) {
       setError(e.message || 'Geocode failed');

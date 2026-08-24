@@ -8,6 +8,7 @@ import { EmptyState, ErrorState, CardGridSkeleton } from '@/components/StateView
 import JobDetail from '@/components/JobDetail';
 import JobWizardModal from '@/components/JobWizardModal';
 import SplitMultiSiteProjectsModal from '@/components/jobs/SplitMultiSiteProjectsModal';
+import ReGeocodeJobsButton from '@/components/jobs/ReGeocodeJobsButton';
 import PrintReportButton from '@/components/PrintReportButton';
 import JobCreatedModal from '@/components/JobCreatedModal';
 import JobKanbanBoard from '@/components/dashboard/JobKanbanBoard';
@@ -226,6 +227,7 @@ export default function JobManager({ onNavigateRota }) {
               </button>
             </div>
             <PrintReportButton buildHtml={buildJobsPrintHtml} label="Print Projects List" />
+            <ReGeocodeJobsButton />
             <button
               onClick={() => setShowSplitModal(true)}
               className="inline-flex items-center gap-2 px-3.5 py-2 bg-white text-violet-600 border border-violet-200 rounded-lg hover:bg-violet-50 transition text-sm font-semibold shadow-sm"

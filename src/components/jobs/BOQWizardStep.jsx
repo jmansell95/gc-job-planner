@@ -87,32 +87,32 @@ export default function BOQWizardStep({ boqLines = [], onChange }) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Intro / running total */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-[#2E5A1A]/10 flex items-center justify-center">
-            <ClipboardList className="w-4 h-4 text-[#2E5A1A]" />
+          <div className="w-7 h-7 rounded-lg bg-[#2E5A1A]/10 flex items-center justify-center">
+            <ClipboardList className="w-3.5 h-3.5 text-[#2E5A1A]" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">Bill of Quantities</h3>
-            <p className="text-xs text-slate-500">Your contracted "shopping list" — pick SOR items and set agreed quantities.</p>
+            <h3 className="text-sm font-semibold text-slate-900 leading-tight">Bill of Quantities</h3>
+            <p className="text-[11px] text-slate-500 leading-tight">Contracted "shopping list" — pick SOR items and set agreed quantities.</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#2E5A1A]/5 border border-[#2E5A1A]/15">
-          <PoundSterling className="w-4 h-4 text-[#2E5A1A]" />
+        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#2E5A1A]/5 border border-[#2E5A1A]/15">
+          <PoundSterling className="w-3.5 h-3.5 text-[#2E5A1A]" />
           <div>
-            <p className="text-[10px] text-slate-500 uppercase font-semibold tracking-wide">Contract Value</p>
-            <p className="text-base font-bold text-[#2E5A1A] tabular-nums">{fmt(contractValue)}</p>
+            <p className="text-[9px] text-slate-500 uppercase font-semibold tracking-wide leading-none">Contract Value</p>
+            <p className="text-sm font-bold text-[#2E5A1A] tabular-nums leading-tight">{fmt(contractValue)}</p>
           </div>
         </div>
       </div>
 
       {/* Rate card search + pick */}
-      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
         <div className="flex items-center gap-2">
-          <ShoppingBag className="w-4 h-4 text-[#2E5A1A]" />
-          <span className="text-sm font-semibold text-slate-800">Add from Schedule of Rates</span>
+          <ShoppingBag className="w-3.5 h-3.5 text-[#2E5A1A]" />
+          <span className="text-xs font-semibold text-slate-800">Add from Schedule of Rates</span>
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -120,120 +120,121 @@ export default function BOQWizardStep({ boqLines = [], onChange }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search rate card items by description, SOR ref or section…"
-            className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5A1A]/30"
+            className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5A1A]/30"
           />
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-6">
-            <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
           </div>
         ) : (
-          <div className="border border-slate-200 rounded-lg max-h-[240px] overflow-y-auto divide-y divide-slate-100 bg-white">
+          <div className="border border-slate-200 rounded-lg max-h-[160px] overflow-y-auto divide-y divide-slate-100 bg-white">
             {filteredRates.map((r) => (
               <button
                 key={r.id}
                 type="button"
                 onClick={() => { setSelectedRateId(r.id); setPriceOverride(''); }}
-                className={`w-full text-left p-2.5 hover:bg-[#2E5A1A]/5 transition ${selectedRateId === r.id ? 'bg-[#2E5A1A]/10 border-l-4 border-[#2E5A1A]' : ''}`}
+                className={`w-full text-left px-2.5 py-1.5 hover:bg-[#2E5A1A]/5 transition ${selectedRateId === r.id ? 'bg-[#2E5A1A]/10 border-l-4 border-[#2E5A1A]' : ''}`}
               >
                 <div className="flex items-center gap-2">
                   <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-mono font-bold uppercase">
                     {r.category?.[0] || '•'}
                   </span>
-                  <p className="text-sm font-medium text-slate-800 flex-1 truncate">{r.description}</p>
-                  <span className="text-sm font-semibold text-slate-900">£{r.price}</span>
+                  <p className="text-xs font-medium text-slate-800 flex-1 truncate">{r.description}</p>
+                  <span className="text-xs font-semibold text-slate-900">£{r.price}</span>
                   <span className="text-[10px] text-slate-400">/{r.unit}</span>
                 </div>
-                {r.subcategory && <p className="text-[11px] text-slate-400 mt-0.5 truncate">{r.subcategory}</p>}
+                {r.subcategory && <p className="text-[10px] text-slate-400 mt-0.5 truncate">{r.subcategory}</p>}
               </button>
             ))}
             {filteredRates.length === 0 && (
-              <p className="text-center py-6 text-slate-400 text-sm">No rate items found</p>
+              <p className="text-center py-4 text-slate-400 text-xs">No rate items found</p>
             )}
           </div>
         )}
 
         {/* Selected item — qty + price */}
         {selected && (
-          <div className="bg-white rounded-xl border border-slate-200 p-3 space-y-3">
-            <div className="text-xs text-slate-600">
+          <div className="bg-white rounded-lg border border-slate-200 p-2.5 space-y-2">
+            <div className="text-[11px] text-slate-600">
               <span className="font-medium text-slate-800">{selected.description}</span>
               <span className="text-slate-400"> · {selected.subcategory || selected.category}</span>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="text-[11px] text-slate-400 uppercase font-medium block mb-1">Quantity</label>
+                <label className="text-[10px] text-slate-400 uppercase font-medium block mb-0.5">Quantity</label>
                 <input
                   type="number"
                   value={qty}
                   onChange={(e) => setQty(e.target.value)}
                   placeholder="0"
                   autoFocus
-                  className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5A1A]/30"
+                  className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5A1A]/30"
                 />
               </div>
               <div>
-                <label className="text-[11px] text-slate-400 uppercase font-medium block mb-1">Unit Price (£)</label>
+                <label className="text-[10px] text-slate-400 uppercase font-medium block mb-0.5">Unit Price (£)</label>
                 <input
                   type="number"
                   value={priceOverride}
                   onChange={(e) => setPriceOverride(e.target.value)}
                   placeholder={String(selected.price || '')}
-                  className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5A1A]/30"
+                  className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5A1A]/30"
                 />
               </div>
               <div>
-                <label className="text-[11px] text-slate-400 uppercase font-medium block mb-1">Line Total</label>
-                <div className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-[#2E5A1A]">
+                <label className="text-[10px] text-slate-400 uppercase font-medium block mb-0.5">Line Total</label>
+                <div className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-[#2E5A1A]">
                   {fmt(lineTotal)}
                 </div>
               </div>
             </div>
-            <p className="text-[11px] text-slate-400">Unit: {selected.unit || 'nr'} · Override price only for negotiated rates</p>
-            <button
-              type="button"
-              onClick={addLine}
-              disabled={!qty || Number(qty) <= 0}
-              className="flex items-center gap-2 px-4 py-2 bg-[#2E5A1A] text-white hover:bg-[#1c4a12] rounded-lg text-sm font-medium transition disabled:opacity-50"
-            >
-              <Plus className="w-4 h-4" /> Add to BOQ
-            </button>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] text-slate-400">Unit: {selected.unit || 'nr'} · Override only for negotiated rates</p>
+              <button
+                type="button"
+                onClick={addLine}
+                disabled={!qty || Number(qty) <= 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2E5A1A] text-white hover:bg-[#1c4a12] rounded-lg text-xs font-medium transition disabled:opacity-50"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add to BOQ
+              </button>
+            </div>
           </div>
         )}
       </div>
 
       {/* Current lines */}
       {boqLines.length === 0 ? (
-        <div className="text-center py-8 text-slate-400 text-sm border border-dashed border-slate-200 rounded-xl">
-          <ClipboardList className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+        <div className="text-center py-5 text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl">
+          <ClipboardList className="w-6 h-6 text-slate-200 mx-auto mb-1.5" />
           No BOQ lines yet — this step is optional.
-          <p className="text-[11px] mt-1">You can add them later from the job's Financials tab → Controls.</p>
+          <p className="text-[10px] mt-0.5">Add them later from the job's Financials tab → Controls.</p>
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
           {boqLines.map((line, idx) => (
-            <div key={idx} className="p-3 flex items-center gap-3">
+            <div key={idx} className="px-3 py-2 flex items-center gap-2">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   {line.sor_ref && (
                     <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-mono font-bold">
                       {line.sor_ref}
                     </span>
                   )}
                   <span className="text-[10px] text-slate-400 uppercase font-semibold">{line.category}</span>
+                  <p className="text-xs font-medium text-slate-800 truncate">{line.description}</p>
                 </div>
-                <p className="text-sm font-medium text-slate-800 truncate">{line.description}</p>
-                {line.subcategory && <p className="text-[11px] text-slate-400 truncate">{line.subcategory}</p>}
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 <input
                   type="number"
                   value={line.agreed_quantity}
                   onChange={(e) => updateLine(idx, { agreed_quantity: Number(e.target.value) || 0 })}
-                  className="w-16 px-2 py-1 border border-slate-200 rounded text-xs text-center focus:outline-none focus:ring-2 focus:ring-[#2E5A1A]/30"
+                  className="w-14 px-1.5 py-1 border border-slate-200 rounded text-xs text-center focus:outline-none focus:ring-2 focus:ring-[#2E5A1A]/30"
                 />
-                <span className="text-[10px] text-slate-400 w-8">{line.unit}</span>
+                <span className="text-[10px] text-slate-400 w-6">{line.unit}</span>
                 <span className="text-slate-300 text-xs">@</span>
                 <div className="relative">
                   <PoundSterling className="absolute left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
@@ -244,11 +245,11 @@ export default function BOQWizardStep({ boqLines = [], onChange }) {
                     className="w-20 pl-6 pr-1 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:ring-2 focus:ring-[#2E5A1A]/30"
                   />
                 </div>
-                <span className="text-sm font-bold text-slate-900 tabular-nums w-20 text-right">{fmt(line.agreed_line_total)}</span>
+                <span className="text-xs font-bold text-slate-900 tabular-nums w-20 text-right">{fmt(line.agreed_line_total)}</span>
                 <button
                   type="button"
                   onClick={() => removeLine(idx)}
-                  className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded transition"
+                  className="p-1 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded transition"
                   title="Remove line"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -257,11 +258,11 @@ export default function BOQWizardStep({ boqLines = [], onChange }) {
             </div>
           ))}
           {/* Footer total */}
-          <div className="px-3 py-2.5 bg-slate-50 flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+          <div className="px-3 py-2 bg-slate-50 flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
               {boqLines.length} line{boqLines.length !== 1 ? 's' : ''} · Contract Value
             </span>
-            <span className="text-base font-bold text-[#2E5A1A] tabular-nums">{fmt(contractValue)}</span>
+            <span className="text-sm font-bold text-[#2E5A1A] tabular-nums">{fmt(contractValue)}</span>
           </div>
         </div>
       )}
