@@ -205,23 +205,27 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
           )}
         </div>
 
-        {/* Geotab keeper — FIXED assignment from Geotab (Driver.defaultDevice) */}
+        {/* Geotab driver — keeper (fixed assignment) or last detected driver from trips */}
         <div className="flex items-center gap-1.5 mb-2 flex-wrap">
           {vehicle.geotab_keeper_name ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200" title="Geotab assigned keeper (Driver.defaultDevice)">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200" title="Geotab assigned keeper (User.defaultDevice)">
               <Satellite className="w-3 h-3" /> Keeper: {vehicle.geotab_keeper_name}
             </span>
+          ) : vehicle.geotab_driver_name ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200" title="Last detected driver from Geotab trip data">
+              <Satellite className="w-3 h-3" /> Driver: {vehicle.geotab_driver_name}
+            </span>
           ) : geotabLive ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full bg-slate-50 text-slate-400 border border-slate-200 border-dashed" title="No Geotab keeper set — assign a default device to this driver in Geotab">
-              <Satellite className="w-3 h-3" /> No Geotab keeper
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full bg-slate-50 text-slate-400 border border-slate-200 border-dashed" title="No Geotab driver data — vehicle may not have been driven recently">
+              <Satellite className="w-3 h-3" /> No Geotab driver
             </span>
           ) : driverName ? (
             <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200" title="Manually assigned driver">
               <User className="w-3 h-3" /> Assigned: {driverName}
             </span>
           ) : null}
-          {vehicle.geotab_driver_name && vehicle.geotab_driver_name !== vehicle.geotab_keeper_name && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200" title="Last detected driver (differs from keeper)">
+          {vehicle.geotab_keeper_name && vehicle.geotab_driver_name && vehicle.geotab_driver_name !== vehicle.geotab_keeper_name && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200" title="Last detected driver differs from keeper">
               <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" /> Driving: {vehicle.geotab_driver_name}
             </span>
           )}

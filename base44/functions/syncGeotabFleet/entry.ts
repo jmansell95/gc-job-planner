@@ -208,10 +208,22 @@ export default async function(req: Request): Promise<Response> {
     // User.defaultDevice links a driver to their primary vehicle (the keeper).
     // driverNameById resolves the driver ID objects in DeviceStatusInfo/Trip
     // to human-readable names.
+    // Convert Geotab User to a display name — prefer firstName + lastName,
+    // fall back to converting the email (name field) to a readable name
+    // (e.g. "richard.mason@ground-control.co.uk" → "Richard Mason").
+    function userDisplayName(user: any): string {
+      const firstLast = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+      if (firstLast) return firstLast;
+      if (user.name && user.name.includes('@')) {
+        return user.name.split('@')[0].split(/[._-]+/).map((p: string) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
+      }
+      return user.name || '';
+    }
+
     const driverNameById: Record<string, string> = {};
     const keeperByDevice: Record<string, string> = {};
     for (const user of driverList) {
-      const name = user.name || [user.firstName, user.lastName].filter(Boolean).join(' ') || '';
+      const name = userDisplayName(user);
       if (user.id && name) driverNameById[user.id] = name;
       const devId = user.defaultDevice?.id;
       if (devId && name) keeperByDevice[devId] = name;
