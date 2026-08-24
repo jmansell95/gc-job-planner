@@ -69,7 +69,7 @@ export default function AFPBuilder({ job }) {
   const [repricing, setRepricing] = useState(false);
   const [expandedDisputes, setExpandedDisputes] = useState(new Set());
   const [showAddManual, setShowAddManual] = useState(false);
-  const [manualItem, setManualItem] = useState({ item: '', unit: 'sum', qty: 1, rate: 0, category: 'other' });
+  const [manualItem, setManualItem] = useState({ item: '', unit: 'sum', qty: 1, rate: 0, category: 'other', source_date: '' });
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [groupBy, setGroupBy] = useState('category');
@@ -255,14 +255,14 @@ export default function AFPBuilder({ job }) {
         rate: Number(manualItem.rate) || 0,
         amount: (Number(manualItem.qty) || 0) * (Number(manualItem.rate) || 0),
         source: 'manual',
-        source_date: new Date().toISOString().slice(0, 10),
+        source_date: manualItem.source_date || new Date().toISOString().slice(0, 10),
         is_manual: true,
         dispute_status: 'none',
         original_amount: (Number(manualItem.qty) || 0) * (Number(manualItem.rate) || 0),
         agreed_amount: (Number(manualItem.qty) || 0) * (Number(manualItem.rate) || 0),
         sort_order: lineItems.length,
       });
-      setManualItem({ item: '', unit: 'sum', qty: 1, rate: 0, category: 'other' });
+      setManualItem({ item: '', unit: 'sum', qty: 1, rate: 0, category: 'other', source_date: selectedAfp?.period_end_date || new Date().toISOString().slice(0, 10) });
       setShowAddManual(false);
       queryClient.invalidateQueries({ queryKey: ['afp-line-items', selectedAfp?.id] });
     } catch (e) { console.error(e); }
@@ -695,7 +695,12 @@ export default function AFPBuilder({ job }) {
             </div>
           )}
           <button
-            onClick={() => setShowAddManual(!showAddManual)}
+            onClick={() => {
+              if (!showAddManual) {
+                setManualItem(p => ({ ...p, source_date: selectedAfp?.period_end_date || new Date().toISOString().slice(0, 10) }));
+              }
+              setShowAddManual(!showAddManual);
+            }}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-50 transition active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" /> Add Line
@@ -804,6 +809,19 @@ export default function AFPBuilder({ job }) {
                 className="px-3 py-2.5 border border-slate-200 rounded-lg text-sm"
               />
             </div>
+            <div>
+              <p className="text-[10px] text-slate-400 uppercase font-semibold tracking-wide mb-1 px-1">
+                Date {selectedAfp?.period_start_date && selectedAfp?.period_end_date && (
+                  <span className="normal-case font-medium">· Period {fmtDate(selectedAfp.period_start_date)} → {fmtDate(selectedAfp.period_end_date)}</span>
+                )}
+              </p>
+              <input
+                type="date"
+                value={manualItem.source_date}
+                onChange={e => setManualItem(p => ({ ...p, source_date: e.target.value }))}
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm"
+              />
+            </div>
             <div className="flex items-center justify-between px-1">
               <span className="text-xs text-slate-400">Amount:</span>
               <span className="text-sm font-bold text-slate-800 tabular-nums">{fmt((Number(manualItem.qty) || 0) * (Number(manualItem.rate) || 0))}</span>
@@ -856,6 +874,24 @@ export default function AFPBuilder({ job }) {
             <div className="col-span-1 flex items-center px-2 text-xs font-bold text-slate-700 tabular-nums">
               {fmt((Number(manualItem.qty) || 0) * (Number(manualItem.rate) || 0))}
             </div>
+          </div>
+          {/* Date row with period hint */}
+          <div className="hidden sm:flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-[10px] text-slate-400 uppercase font-semibold tracking-wide">Line Date</span>
+              {selectedAfp?.period_start_date && selectedAfp?.period_end_date && (
+                <span className="text-[10px] text-slate-400 font-medium">
+                  · Period {fmtDate(selectedAfp.period_start_date)} → {fmtDate(selectedAfp.period_end_date)}
+                </span>
+              )}
+            </div>
+            <input
+              type="date"
+              value={manualItem.source_date}
+              onChange={e => setManualItem(p => ({ ...p, source_date: e.target.value }))}
+              className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs w-44"
+            />
           </div>
           <div className="flex justify-end gap-2">
             <button onClick={() => setShowAddManual(false)} className="px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700">Cancel</button>
