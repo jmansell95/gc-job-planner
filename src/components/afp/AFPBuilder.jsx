@@ -3,12 +3,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   FileText, Calendar, RefreshCw, Send, ArrowRight, CheckCircle2,
-  Plus, Loader2, Clock, Receipt,
+  Plus, Loader2, Clock, Receipt, PoundSterling,
   MessageSquare, X, FileBarChart,
   TrendingUp, Zap, CheckSquare, Square, Trash2, Search,
   ChevronDown, ChevronRight,
 } from 'lucide-react';
 import CreateFirstAFPModal from './CreateFirstAFPModal';
+import AFPDatesEditor from './AFPDatesEditor';
 import AFPDisputeRow from './AFPDisputeRow';
 import AFPExportButtons from './AFPExportButtons';
 
@@ -74,8 +75,9 @@ export default function AFPBuilder({ job }) {
   const [groupBy, setGroupBy] = useState('category');
   const [collapsedCats, setCollapsedCats] = useState(new Set());
   const [selectedItems, setSelectedItems] = useState(new Set());
-  const [showPeriodEditor, setShowPeriodEditor] = useState(false);
-  const [periodEndDate, setPeriodEndDate] = useState('');
+  const [showDatesEditor, setShowDatesEditor] = useState(false);
+  const [savingDates, setSavingDates] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   const { data: afps = [], isLoading: afpsLoading } = useQuery({
@@ -331,14 +333,38 @@ export default function AFPBuilder({ job }) {
     setBulkActionLoading(false);
   };
 
-  // ── Period end date editor ──
-  const handlePeriodEndSave = async () => {
-    if (!selectedAfp || !periodEndDate) return;
+  // ── Four-date editor + regenerate ──
+  const handleDatesSave = async (dates) => {
+    if (!selectedAfp) return;
+    setSavingDates(true);
     try {
-      await base44.entities.AFP.update(selectedAfp.id, { period_end_date: periodEndDate });
+      await base44.entities.AFP.update(selectedAfp.id, {
+        period_start_date: dates.period_start_date,
+        period_end_date: dates.period_end_date,
+        certification_due_date: dates.certification_due_date,
+        final_payment_notice_date: dates.final_payment_notice_date,
+      });
       invalidate();
+      setShowDatesEditor(false);
     } catch (e) { console.error(e); }
-    setShowPeriodEditor(false);
+    setSavingDates(false);
+  };
+
+  const handleRegenerate = async (dates) => {
+    if (!selectedAfp) return;
+    setRegenerating(true);
+    try {
+      await base44.entities.AFP.update(selectedAfp.id, {
+        period_start_date: dates.period_start_date,
+        period_end_date: dates.period_end_date,
+        certification_due_date: dates.certification_due_date,
+        final_payment_notice_date: dates.final_payment_notice_date,
+      });
+      await base44.functions.invoke('populateAFPFromFieldData', { afp_id: selectedAfp.id });
+      invalidate();
+      setShowDatesEditor(false);
+    } catch (e) { console.error(e); }
+    setRegenerating(false);
   };
 
   const exportCSV = () => {
@@ -453,27 +479,18 @@ export default function AFPBuilder({ job }) {
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${statusMeta.bg} ${statusMeta.color}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} /> {statusMeta.label}
                   </span>
-                  {/* Inline period-end-date editor */}
-                  {showPeriodEditor ? (
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="date"
-                        value={periodEndDate}
-                        onChange={e => setPeriodEndDate(e.target.value)}
-                        autoFocus
-                        className="px-2 py-0.5 border border-slate-200 rounded-lg text-[11px] font-medium"
-                      />
-                      <button onClick={handlePeriodEndSave} className="px-2 py-0.5 bg-[#2E5A1A] text-white rounded-lg text-[10px] font-bold">Save</button>
-                      <button onClick={() => setShowPeriodEditor(false)} className="px-2 py-0.5 text-slate-500 text-[10px] font-bold">Cancel</button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => { setPeriodEndDate(selectedAfp.period_end_date || ''); setShowPeriodEditor(true); }}
-                      className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-[#2E5A1A] transition font-medium"
-                    >
-                      <Calendar className="w-3 h-3" />
-                      {fmtDate(selectedAfp.period_start_date)} → {selectedAfp.period_end_date ? fmtDate(selectedAfp.period_end_date) : 'Set end date'}
-                    </button>
+                  {/* Dates chip — opens the four-date editor */}
+                  <button
+                    onClick={() => setShowDatesEditor(true)}
+                    className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-[#2E5A1A] transition font-medium"
+                  >
+                    <Calendar className="w-3 h-3" />
+                    {fmtDate(selectedAfp.period_start_date)} → {selectedAfp.period_end_date ? fmtDate(selectedAfp.period_end_date) : 'Set dates'}
+                  </button>
+                  {selectedAfp.final_payment_notice_date && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold">
+                      <PoundSterling className="w-2.5 h-2.5" /> Pay by {fmtDate(selectedAfp.final_payment_notice_date)}
+                    </span>
                   )}
                 </div>
               </div>
@@ -1050,6 +1067,16 @@ export default function AFPBuilder({ job }) {
       </div>
 
       {showCreate && <CreateFirstAFPModal job={job} onClose={() => setShowCreate(false)} onCreated={(id) => { setSelectedAfpId(id); invalidate(); }} />}
+      {showDatesEditor && selectedAfp && (
+        <AFPDatesEditor
+          afp={selectedAfp}
+          onClose={() => setShowDatesEditor(false)}
+          onSave={handleDatesSave}
+          onRegenerate={handleRegenerate}
+          saving={savingDates}
+          regenerating={regenerating}
+        />
+      )}
     </div>
   );
 }

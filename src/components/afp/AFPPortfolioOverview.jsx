@@ -3,11 +3,19 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   FileBarChart, PoundSterling, AlertTriangle, CheckCircle2, Receipt,
-  Search, Loader2, ArrowRight, Upload, FileSpreadsheet,
+  Search, Loader2, ArrowRight, Upload, FileSpreadsheet, Clock,
 } from 'lucide-react';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—';
+
+// Days past the final payment notice date (0 if not yet overdue or not invoiced)
+function daysOverdue(afp) {
+  if (!afp.final_payment_notice_date || afp.status === 'invoiced') return 0;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const due = new Date(afp.final_payment_notice_date + 'T00:00:00');
+  return Math.max(0, Math.round((today - due) / (1000 * 60 * 60 * 24)));
+}
 
 const STATUS_META = {
   draft: { label: 'Draft', color: 'text-slate-600', bg: 'bg-slate-100', dot: 'bg-slate-400' },
@@ -34,16 +42,23 @@ export default function AFPPortfolioOverview({ onSelectJob, onUploadTemplate }) 
 
   // Derive dispute status for filtering
   const enrichedAfps = useMemo(() => {
-    return afps.map(a => ({
-      ...a,
-      // If disputed_total > 0, show as 'disputed' regardless of base status
-      effective_status: (a.disputed_total > 0 && a.status === 'submitted') ? 'disputed' : a.status,
-    }));
+    return afps.map(a => {
+      const overdue = daysOverdue(a);
+      return {
+        ...a,
+        // If disputed_total > 0, show as 'disputed' regardless of base status
+        effective_status: (a.disputed_total > 0 && a.status === 'submitted') ? 'disputed' : a.status,
+        days_overdue: overdue,
+        is_overdue: overdue > 0,
+      };
+    });
   }, [afps]);
 
   const filtered = useMemo(() => {
     let result = enrichedAfps;
-    if (statusFilter !== 'all') {
+    if (statusFilter === 'overdue') {
+      result = result.filter(a => a.is_overdue);
+    } else if (statusFilter !== 'all') {
       result = result.filter(a => a.effective_status === statusFilter);
     }
     if (search) {
@@ -73,12 +88,18 @@ export default function AFPPortfolioOverview({ onSelectJob, onUploadTemplate }) 
   }, [enrichedAfps]);
 
   const statusCounts = useMemo(() => {
-    const counts = { draft: 0, submitted: 0, disputed: 0, approved: 0, invoiced: 0 };
+    const counts = { draft: 0, submitted: 0, disputed: 0, approved: 0, invoiced: 0, overdue: 0 };
     for (const a of enrichedAfps) {
       counts[a.effective_status] = (counts[a.effective_status] || 0) + 1;
+      if (a.is_overdue) counts.overdue++;
     }
     return counts;
   }, [enrichedAfps]);
+
+  const overdueTotal = useMemo(
+    () => enrichedAfps.filter(a => a.is_overdue).reduce((s, a) => s + (a.agreed_total || a.total_claimed || 0), 0),
+    [enrichedAfps]
+  );
 
   const handleSort = (col) => {
     if (sortBy === col) {
