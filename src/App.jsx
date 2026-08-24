@@ -49,6 +49,7 @@ import ResetPassword from './pages/ResetPassword';
 import OAuthConsent from './pages/OAuthConsent';
 import SubcontractorOnboarding from './pages/SubcontractorOnboarding';
 import { StaffAssistantProvider } from '@/components/StaffAssistantChat';
+import { GlobalScannerProvider } from '@/contexts/GlobalScannerContext';
 import { SchedulingAssistantProvider } from '@/components/SchedulingAssistantChat';
 import { DrillingIntelligenceProvider } from '@/components/DrillingIntelligenceChat';
 import { AIHubProvider } from '@/components/ai/AIHub';
@@ -164,7 +165,9 @@ function App() {
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <ScrollToTop />
-          <AuthenticatedApp />
+          <GlobalScannerProvider>
+            <AuthenticatedApp />
+          </GlobalScannerProvider>
         </Router>
         <Toaster />
       </QueryClientProvider>

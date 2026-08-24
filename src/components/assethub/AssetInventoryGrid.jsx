@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { rollupCompliance, derivedComplianceStatus, COMPLIANCE_META, ASSET_TYPE_META, findParentRig, daysUntil } from '@/utils/rigRollup';
 import RigUtilizationSparkline from '@/components/righub/RigUtilizationSparkline';
-import CardComplianceRing from '@/components/assethub/CardComplianceRing';
+
 
 const TYPE_ICON = { rig: Cog, machinery: Wrench, trailer: Package, vehicle: Truck, lifting: Anchor, portable_appliance: Plug };
 const TYPE_GRADIENT = {
@@ -163,19 +163,26 @@ function AssetCardBanner({ asset, heightClass = 'h-28' }) {
   const imgUrl = img?.thumb || img?.medium || img?.url;
   const Icon = TYPE_ICON[asset?.asset_type] || Wrench;
   const grad = TYPE_GRADIENT[asset?.asset_type] || 'from-slate-500 to-slate-700';
+  const expiry = asset?.compliance_expiry_date;
+  const days = expiry ? daysUntil(expiry) : null;
+  const showPill = days !== null;
+  const pillCls = days < 0 ? 'bg-red-500 text-white' : days <= 30 ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white';
   return (
     <div className={`relative ${heightClass} overflow-hidden`}>
       {imgUrl ? (
-        <img src={imgUrl} alt={asset?.name || ''} loading="lazy" className="w-full h-full object-cover" />
-      ) : (
-        <div className={`w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center`}>
-          <Icon className="w-10 h-10 text-white/80" />
+        <img src={imgUrl} alt={asset?.name || ''} loading="lazy"
+          className="w-full h-full object-cover"
+          onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+      ) : null}
+      <div className={`w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center`} style={{ display: imgUrl ? 'none' : 'flex' }}>
+        <Icon className="w-10 h-10 text-white/80" />
+      </div>
+      <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/45 to-transparent" />
+      {showPill && (
+        <div className={`absolute bottom-2 left-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold shadow-lg ${pillCls}`}>
+          {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d left`}
         </div>
       )}
-      <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/45 to-transparent" />
-      <div className="absolute bottom-2 left-2">
-        <CardComplianceRing expiryDate={asset?.compliance_expiry_date} size={56} />
-      </div>
     </div>
   );
 }

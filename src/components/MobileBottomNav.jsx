@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useDivision } from '@/contexts/DivisionContext';
 import { useAIHub } from '@/components/ai/AIHub';
+import { useGlobalScanner } from '@/contexts/GlobalScannerContext';
 import { getNavConfigs } from '@/utils/divisionNav';
 
 /**
@@ -37,6 +38,7 @@ export default function MobileBottomNav() {
   const location = useLocation();
   const { activeDivision } = useDivision();
   const { openHub } = useAIHub();
+  const { openScanner } = useGlobalScanner();
 
   // Resolve nav items for the active division
   const items = activeDivision ? getNavConfigs(activeDivision) : [];
@@ -89,6 +91,10 @@ export default function MobileBottomNav() {
             <button
               key={item.id}
               onClick={() => {
+                if (item.id === 'scan') {
+                  openScanner();
+                  return;
+                }
                 if (item.isAIHub) {
                   openHub();
                   return;

@@ -13,6 +13,7 @@ import KEWPATImportModal from '@/components/pat/KEWPATImportModal';
 import BarcodeScanner from '@/components/staff/BarcodeScanner';
 import { safeFormat } from '@/utils/format';
 import { useToast } from '@/components/ui/use-toast';
+import { useGlobalScanner } from '@/contexts/GlobalScannerContext';
 
 /**
  * PATTestingPanel — the reusable PAT testing workspace.
@@ -24,13 +25,12 @@ import { useToast } from '@/components/ui/use-toast';
 export default function PATTestingPanel() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { openScanner } = useGlobalScanner();
   const [search, setSearch] = useState('');
   const [bucket, setBucket] = useState('all');
   const [testAsset, setTestAsset] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [sessionLog, setSessionLog] = useState([]);
-  const [scannerOpen, setScannerOpen] = useState(false);
-  const [scanError, setScanError] = useState('');
   const [importOpen, setImportOpen] = useState(false);
 
   const { data: assets = [], isLoading } = useQuery({
@@ -84,24 +84,6 @@ export default function PATTestingPanel() {
     setSyncing(false);
   };
 
-  const handleScan = (scannedValue) => {
-    setScanError('');
-    const val = scannedValue.trim().toLowerCase();
-    const match = patAssets.find(a =>
-      (a.barcode || '').toLowerCase() === val ||
-      (a.serial_number || '').toLowerCase() === val ||
-      (a.fleet_number || '').toLowerCase() === val ||
-      (a.panda_asset_id || '').toLowerCase() === val
-    );
-    if (match) {
-      setScannerOpen(false);
-      setTestAsset(match);
-      toast({ title: 'Asset found', description: match.name, duration: 1500 });
-    } else {
-      setScanError(`No portable appliance found for "${scannedValue}". Try searching manually below.`);
-    }
-  };
-
   const handleTestSaved = (assetName, result) => {
     setSessionLog(prev => [...prev, { name: assetName, result, time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) }]);
   };
@@ -144,36 +126,18 @@ export default function PATTestingPanel() {
         </div>
       </div>
 
-      {/* Scanner section */}
-      {!scannerOpen ? (
-        <button onClick={() => setScannerOpen(true)}
-          className="w-full flex items-center gap-3 p-4 bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl shadow-sm hover:brightness-110 transition active:scale-[0.98]">
-          <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-            <ScanLine className="w-6 h-6" />
-          </div>
-          <div className="text-left flex-1">
-            <p className="font-bold text-sm">Scan to Test</p>
-            <p className="text-xs text-white/80">Scan an asset barcode to open its PAT form instantly</p>
-          </div>
-          <ChevronRight className="w-5 h-5 text-white/60" />
-        </button>
-      ) : (
-        <div className="bg-white rounded-xl border border-amber-200 shadow-sm p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
-              <ScanLine className="w-4 h-4 text-amber-600" /> Scan Asset Barcode
-            </p>
-            <button onClick={() => { setScannerOpen(false); setScanError(''); }} className="text-xs text-slate-400 hover:text-slate-600 font-medium">Close</button>
-          </div>
-          <BarcodeScanner onScan={handleScan} placeholder="Scan or type the asset barcode…" autoFocus={true} />
-          {scanError && (
-            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
-              <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-800">{scanError}</p>
-            </div>
-          )}
+      {/* Scanner section — opens the full-screen camera scanner */}
+      <button onClick={() => openScanner({ mode: 'pat' })}
+        className="w-full flex items-center gap-3 p-4 bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl shadow-sm hover:brightness-110 transition active:scale-[0.98]">
+        <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+          <ScanLine className="w-6 h-6" />
         </div>
-      )}
+        <div className="text-left flex-1">
+          <p className="font-bold text-sm">Scan to Test</p>
+          <p className="text-xs text-white/80">Opens the camera — scan, PAT test, log repairs & faults in one flow</p>
+        </div>
+        <ChevronRight className="w-5 h-5 text-white/60" />
+      </button>
 
       {/* Session progress */}
       {sessionLog.length > 0 && (

@@ -27,7 +27,7 @@ const COMPLIANCE_META = {
  */
 export default function ScanResultPopup({
   resolving, scanResult, scanError, pendingPanda, alreadyInBasket, confirming, refreshing,
-  onViewAsset, onScanNext, onAddToBasket, onConfirmPanda, onCancelPanda,
+  onViewAsset, onScanNext, onAddToBasket, onConfirmPanda, onCancelPanda, extraActions = [],
 }) {
   const hasContent = resolving || scanResult || scanError || pendingPanda;
   if (!hasContent) return null;
@@ -61,6 +61,7 @@ export default function ScanResultPopup({
             onViewAsset={onViewAsset}
             onScanNext={onScanNext}
             onAddToBasket={onAddToBasket}
+            extraActions={extraActions}
           />
         ) : null}
       </div>
@@ -69,7 +70,7 @@ export default function ScanResultPopup({
 }
 
 /* ─── Result (normal or already-in-basket) ─── */
-function ResultContent({ asset, alreadyInBasket, refreshing, onViewAsset, onScanNext, onAddToBasket }) {
+function ResultContent({ asset, alreadyInBasket, refreshing, onViewAsset, onScanNext, onAddToBasket, extraActions = [] }) {
   const status = asset.compliance_status || 'unknown';
   const meta = COMPLIANCE_META[status] || COMPLIANCE_META.unknown;
   const StatusIcon = meta.Icon;
@@ -132,6 +133,21 @@ function ResultContent({ asset, alreadyInBasket, refreshing, onViewAsset, onScan
           </span>
         )}
       </div>
+
+      {/* Context-aware extra actions (PAT test, repair, fault, etc.) */}
+      {extraActions.length > 0 && (
+        <div className="px-5 pb-2 flex gap-2 flex-wrap">
+          {extraActions.map((action, i) => (
+            <button
+              key={i}
+              onClick={() => action.onClick(asset)}
+              className={action.className || 'flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-3.5 rounded-xl text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition active:scale-95'}
+            >
+              {action.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="px-5 flex gap-2">

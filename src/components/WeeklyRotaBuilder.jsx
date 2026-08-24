@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { startOfWeek, addDays, format, subWeeks } from 'date-fns';
@@ -39,6 +39,14 @@ export default function WeeklyRotaBuilder() {
   const [selectedWeek, setSelectedWeek] = useState(new Date());
   const [smartFillLoading, setSmartFillLoading] = useState(false);
   const [modal, setModal] = useState({ isOpen: false, assignment: null, defaultStaffId: '', defaultDate: '' });
+
+  // Listen for the "Add Shift" button dispatched by UnifiedRotaBuilder.
+  // Opens the smart AssignmentModal with empty defaults (no pre-selected staff/date).
+  useEffect(() => {
+    const handler = () => setModal({ isOpen: true, assignment: null, defaultStaffId: '', defaultDate: '' });
+    window.addEventListener('gc-open-add-shift', handler);
+    return () => window.removeEventListener('gc-open-add-shift', handler);
+  }, []);
   const [teamFilter, setTeamFilter] = useState('');
   const [staffSearch, setStaffSearch] = useState('');
   const [publishing, setPublishing] = useState(false);
