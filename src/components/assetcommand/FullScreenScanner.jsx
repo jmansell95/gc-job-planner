@@ -30,6 +30,7 @@ export default function FullScreenScanner({
   resolving, scanResult, scanError, pendingPanda, alreadyInBasket,
   confirming, refreshing,
   onViewAsset, onScanNext, onAddToBasket, onConfirmPanda, onCancelPanda,
+  extraActions = [],
 }) {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState('');
@@ -238,6 +239,7 @@ export default function FullScreenScanner({
         onAddToBasket={onAddToBasket}
         onConfirmPanda={onConfirmPanda}
         onCancelPanda={onCancelPanda}
+        extraActions={extraActions}
       />
 
       {/* Bottom controls */}
